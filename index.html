@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DONY BURGUER'S - SISTEMA SOBERANO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -11,47 +10,31 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
         .text-gold { color: #FFD700 !important; }
         .border-gold { border-color: #FFD700 !important; }
         .bg-gold { background-color: #FFD700 !important; }
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
     </style>
 </head>
 <body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden text-gold">
 
-    <div id="modalEntregas" class="hidden absolute inset-0 z-[2000] bg-black/80 p-4 flex flex-col">
-        <div class="bg-[#161820] border border-gold p-4 rounded-xl flex-1 overflow-y-auto">
-            <h2 id="tituloModal" class="text-gold font-bold text-xl mb-4 uppercase"></h2>
-            <div id="listaConteudo" class="space-y-2"></div>
-            <button onclick="document.getElementById('modalEntregas').classList.add('hidden')" class="mt-4 w-full bg-gold text-black font-bold py-2 rounded">FECHAR</button>
-        </div>
-    </div>
-
-    <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-        <button onclick="verPendentes()" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">PENDENTES</button>
-        <button onclick="verEntregaAtual()" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">ENTREGA ATUAL</button>
-        <button onclick="verConcluidas()" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">CONCLUÍDAS</button>
-    </div>
-
     <div id="map" class="flex-1 z-0"></div>
 
     <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-gold z-10">
-        <input type="text" id="nomeMotoboy" class="w-full p-2 mb-2 bg-[#0d0e12] border border-gold rounded-lg text-gold font-bold text-center uppercase" placeholder="NOME DO PILOTO">
-        
+        <div class="flex gap-2 mb-4">
+            <input type="text" id="inputEndereco" class="flex-1 p-3 bg-[#0d0e12] border border-gold rounded-lg text-gold font-bold uppercase" placeholder="DIGITE O ENDEREÇO DO CLIENTE...">
+            <button onclick="buscarEndereco()" class="bg-gold text-black px-4 py-2 rounded-lg font-black uppercase"><i class="fas fa-search"></i></button>
+        </div>
+
         <div class="flex justify-between items-center mb-4">
             <div>
-                <p id="entCliente" class="text-gold font-bold text-lg">AGUARDANDO PEDIDO...</p>
-                <p id="entEndereco" class="text-zinc-400 text-xs">---</p>
+                <p id="entCliente" class="text-gold font-black text-lg uppercase">AGUARDANDO PEDIDO...</p>
+                <p id="entEndereco" class="text-zinc-400 text-xs uppercase">---</p>
             </div>
             <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
         </div>
 
-        <div id="areaDestino" class="grid grid-cols-2 gap-2 mb-2">
-            <input type="text" id="latDestino" class="p-2 bg-[#0d0e12] border border-gold rounded-lg text-gold text-center" placeholder="LAT">
-            <input type="text" id="lngDestino" class="p-2 bg-[#0d0e12] border border-gold rounded-lg text-gold text-center" placeholder="LNG">
-        </div>
-        <button onclick="definirDestino()" class="w-full mb-2 bg-zinc-800 text-gold border border-gold py-2 rounded-lg font-bold uppercase text-xs">SALVAR DESTINO</button>
-        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold text-black font-black py-4 rounded-xl uppercase">INICIAR ROTA</button>
+        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] uppercase">INICIAR ROTA</button>
     </div>
 
     <script>
@@ -61,61 +44,44 @@
         const map = L.map('map').setView([-2.9903, -60.0673], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let markerBololo, markerCliente, watchId, emRota = false;
+        let markerCliente, markerBololo, watchId, emRota = false;
 
-        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
-            const p = snap.val();
-            if(p) {
-                document.getElementById('entCliente').innerText = p.cliente || "SEM NOME";
-                document.getElementById('entEndereco').innerText = p.endereco || "---";
-                if(p.latDestino && p.lngDestino) {
-                    if(markerCliente) map.removeLayer(markerCliente);
-                    markerCliente = L.marker([p.latDestino, p.lngDestino]).addTo(map).bindPopup("DESTINO");
-                }
+        async function buscarEndereco() {
+            const end = document.getElementById('inputEndereco').value;
+            if(!end) return alert("DIGITE UM ENDEREÇO!");
+
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(end)}, Manaus`);
+            const data = await res.json();
+
+            if(data.length > 0) {
+                const {lat, lon, display_name} = data[0];
+                if(markerCliente) map.removeLayer(markerCliente);
+                markerCliente = L.marker([lat, lon]).addTo(map).bindPopup("DESTINO: " + end).openPopup();
+                map.setView([lat, lon], 17);
+
+                db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
+                    cliente: end,
+                    endereco: display_name,
+                    latDestino: lat,
+                    lngDestino: lon
+                });
+                document.getElementById('entCliente').innerText = end;
+                document.getElementById('entEndereco').innerText = "DESTINO ENCONTRADO";
             } else {
-                document.getElementById('entCliente').innerText = "AGUARDANDO PEDIDO...";
+                alert("ENDEREÇO NÃO ENCONTRADO.");
             }
-        });
-
-        function abrirModal(titulo, dados) {
-            document.getElementById('tituloModal').innerText = titulo;
-            const lista = document.getElementById('listaConteudo');
-            lista.innerHTML = '';
-            if(!dados) return lista.innerHTML = '<p class="text-white">Nenhum dado encontrado.</p>';
-            Object.values(dados).forEach(item => {
-                lista.innerHTML += `<div class="border border-gold p-3 rounded text-white text-sm mb-2"><b>${item.cliente || '---'}</b><br>${item.endereco || '---'}</div>`;
-            });
-            document.getElementById('modalEntregas').classList.remove('hidden');
-        }
-
-        function verPendentes() { db.ref(`lojas/${LOJA_ID}/pendentes`).once('value', s => abrirModal("PENDENTES", s.val())); }
-        function verConcluidas() { db.ref(`lojas/${LOJA_ID}/concluidas`).limitToLast(5).once('value', s => abrirModal("CONCLUÍDAS", s.val())); }
-        
-        function verEntregaAtual() {
-            if(markerCliente) map.setView(markerCliente.getLatLng(), 18);
-            else alert("Nenhuma entrega ativa no momento.");
-        }
-
-        function definirDestino() {
-            const lat = document.getElementById('latDestino').value;
-            const lng = document.getElementById('lngDestino').value;
-            if(!lat || !lng) return alert("Preencha LAT e LNG!");
-            db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).update({latDestino: parseFloat(lat), lngDestino: parseFloat(lng)})
-            .then(() => alert("Destino Atualizado!"));
         }
 
         function alternarRastreamento() {
-            const nome = document.getElementById('nomeMotoboy').value;
-            if(!nome) return alert("INSIRA O NOME!");
             if(!emRota) {
                 watchId = navigator.geolocation.watchPosition(pos => {
                     const {latitude, longitude} = pos.coords;
                     if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
                     else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
-                    db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome});
+                    db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome: "PILOTO"});
                 }, null, {enableHighAccuracy: true});
                 emRota = true;
-                document.getElementById('btnRota').innerText = "FINALIZAR ENTREGA";
+                document.getElementById('btnRota').innerText = "FINALIZAR ROTA";
                 document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
             } else {
                 navigator.geolocation.clearWatch(watchId);
