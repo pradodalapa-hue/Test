@@ -3,865 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dony Burguer's - Controle Industrial</title>
+    <title>DONY BURGUER'S - SISTEMA SOBERANO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
     <style>
-        :root {
-            --dark-bg: #0d0e12;
-            --card-bg: #161820;
-            --blue-tech: #00f2ff;
-            --gold: #f59e0b;
-            --green: #10b981;
-            --red: #ef4444;
-            --text-main: #e2e8f0;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: var(--dark-bg); color: var(--text-main); padding: 15px; }
-
-        .header-painel { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--card-bg); border-radius: 8px; border-bottom: 2px solid var(--blue-tech); margin-bottom: 15px; gap: 10px; }
-        .header-painel h2 { color: var(--blue-tech); font-size: 18px; font-weight: bold; }
-
-        .btn-notificacao-pedidos { background: var(--red); color: #fff; border: none; padding: 8px 16px; font-weight: 900; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; animation: pulse 2s infinite; position: relative; }
-        .btn-notificacao-pedidos.zerado { background: #2d3142; color: #64748b; animation: none; }
-        .badge-contador { background: #fff; color: #000; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(239, 64, 64, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(239, 64, 64, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 64, 64, 0); }
-        }
-
-        .grid-principal { display: grid; grid-template-columns: 1fr 340px; gap: 15px; }
-        @media(max-width: 768px) { .grid-principal { grid-template-columns: 1fr; } }
-
-        .bloco-mesas { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .mesa-box { background: var(--card-bg); border: 1px solid #2d3142; border-radius: 8px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 8px; }
-        .mesa-box i { font-size: 20px; color: #64748b; }
-        .mesa-box span { font-size: 12px; font-weight: bold; }
-        .mesa-box.ocupada { border-color: var(--red); background: rgba(239, 68, 68, 0.05); }
-        .mesa-box.ocupada i { color: var(--red); }
-        .mesa-box.ativa { border-color: var(--blue-tech); background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 10px rgba(0,242,255,0.2); }
-        .mesa-box.ativa i { color: var(--blue-tech); }
-
-        .vitrine-container { background: var(--card-bg); border-radius: 8px; padding: 15px; border: 1px solid #2d3142; }
-        .vitrine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; }
-        .mini-card { background: var(--dark-bg); border: 1px solid #2d3142; border-radius: 6px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .mini-card:hover { border-color: var(--blue-tech); }
-        .mini-card img { width: 100%; height: 70px; object-fit: cover; border-radius: 4px; margin-bottom: 5px; }
-        .mini-card span { display: block; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .mini-card small { display: block; font-size: 11px; font-weight: bold; margin-top: 2px; }
-
-        .painel-lateral { display: flex; flex-direction: column; gap: 15px; }
-        .caixa-comando { background: var(--card-bg); border-radius: 8px; padding: 15px; border: 1px solid #2d3142; }
-        .caixa-comando h3 { font-size: 14px; margin-bottom: 12px; border-left: 3px solid var(--blue-tech); padding-left: 8px; }
-
-        .item-carrinho { display: flex; justify-content: space-between; align-items: center; background: var(--dark-bg); padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #1e293b; font-size: 12px; }
-        .item-carrinho strong { color: var(--blue-tech); }
-
-        .display-total { font-size: 24px; font-weight: bold; text-align: center; padding: 15px; background: var(--dark-bg); border-radius: 6px; border: 1px dashed var(--blue-tech); color: var(--blue-tech); margin: 15px 0; }
-
-        .btn-acao { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; margin-bottom: 8px; transition: 0.2s; }
-        .btn-green { background: var(--green); color: #000; }
-        .btn-blue { background: var(--blue-tech); color: #000; }
-        .btn-gold { background: var(--gold); color: #000; }
-        .btn-acao:active { filter: brightness(0.8); }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
-        .modal-content { background: var(--card-bg); border: 1px solid #2d3142; padding: 20px; border-radius: 12px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
-        .modal-content h3 { margin-bottom: 15px; text-align: center; color: var(--blue-tech); }
-
-        .form-grupo { margin-bottom: 12px; }
-        .form-grupo label { display: block; font-size: 11px; margin-bottom: 4px; color: #94a3b8; }
-        .form-input { width: 100%; padding: 10px; background: var(--dark-bg); border: 1px solid #2d3142; border-radius: 6px; color: #fff; font-size: 13px; }
-        .form-input:focus { border-color: var(--blue-tech); outline: none; }
-
-        .qrcode-box { background: #fff; padding: 10px; border-radius: 8px; margin: 15px auto; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
-
-        .card-historico { background: var(--dark-bg); border: 1px solid #2d3142; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
-
-        #relatorio-export { width: 280px; background: #fff; color: #000; padding: 15px; font-family: monospace; font-size: 11px; }
-        .relatorio-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .relatorio-table th { border-bottom: 1px solid #000; text-align: left; padding-bottom: 4px; }
-        .relatorio-table td { padding: 4px 0; }
-
-        .card-pendencia { background: var(--dark-bg); border: 1px solid #2d3142; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
-        .card-pendencia h4 { color: var(--gold); display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
-        .linha-botoes-pendencia { display: flex; gap: 8px; margin-top: 10px; width: 100%; justify-content: flex-end; }
-        .btn-p-mini { padding: 8px 14px; font-size: 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
+        .text-gold { color: #FFD700; }
+        .border-gold { border-color: #FFD700; }
+        .bg-gold { background-color: #FFD700; }
     </style>
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" sizes="192x192" href="icon-192.png">
-    <link rel="icon" sizes="512x512" href="icon-512.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-<body>
+<body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden">
 
-    <div class="header-painel">
-        <h2>LEOCARDIOS BURGUER'S</h2>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <button class="btn-notificacao-pedidos zerado" id="btnNotif" onclick="abrirPainelPendencias()">
-                <i class="fas fa-bell"></i> PEDIDOS <div class="badge-contador" id="contNotif">0</div>
-            </button>
-            <button class="btn-acao btn-gold" style="width:auto; margin:0; padding:6px 12px;" onclick="abrirPortalMestre()">
-                <i class="fas fa-vault"></i> COFRE NOTAS
-            </button>
-        </div>
+    <!-- Menu Flutuante Superior Direito -->
+    <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+        <button onclick="alert('Entregas Pendentes')" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">
+            <i class="fas fa-clock"></i> Pendentes
+        </button>
+        <button onclick="alert('Entrega Atual')" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">
+            <i class="fas fa-map-marker-alt"></i> Entrega Atual
+        </button>
+        <button onclick="alert('Entregas Concluídas')" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">
+            <i class="fas fa-check-circle"></i> Concluídas
+        </button>
     </div>
 
-    <div class="grid-principal">
-        <div>
-            <div class="bloco-mesas" id="gridMesas"></div>
-            <div class="vitrine-container">
-                <h3 style="font-size:14px; margin-bottom:10px;"><i class="fas fa-hamburger"></i> CARDÁPIO</h3>
-                <div class="vitrine-grid" id="mini-vitrine"></div>
-            </div>
+    <div id="map" class="flex-1 z-0"></div>
+
+    <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-gold shadow-2xl z-10">
+        <div id="areaIdentificacao" class="mb-4">
+            <input type="text" id="nomeMotoboy" class="w-full p-2 bg-[#0d0e12] border border-zinc-700 rounded-lg text-gold font-bold text-center uppercase" placeholder="NOME DO PILOTO">
         </div>
 
-        <div class="painel-lateral">
-            <div class="caixa-comando">
-                <h3 id="statusMesa">OPERANDO: NENHUMA</h3>
-                <div id="containerCarrinho" style="max-height:220px; overflow-y:auto; margin-top:10px;"></div>
-                <div class="display-total" id="totalDisplay">R$ 0,00</div>
-                <button class="btn-acao btn-green" onclick="enviarMesaParaPendentes()"><i class="fas fa-paper-plane"></i> ENVIAR PEDIDO</button>
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <p id="entCliente" class="text-white font-bold text-lg">AGUARDANDO PEDIDO...</p>
+                <p id="entEndereco" class="text-zinc-400 text-xs">---</p>
             </div>
-
-            <div class="caixa-comando">
-                <h3>PAINEL DE OPERAÇÃO</h3>
-                <div style="height: 100px; margin-bottom: 10px;"><canvas id="graficoVendas"></canvas></div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:center;">
-                    <div style="background:var(--dark-bg); padding:10px; border-radius:6px;">
-                        <small style="display:block; opacity:0.5; font-size:10px;">ESTOQUE TOTAL</small>
-                        <strong id="estoqueTotal" style="color:var(--gold); font-size:14px;">0 UN</strong>
-                    </div>
-                    <div style="background:var(--dark-bg); padding:10px; border-radius:6px;">
-                        <small style="display:block; opacity:0.5; font-size:10px;">FATURAMENTO</small>
-                        <strong id="faturamentoDia" style="color:var(--green); font-size:14px;">R$ 0,00</strong>
-                    </div>
-                </div>
-                <button class="btn-acao btn-blue" style="margin-top:10px;" onclick="auditoriaEstoqueVoz()"><i class="fas fa-volume-up"></i> AUDITAR ESTOQUE</button>
-            </div>
+            <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
         </div>
+
+        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold hover:bg-yellow-500 text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] transition-all uppercase">
+            <i class="fas fa-motorcycle"></i> Iniciar Rota
+        </button>
     </div>
-
-    <div class="modal-overlay" id="modal-pedidos-pendentes">
-        <div class="modal-content" style="max-width: 450px;">
-            <h3>📥 LINHA DE PRODUÇÃO INDUSTRIAL</h3>
-            <div id="listaPendentesContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px;"></div>
-            <button class="btn-acao" style="background: #475569; color: #fff; margin: 0;" onclick="document.getElementById('modal-pedidos-pendentes').style.display='none'">FECHAR</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-fechamento-caixa">
-        <div class="modal-content" style="max-width: 360px;">
-            <h3>💰 CAIXA: FINALIZAR CONTA</h3>
-            <div style="text-align: center; margin-bottom: 15px;">
-                <p id="txtMesaFechando" style="font-size: 14px; font-weight: bold; color: var(--gold);"></p>
-                <div class="display-total" id="totalFechamentoDisplay" style="margin: 8px 0;">R$ 0,00</div>
-            </div>
-            <button class="btn-acao btn-green" onclick="processarPagamentoFinal('PIX')"><i class="fa-solid fa-qrcode"></i> PIX</button>
-            <button class="btn-acao btn-blue" onclick="processarPagamentoFinal('DINHEIRO')"><i class="fa-solid fa-money-bill-wave"></i> DINHEIRO</button>
-            <button class="btn-acao btn-gold" onclick="processarPagamentoFinal('CARTÃO')"><i class="fa-solid fa-credit-card"></i> CARTÃO</button>
-            <button class="btn-acao" style="background: #222; color: #fff; margin-top: 10px;" onclick="cancelarFechamentoCaixa()">VOLTAR</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-endereco-separated">
-        <div class="modal-content" style="max-width:360px;">
-            <h3><i class="fas fa-shipping-fast" style="color:var(--gold)"></i> DADOS DE ENTREGA</h3>
-            <p style="font-size:12px; opacity:0.7; text-align:center; margin-bottom:15px;">Insira os dados para gerar o minicupom do entregador.</p>
-            
-            <div class="form-grupo">
-                <label>NOME DO CLIENTE</label>
-                <input type="text" class="form-input" id="nomeClienteEntrega" placeholder="Ex: Jose">
-            </div>
-            <div class="form-grupo">
-                <label>ENDEREÇO COMPLETO</label>
-                <input type="text" class="form-input" id="enderecoClienteEntrega" placeholder="Ex: Rua Feliz, 89">
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px;">
-                <button class="btn-acao" style="background:#475569; color:#fff; margin:0;" onclick="fecharModalEndereco()">AVANÇAR</button>
-                <button class="btn-acao btn-gold" style="margin:0;" onclick="dispararCupomMotoboy()"><i class="fas fa-print"></i> IMPRIMIR</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-qrcode-tela">
-        <div class="modal-content" style="max-width:300px; text-align:center;">
-            <h3>PIX GERADO</h3>
-            <div class="qrcode-box" id="qrcode-area-exibicao"></div>
-            <button class="btn-acao btn-blue" style="margin:0;" onclick="document.getElementById('modal-qrcode-tela').style.display='none'">FECHAR TELA</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-mestre">
-        <div class="modal-content" style="max-width:320px;">
-            <h3>ACESSO RESTRITO</h3>
-            <div class="form-grupo">
-                <label>CHAVE MESTRE DE SEGURANÇA</label>
-                <input type="password" class="form-input" id="senhaMestre" style="text-align:center; font-size:18px; letter-spacing:4px;">
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px;">
-                <button class="btn-acao" style="background:#475569; color:#fff; margin:0;" onclick="fecharModalMestre()">CANCELAR</button>
-                <button class="btn-acao btn-gold" style="margin:0;" onclick="verificarSenhaMestre()">ENTRAR</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="tela-historico" style="align-items:flex-start; overflow-y:auto;">
-        <div class="modal-content" style="max-width:650px; margin-top:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 style="margin:0;">COFRE DE MEMÓRIA DE AÇO</h3>
-                <button class="btn-acao" style="background:var(--red); color:#fff; width:auto; margin:0; padding:4px 10px;" onclick="fecharHistorico()">FECHAR</button>
-            </div>
-            <div class="form-grupo">
-                <label>SELECIONE A DATA PARA CONSULTA</label>
-                <input type="date" class="form-input" id="dataFiltro" onchange="buscarVendasMemoriaAco(this.value)">
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 300px; gap:15px; margin-top:15px;">
-                <div id="listaMemoriaAco" style="max-height:400px; overflow-y:auto; padding-right:5px;"></div>
-                <div>
-                    <div id="controles-relatorio" style="display:none; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-                        <button class="btn-acao btn-blue" style="margin:0;" onclick="conectarEImprimirRelatorio()"><i class="fas fa-print"></i> IMPRIMIR</button>
-                        <button class="btn-acao btn-green" style="margin:0;" onclick="gerarCanvasRelatorio()"><i class="fas fa-share-nodes"></i> IMAGEM</button>
-                    </div>
-                    <div style="overflow:hidden; border-radius:4px; display:flex; justify-content:center;">
-                        <div id="relatorio-export">
-                            <center>
-                                <strong style="font-size:13px;">DONY BURGUER'S</strong><br>
-                                RELATÓRIO INDUSTRIAL DE FECHAMENTO<br>
-                                <span id="canvas-data-info"></span>
-                            </center>
-                            <div id="corpo-relatorio-canvas"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="trava-seguranca" style="z-index:200;">
-        <div class="modal-content" style="max-width:300px; text-align:center;">
-            <h3 style="color:var(--red);"><i class="fas fa-shield-alt"></i> AUTENTICAÇÃO</h3>
-            <p style="font-size:12px; margin-bottom:15px;">Insira o código enviado para o gerente para validar a exclusão da venda.</p>
-            <input type="number" class="form-input" id="inputCodigo" style="text-align:center; font-size:22px; font-weight:bold;" placeholder="0000">
-            <button class="btn-acao btn-green" style="margin-top:15px;" onclick="validarExclusao()">AUTORIZAR ALTERAÇÃO</button>
-        </div>
-    </div>
-
-    <div id="cadernoMesas" style="display:none;"></div>
 
     <script>
-        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
-        const IMG_PADRAO = "https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779084423828_IMG_20260512_WA0010.jpg";
-        
-        firebase.initializeApp({ databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" });
+        firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
         const db = firebase.database();
+        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+        
+        const map = L.map('map').setView([-2.9903, -60.0673], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let mesaAtiva = null, catalogo = {}, mesasStatus = {}, metodoSelecionado = "", graficoVendas;
-        let codigoGerado = null, idVendaParaExcluir = null, vendasCarregadas = [], dataSelecionadaRelatorio = "", devicePrinter = null;
-        let ultimaVendaCache = null, ultimosItensBrutosCache = [];
-        let listaPendentesGlobais = {};
-        let pedidoParaFechamentoKey = null; 
+        let markerBololo, markerCliente, watchId, emRota = false;
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let intervaloApito = null;
-
-        const listaMesas = ["MESA 01", "MESA 02", "MESA 03", "MESA 04", "MESA 05", "MESA 06", "MESA 07", "MESA 08", "BALCÃO"];
-
-        db.ref(`lojas/${LOJA_ID}`).on('value', snap => {
-            const data = snap.val() || {};
-            catalogo = data.cardapio || {};
-            mesasStatus = data.mesas_ativas || {};
-            listaPendentesGlobais = data.producao_pendente || {};
-            
-            renderizarVitrine();
-            renderizarMesas();
-            renderizarContadorNotificacoes();
-            renderizarListaPendentes();
-            processarVendasVolateis(data.pedidos || {});
-        });
-
-        db.ref(`lojas/${LOJA_ID}/producao_pendente`).on('child_changed', (snapshot) => {
-            const pedidoAlterado = snapshot.val();
-            const idPedido = snapshot.key;
-
-            if (pedidoAlterado && pedidoAlterado.status === "PRONTO") {
-                tocarSomPedidoPronto();
-                falar(`Atenção! Lanche pronto na ${pedidoAlterado.mesa}.`);
-                setTimeout(() => {
-                    abrirJanelaPagamentoCaixa(idPedido);
-                }, 500);
+        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
+            const p = snap.val();
+            if(p) {
+                document.getElementById('entCliente').innerText = p.cliente;
+                document.getElementById('entEndereco').innerText = p.endereco;
+                if(p.latDestino) {
+                    if(markerCliente) map.removeLayer(markerCliente);
+                    markerCliente = L.marker([p.latDestino, p.lngDestino]).addTo(map).bindPopup("DESTINO CLIENTE").openPopup();
+                }
             }
         });
 
-        function tocarSomPedidoPronto() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                [0, 150, 300].forEach((atraso) => {
-                    setTimeout(() => {
-                        let osc = ctx.createOscillator();
-                        let gain = ctx.createGain();
-                        osc.type = "triangle";
-                        osc.frequency.setValueAtTime(660, ctx.currentTime); 
-                        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-                        osc.start();
-                        osc.stop(ctx.currentTime + 0.1);
-                    }, atraso);
-                });
-            } catch (e) {
-                console.log("Áudio bloqueado.");
-            }
-        }
+        function alternarRastreamento() {
+            const nome = document.getElementById('nomeMotoboy').value;
+            if(!nome) return alert("INSIRA O NOME!");
 
-        function renderizarVitrine() {
-            document.getElementById('mini-vitrine').innerHTML = Object.entries(catalogo).map(([id, p]) => `
-                <div class="mini-card" onclick="adicionarAoPedido('${id}', '${p.nome}', ${p.preco}, '${p.link}')">
-                    <img src="${p.link || IMG_PADRAO}" onerror="this.src='${IMG_PADRAO}'">
-                    <span>${p.nome}</span><small style="color:var(--green)">R$ ${parseFloat(p.preco).toFixed(2)}</small>
-                </div>`).join('');
-        }
-
-        function renderizarMesas() {
-            document.getElementById('gridMesas').innerHTML = listaMesas.map(m => `
-                <div class="mesa-box ${mesasStatus[m] ? 'ocupada' : ''} ${mesaAtiva === m ? 'ativa' : ''}" onclick="selecionarMesa('${m}')">
-                    <i class="fas fa-hamburger"></i><span>${m}</span>
-                </div>`).join('');
-        }
-
-        function selecionarMesa(m) { mesaAtiva = m; document.getElementById('statusMesa').innerText = "OPERANDO: " + m; renderizarMesas(); renderizarCadernoItens(); }
-
-        function adicionarAoPedido(id, nome, preco, link) {
-            if(!mesaAtiva) { falar("Selecione uma mesa primeiro."); return; }
-            db.ref(`lojas/${LOJA_ID}/mesas_ativas/${mesaAtiva}/${Date.now()}`).set({ id, nome, preco: parseFloat(preco), link: link || IMG_PADRAO });
-        }
-
-        function renderizarCadernoItens() {
-            let total = 0, html = "";
-            if(mesaAtiva && mesasStatus[mesaAtiva]) {
-                Object.entries(mesasStatus[mesaAtiva]).forEach(([key, item]) => {
-                    html += `<div class="item-carrinho"><span>${item.nome}</span><strong>R$ ${item.preco.toFixed(2)}</strong><i class="fas fa-trash" style="color:var(--red); cursor:pointer" onclick="removerItemMesa('${key}')"></i></div>`;
-                    total += item.preco;
-                });
-            }
-            document.getElementById('containerCarrinho').innerHTML = html || "<p style='text-align:center; opacity:0.3;'>MESA VAZIA</p>";
-            document.getElementById('totalDisplay').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
-        }
-
-        function removerItemMesa(key) { db.ref(`lojas/${LOJA_ID}/mesas_ativas/${mesaAtiva}/${key}`).remove(); }
-
-        function renderizarContadorNotificacoes() {
-            const btn = document.getElementById('btnNotif');
-            const cont = document.getElementById('contNotif');
-            const totalPendentes = Object.keys(listaPendentesGlobais).length;
-            cont.innerText = totalPendentes;
-            if(totalPendentes > 0) btn.classList.remove('zerado');
-            else btn.classList.add('zerado');
-        }
-
-        function enviarMesaParaPendentes() {
-            if (!mesaAtiva || !mesasStatus[mesaAtiva]) return falar("Nenhum item na mesa para enviar.");
-            
-            const idPedido = Date.now().toString(); 
-            const itens = Object.values(mesasStatus[mesaAtiva]);
-            const total = itens.reduce((acc, i) => acc + i.preco, 0);
-
-            const pedidoData = {
-                mesa: mesaAtiva,
-                status: "ESPERA", 
-                total: total,
-                itens: itens,
-                hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            };
-
-            db.ref(`lojas/${LOJA_ID}/producao_pendente/${idPedido}`).set(pedidoData).then(() => {
-                const mesaLimpar = mesaAtiva;
-                db.ref(`lojas/${LOJA_ID}/mesas_ativas/${mesaLimpar}`).remove();
-                mesaAtiva = null;
-                renderizarMesas();
-                falar("Pedido enviado para a comanda da cozinha.");
-            });
-        }
-
-        function abrirPainelPendencias() {
-            document.getElementById('modal-pedidos-pendentes').style.display = 'flex';
-        }
-
-        function renderizarListaPendentes() {
-            const container = document.getElementById('listaPendentesContainer');
-            if(Object.keys(listaPendentesGlobais).length === 0) {
-                container.innerHTML = "<p style='text-align:center; opacity:0.4; padding:20px;'>NENHUM PEDIDO NA ESTREIRA INDUSTRIAL</p>";
-                return;
-            }
-
-            container.innerHTML = Object.entries(listaPendentesGlobais).map(([key, p]) => {
-                const mapaItens = {};
-                p.itens.forEach(i => { mapaItens[i.nome] = (mapaItens[i.nome] || 0) + 1; });
-                const resumoItens = Object.entries(mapaItens).map(([nome, q]) => `${q}x ${nome}`).join('<br>');
-
-                let statusColor = "var(--red)";
-                let acaoBotao = "";
+            if(!emRota) {
+                watchId = navigator.geolocation.watchPosition(pos => {
+                    const {latitude, longitude} = pos.coords;
+                    if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
+                    else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
+                    map.setView([latitude, longitude]);
+                    db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome});
+                }, null, {enableHighAccuracy: true});
                 
-                if(p.status === "ESPERA") {
-                    statusColor = "var(--red)";
-                    acaoBotao = `<button class="btn-p-mini" style="background:var(--blue-tech); color:#000;" onclick="alterarStatusPedidoPendente('${key}', 'PREPARANDO')"><i class="fas fa-play"></i> CONFIRMAR</button>`;
-                } else if(p.status === "PREPARANDO") {
-                    statusColor = "var(--gold)";
-                    acaoBotao = `<button class="btn-p-mini" style="background:var(--gold); color:#000;" onclick="alterarStatusPedidoPendente('${key}', 'PRONTO')"><i class="fas fa-fire"></i> PRONTO</button>`;
-                } else if(p.status === "PRONTO") {
-                    statusColor = "var(--green)";
-                    acaoBotao = `<button class="btn-p-mini" style="background:var(--green); color:#000;" onclick="abrirJanelaPagamentoCaixa('${key}')"><i class="fas fa-check"></i> COBRAR</button>`;
-                }
-
-                return `
-                    <div class="card-pendencia" style="border-left: 4px solid ${statusColor};">
-                        <h4>
-                            <span><i class="fas fa-tablet-alt"></i> ${p.mesa}</span>
-                            <span style="color:${statusColor}; font-size:11px; text-transform:uppercase;">${p.status}</span>
-                        </h4>
-                        <div style="font-size:12px; margin:8px 0; color:#cbd5e1; line-height:1.4;">${resumoItens}</div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                            <strong style="color:var(--green); font-size:14px;">R$ ${parseFloat(p.total).toFixed(2)}</strong>
-                            <div class="linha-botoes-pendencia">
-                                ${acaoBotao}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function alterarStatusPedidoPendente(key, novoStatus) {
-            db.ref(`lojas/${LOJA_ID}/producao_pendente/${key}/status`).set(novoStatus).then(() => {
-                if(novoStatus === 'PREPARANDO') falar("Pedido em preparação.");
-                if(novoStatus === 'PRONTO') falar("Pedido pronto.");
-            });
-        }
-
-        function abrirJanelaPagamentoCaixa(key) {
-            pedidoParaFechamentoKey = key;
-            const pedido = listaPendentesGlobais[key];
-            
-            document.getElementById('txtMesaFechando').innerText = `ORIGEM: ${pedido.mesa}`;
-            document.getElementById('totalFechamentoDisplay').innerText = `R$ ${parseFloat(pedido.total).toFixed(2).replace('.', ',')}`;
-            
-            document.getElementById('modal-pedidos-pendentes').style.display = 'none';
-            document.getElementById('modal-fechamento-caixa').style.display = 'flex';
-        }
-
-        function cancelarFechamentoCaixa() {
-            document.getElementById('modal-fechamento-caixa').style.display = 'none';
-            document.getElementById('modal-pedidos-pendentes').style.display = 'flex';
-            falar("Pedido em standby no caixa.");
-        }
-
-        function activarApitoAlarme() {
-            if(intervaloApito) return; 
-            falar("Aviso: Impressora desconectada!");
-            intervaloApito = setInterval(() => {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = "square";
-                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.15);
-            }, 400);
-        }
-
-        function pararApitoAlarme() {
-            if(intervaloApito) {
-                clearInterval(intervaloApito);
-                intervaloApito = null;
-            }
-        }
-
-        // FUNÇÃO DE FECHAMENTO COMPLETA E CORRIGIDA SEM CORTES
-        async function processarPagamentoFinal(metodo) {
-            if(!pedidoParaFechamentoKey || !listaPendentesGlobais[pedidoParaFechamentoKey]) return;
-            
-            metodoSelecionado = metodo;
-            const pedido = listaPendentesGlobais[pedidoParaFechamentoKey];
-            const totalLimpo = parseFloat(pedido.total);
-
-            const agora = new Date();
-            const dataRef = agora.toISOString().split('T')[0].replace(/-/g, '/');
-            const stringsResumo = pedido.itens.map(i => i.nome).join(' + ');
-
-            ultimaVendaCache = {
-                mesa: pedido.mesa,
-                pagamento: metodoSelecionado,
-                total: totalLimpo.toString(),
-                produto: stringsResumo,
-                hora: agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-                data: agora.toLocaleDateString('pt-BR')
-            };
-            ultimosItensBrutosCache = [...pedido.itens];
-
-            if(metodo === 'PIX') {
-                const qrArea = document.getElementById('qrcode-area-exibicao');
-                qrArea.innerHTML = "";
-                new QRCode(qrArea, { text: gerarPayloadPix(totalLimpo), width: 180, height: 180 });
-                document.getElementById('modal-qrcode-tela').style.display = 'flex';
-            }
-
-            let impressaoOk = await imprimirCupomComercialConta(ultimaVendaCache, ultimosItensBrutosCache);
-            
-            if (!impressaoOk) {
-                activarApitoAlarme();
-                let forcarSalvar = confirm("Impressora offline! Deseja forçar o salvamento no banco de dados mesmo assim?");
-                if(forcarSalvar) {
-                    pararApitoAlarme();
-                } else {
-                    return;
-                }
+                emRota = true;
+                document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
+                document.getElementById('statusGPS').className = "text-[10px] font-black text-green-500 uppercase";
+                document.getElementById('btnRota').innerText = "FINALIZAR ENTREGA";
             } else {
-                pararApitoAlarme();
+                navigator.geolocation.clearWatch(watchId);
+                db.ref(`lojas/${LOJA_ID}/motoboy_status`).update({online: false});
+                location.reload();
             }
-
-            const desejaEntrega = confirm("Deseja abrir a janela de controle de entrega do Motoboy?");
-
-            db.ref(`lojas/${LOJA_ID}/pedidos`).push(ultimaVendaCache);
-            db.ref(`lojas/${LOJA_ID}/memoria_aco/${dataRef}`).push(ultimaVendaCache);
-
-            pedido.itens.forEach(i => { 
-                if(i.id) {
-                    db.ref(`lojas/${LOJA_ID}/cardapio/${i.id}/estoque`).transaction(a => {
-                        return (a !== null && a > 0) ? a - 1 : 0;
-                    });
-                }
-            });
-
-            db.ref(`lojas/${LOJA_ID}/producao_pendente/${pedidoParaFechamentoKey}`).remove().then(() => {
-                document.getElementById('modal-fechamento-caixa').style.display = 'none';
-                falar("Conta finalizada com sucesso.");
-
-                if(desejaEntrega) {
-                    setTimeout(() => {
-                        document.getElementById('nomeClienteEntrega').value = "";
-                        document.getElementById('enderecoClienteEntrega').value = "";
-                        document.getElementById('modal-endereco-separated').style.display = 'flex';
-                    }, 800); 
-                } else {
-                    pedidoParaFechamentoKey = null;
-                }
-            });
-        }
-// Adicione no seu PDV
-async function converterEnderecoParaCoordenadas(endereco) {
-    try {
-        // Busca coordenadas em Manaus
-        const resposta = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco + ", Manaus")}`);
-        const dados = await resposta.json();
-        
-        if (dados && dados.length > 0) {
-            return { lat: parseFloat(dados[0].lat), lng: parseFloat(dados[0].lon) };
-        }
-        return { lat: -2.9903, lng: -60.0673 }; // Localização padrão (Manaus) caso não ache
-    } catch (error) {
-        return { lat: -2.9903, lng: -60.0673 };
-    }
-}
-
-        async function dispararCupomMotoboy() {
-    if(!ultimaVendaCache) return;
-    const cliente = document.getElementById('nomeClienteEntrega').value.trim() || "NAO INFORMADO";
-    const endereco = document.getElementById('enderecoClienteEntrega').value.trim() || "RETIRADA NO BALCAO";
-    
-    // Converte antes de enviar
-    const coords = await converterEnderecoParaCoordenadas(endereco);
-    
-    // Envia os dados com as coordenadas que o mapa do motoboy vai ler
-    db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
-        cliente: cliente,
-        endereco: endereco,
-        produtos: ultimaVendaCache.produto,
-        valor: ultimaVendaCache.total,
-        latDestino: coords.lat, // O mapa do motoboy usa isso
-        lngDestino: coords.lng, // O mapa do motoboy usa isso
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
-    
-    await imprimirMinicupomEntrega(ultimaVendaCache, ultimosItensBrutosCache, cliente, endereco);
-    fecharModalEndereco();
-    falar("Rota calculada e enviada ao Bololo!");
-}
-
-
-        async function obterCaracteristicaImpressora() {
-            if (!devicePrinter || !devicePrinter.gatt.connected) {
-                devicePrinter = await navigator.bluetooth.requestDevice({ 
-                    filters: [{ namePrefix: '58' }, { namePrefix: 'Bluetooth' }], 
-                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] 
-                });
-            }
-            const server = await devicePrinter.gatt.connect();
-            const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-            return await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-        }
-
-        async function imprimirCupomComercialConta(venda, listaItens) {
-            try {
-                const char = await obterCaracteristicaImpressora();
-                let texto = "\x1B\x61\x01\x1B\x21\x30LEOCAR BURGUER'S\n\x1B\x21\x00\nSABORES INCOMPARAVEIS\n--------------------------------\n\x1B\x61\x00";
-                texto += `ORIGEM: ${textToAsciiNoAccents(venda.mesa)}\nHORA  : ${venda.hora} | DATA: ${venda.data}\n--------------------------------\nITENS DA COMPRA:\n`;
-                
-                const agrupados = {};
-                listaItens.forEach(item => {
-                    if(!agrupados[item.nome]) agrupados[item.nome] = { preco: item.preco, qtd: 0 };
-                    agrupados[item.nome].qtd++;
-                });
-
-                Object.entries(agrupados).forEach(([nome, info]) => {
-                    let subtotalItem = info.preco * info.qtd;
-                    let linhaNome = `${textToAsciiNoAccents(nome)} x${info.qtd}`.substring(0, 19).padEnd(21);
-                    texto += `${linhaNome}R$ ${subtotalItem.toFixed(2)}\n`;
-                });
-                
-                texto += `--------------------------------\nFORMA PAGTO: ${textToAsciiNoAccents(venda.pagamento)}\nTOTAL GERAL: R$ ${parseFloat(venda.total).toFixed(2)}\n--------------------------------\n`;
-                await char.writeValue(new TextEncoder().encode(texto));
-
-                if(venda.pagamento === 'PIX') {
-                    await char.writeValue(new TextEncoder().encode("\x1B\x61\x01PAGUE VIA PIX PELO QR CODE:\n\n"));
-                    let divQr = document.createElement('div');
-                    new QRCode(divQr, { text: gerarPayloadPix(venda.total), width: 160, height: 160, correctLevel: QRCode.CorrectLevel.L });
-                    await new Promise(r => setTimeout(r, 350));
-                    let canvas = divQr.querySelector('canvas');
-                    if (canvas) {
-                        let ctx = canvas.getContext('2d');
-                        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        let widthBytes = Math.ceil(canvas.width / 8);
-                        let xL = widthBytes % 256, xH = Math.floor(widthBytes / 256);
-                        let yL = canvas.height % 256, yH = Math.floor(canvas.height / 256);
-                        let rasterHeader = new Uint8Array([0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
-                        let rasterData = new Uint8Array(widthBytes * canvas.height);
-                        for (let y = 0; y < canvas.height; y++) {
-                            for (let x = 0; x < canvas.width; x++) {
-                                let idx = (y * canvas.width + x) * 4;
-                                if ((imgData.data[idx] + imgData.data[idx+1] + imgData.data[idx+2]) / 3 < 128) {
-                                    rasterData[y * widthBytes + Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
-                                }
-                            }
-                        }
-                        await char.writeValue(new Uint8Array([0x1B, 0x61, 0x01]));
-                        await char.writeValue(rasterHeader);
-                        for (let i = 0; i < rasterData.length; i += 20) {
-                            await char.writeValue(rasterData.subarray(i, i + 20));
-                        }
-                    }
-                }
-                await char.writeValue(new TextEncoder().encode("\n\x1B\x61\x01OBRIGADO PELA PREFERENCIA!\n\n\n\n\n"));
-                return true; 
-            } catch (e) {
-                return false; 
-            }
-        }
-
-        async function imprimirMinicupomEntrega(venda, listaItens, cliente, endereco) {
-            try {
-                const char = await obterCaracteristicaImpressora();
-                let texto = `\x1B\x61\x01\x1B\x21\x10*** CONTROLE DE ENTREGA ***\n\x1B\x21\x00\nSAIDA: ${venda.hora} | ${venda.data}\nORIGEM DA CONTA: ${textToAsciiNoAccents(venda.mesa)}\n--------------------------------\n\x1B\x61\x00`;
-                texto += `CLIENTE: \x1B\x21\x10${textToAsciiNoAccents(cliente)}\n\x1B\x21\x00\nENDERECO DESTINO:\n\x1B\x21\x10${textToAsciiNoAccents(endereco)}\n\x1B\x21\x00\n--------------------------------\nDETALHE DOS PRODUTOS:\n`;
-
-                const agrupadosEnt = {};
-                listaItens.forEach(item => {
-                    if(!agrupadosEnt[item.nome]) agrupadosEnt[item.nome] = { preco: item.preco, qtd: 0 };
-                    agrupadosEnt[item.nome].qtd++;
-                });
-
-                Object.entries(agrupadosEnt).forEach(([nome, info]) => {
-                    let subtotalItem = info.preco * info.qtd;
-                    let inlineNome = `${textToAsciiNoAccents(nome)} x${info.qtd}`.substring(0, 19).padEnd(21);
-                    texto += `${inlineNome}R$ ${subtotalItem.toFixed(2)}\n`;
-                });
-
-                texto += `--------------------------------\nPAGAMENTO: ${textToAsciiNoAccents(venda.pagamento)}\n\x1B\x21\x10VALOR TOTAL: R$ ${parseFloat(venda.total).toFixed(2)}\n\x1B\x21\x00--------------------------------\n\x1B\x61\x01LEOCARDIO BURGUER'S SUPREME\n\n\n\n\n`;
-                await char.writeValue(new TextEncoder().encode(texto));
-                pararApitoAlarme();
-            } catch (e) {
-                ativarApitoAlarme();
-            }
-        }
-
-        async function dispararCupomMotoboy() {
-            if(!ultimaVendaCache || !ultimosItensBrutosCache) return;
-            const cliente = document.getElementById('nomeClienteEntrega').value.trim() || "NAO INFORMADO";
-            const endereco = document.getElementById('enderecoClienteEntrega').value.trim() || "RETIRADA NO BALCAO";
-            
-            // Grava os dados para a tela do entregador
-            enviarDadosLogisticaMotoboy(cliente, endereco);
-            
-            await imprimirMinicupomEntrega(ultimaVendaCache, ultimosItensBrutosCache, cliente, endereco);
-            fecharModalEndereco();
-            falar("Minicupom de entrega emitido e enviado ao motoboy.");
-        }
-
-        function fecharModalEndereco() { 
-            document.getElementById('modal-endereco-separated').style.display = 'none'; 
-            ultimaVendaCache = null; ultimosItensBrutosCache = []; pedidoParaFechamentoKey = null;
-        }
-
-        function gerarPayloadPix(valor) {
-            const chavePix = "danielleocadio2024@gmail.com"; 
-            const nomeRecebedor = "CARLOS DANIEL LEOCARDIO ";
-            const cidadeRecebedor = "MANAUS";
-            const valorFmt = parseFloat(valor).toFixed(2);
-
-            let payload = "0002010114BR.GOV.BCB.PIX26" + ("0014BR.GOV.BCB.PIX01" + chavePix.length.toString().padStart(2, '0') + chavePix).length.toString().padStart(2, '0') + ("0014BR.GOV.BCB.PIX01" + chavePix.length.toString().padStart(2, '0') + chavePix);
-            payload += "52040000530398654" + valorFmt.length.toString().padStart(2, '0') + valorFmt + "5802BR59" + textToAsciiNoAccents(nomeRecebedor).length.toString().padStart(2, '0') + textToAsciiNoAccents(nomeRecebedor) + "60" + cidadeRecebedor.length.toString().padStart(2, '0') + cidadeRecebedor + "62070503***6304";
-
-            let crc = 0xFFFF;
-            for (let i = 0; i < payload.length; i++) {
-                crc ^= payload.charCodeAt(i) << 8;
-                for (let j = 0; j < 8; j++) {
-                    crc = ((crc & 0x8000) !== 0) ? (crc << 1) ^ 0x1021 : crc << 1;
-                }
-            }
-            return payload + (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-        }
-
-        function textToAsciiNoAccents(text) {
-            if(!text) return "NAO INFORMADO";
-            return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-        }
-
-        function processarVendasVolateis(pedidos) {
-            let totalDia = 0, htmlH = [], labels = [], valores = [];
-            Object.entries(pedidos).reverse().slice(0, 30).forEach(([key, p]) => {
-                const valor = parseFloat(p.total) || 0; totalDia += valor;
-                labels.push(p.hora || ""); valores.push(valor);
-                htmlH.push(`<div class="card-historico"><div style="display:flex; justify-content:space-between; font-size:11px; color:var(--blue-tech)"><strong>${p.mesa}</strong><span>${p.hora}</span></div><small style="display:block; margin:5px 0">${p.produto}</small><div style="display:flex; justify-content:space-between; align-items:center"><span style="background:var(--blue-tech); color:#000; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold">${p.pagamento}</span><strong style="color:var(--green)">R$ ${valor.toFixed(2)}</strong><i class="fas fa-trash" style="color:var(--red); cursor:pointer" onclick="deletarVendaVolatil('${key}')"></i></div></div>`);
-            });
-            document.getElementById('cadernoMesas').innerHTML = htmlH.join('');
-            document.getElementById('faturamentoDia').innerText = `R$ ${totalDia.toFixed(2).replace('.', ',')}`;
-            if(labels.length > 0) renderizarGrafico(labels.reverse(), valores.reverse());
-            
-            let estTotal = 0;
-            Object.values(catalogo).forEach(c => estTotal += (parseInt(c.estoque) || 0));
-            document.getElementById('estoqueTotal').innerText = estTotal + " UN";
-        }
-
-        function abrirPortalMestre() { document.getElementById('modal-mestre').style.display = 'flex'; }
-        function fecharModalMestre() { document.getElementById('modal-mestre').style.display = 'none'; }
-        
-        function verificarSenhaMestre() { 
-            if(document.getElementById('senhaMestre').value === "drkling2025") { 
-                fecharModalMestre(); 
-                document.getElementById('tela-historico').style.display = 'flex'; 
-                falar("Cofre aberto."); 
-            } else { 
-                alert("SENHA INCORRETA"); 
-            } 
-        }
-        
-        function fecharHistorico() { document.getElementById('tela-historico').style.display = 'none'; }
-
-        function buscarVendasMemoriaAco(data) {
-            if(!data) return;
-            dataSelecionadaRelatorio = data;
-            const path = data.replace(/-/g, '/');
-            
-            db.ref(`lojas/${LOJA_ID}/memoria_aco/${path}`).on('value', snap => {
-                const vendas = snap.val() || {};
-                vendasCarregadas = Object.entries(vendas).map(([key, val]) => ({ ...val, idDb: key, total: parseFloat(val.total) || 0 }));
-                let html = "", totalDia = 0;
-                if(vendasCarregadas.length === 0) { 
-                    html = "<p style='text-align:center; color:var(--red); padding:20px;'>SEM REGISTROS NO COFRE</p>"; 
-                    document.getElementById('controles-relatorio').style.display = 'none'; 
-                } else {
-                    vendasCarregadas.forEach(v => {
-                        totalDia += v.total;
-                        html += `<div class="card-historico" style="border-left:4px solid var(--gold); background:rgba(245,158,11,0.05)"><div style="display:flex; justify-content:space-between; align-items:center"><strong style="color:var(--gold)">${v.hora} - ${v.mesa}</strong><div style="display:flex; align-items:center; gap:15px"><span style="font-weight:bold">R$ ${v.total.toFixed(2)}</span><i class="fas fa-trash" style="color:var(--red); cursor:pointer" onclick="deletarVendaMemoria('${v.idDb}')"></i></div></div><small style="display:block; margin-top:5px; opacity:0.8">${v.pagamento} | ${v.produto}</small></div>`;
-                    });
-                    document.getElementById('controles-relatorio').style.display = 'grid';
-                }
-                document.getElementById('listaMemoriaAco').innerHTML = html;
-                prepararConteudoCanvas(data, totalDia);
-            });
-        }
-
-        function deletarVendaMemoria(idDb) {
-            if(confirm("DELETAR PERMANENTEMENTE DO COFRE?")) {
-                const path = dataSelecionadaRelatorio.replace(/-/g, '/');
-                db.ref(`lojas/${LOJA_ID}/memoria_aco/${path}/${idDb}`).remove().then(() => falar("Registro eliminado do banco."));
-            }
-        }
-
-        function prepararConteudoCanvas(data, total) {
-            const corpo = document.getElementById('corpo-relatorio-canvas');
-            document.getElementById('canvas-data-info').innerText = "DATA: " + data.split('-').reverse().join('/');
-            let resumo = { PIX: 0, CARTÃO: 0, DINHEIRO: 0 };
-            let html = `<table class="relatorio-table"><thead><tr><th>HORA</th><th>MESA</th><th>PAG</th><th align="right">VALOR</th></tr></thead><tbody>`;
-            vendasCarregadas.forEach(v => {
-                const vlr = parseFloat(v.total);
-                if(resumo[v.pagamento] !== undefined) resumo[v.pagamento] += vlr;
-                html += `<tr><td>${v.hora}</td><td>${v.mesa.replace('MESA ', 'M')}</td><td>${v.pagamento}</td><td align="right">R$ ${vlr.toFixed(2)}</td></tr>`;
-            });
-            html += `</tbody></table><div style="margin-top:15px; border-top:1px solid #000; padding-top:10px; font-weight:bold; font-size:12px;">
-                <div style="display:flex; justify-content:space-between"><span>TOTAL PIX:</span><span>R$ ${resumo.PIX.toFixed(2)}</span></div>
-                <div style="display:flex; justify-content:space-between"><span>TOTAL CARTÃO:</span><span>R$ ${resumo.CARTÃO.toFixed(2)}</span></div>
-                <div style="display:flex; justify-content:space-between"><span>TOTAL DINHEIRO:</span><span>R$ ${resumo.DINHEIRO.toFixed(2)}</span></div>
-                <div style="display:flex; justify-content:space-between; font-size:14px; background:#000; color:#fff; padding:5px; margin-top:5px;"><span>TOTAL GERAL:</span><span>R$ ${total.toFixed(2)}</span></div>
-            </div>`;
-            corpo.innerHTML = html;
-        }
-
-        async function gerarCanvasRelatorio() {
-            falar("Gerando foto do relatório.");
-            const canvas = await html2canvas(document.getElementById('relatorio-export'), { backgroundColor: "#fff", scale: 2 });
-            canvas.toBlob(blob => {
-                const file = new File([blob], `Relatorio_${dataSelecionadaRelatorio}.png`, { type: 'image/png' });
-                if(navigator.share) navigator.share({ files: [file], title: 'Relatório JDP' });
-                else { const link = document.createElement('a'); link.download = `Relatorio_JDP.png`; link.href = canvas.toDataURL(); link.click(); }
-            });
-        }
-
-        async function conectarEImprimirRelatorio() {
-            try {
-                if (vendasCarregadas.length === 0) { falar("Não há dados carregados."); return; }
-                const char = await obterCaracteristicaImpressora();
-                let totalGeral = 0;
-                let texto = "\x1B\x61\x01 JDP SUPREME \n\x1B\x61\x00" + `FECHAMENTO: ${dataSelecionadaRelatorio.split('-').reverse().join('/')}\n--------------------------------\n`;
-                vendasCarregadas.forEach(v => {
-                    const vlr = parseFloat(v.total) || 0; totalGeral += vlr;
-                    texto += `${v.hora.padEnd(6)}${v.mesa.replace('MESA ', 'M').padEnd(5)}${v.pagamento.substring(0,5).padEnd(8)}R$${vlr.toFixed(2)}\n`;
-                });
-                texto += `--------------------------------\nTOTAL GERAL: R$ ${totalGeral.toFixed(2)}\n\n\n\n\n`;
-                await char.writeValue(new TextEncoder().encode(texto));
-                pararApitoAlarme();
-            } catch (e) { 
-                ativarApitoAlarme();
-            }
-        }
-
-        function deletarVendaVolatil(id) { idVendaParaExcluir = id; codigoGerado = Math.floor(1000 + Math.random() * 9000); window.open(`https://api.whatsapp.com/send?phone=5592984846058&text=CÓDIGO EXCLUSÃO JDP: *${codigoGerado}*`, '_blank'); document.getElementById('trava-seguranca').style.display = 'block'; }
-        function validarExclusao() { if(document.getElementById('inputCodigo').value == codigoGerado) { db.ref(`lojas/${LOJA_ID}/pedidos/${idVendaParaExcluir}`).remove(); document.getElementById('trava-seguranca').style.display = 'none'; falar("Venda excluída."); } else { alert("CÓDIGO INVÁLIDO"); } }
-        function falar(t) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
-        function auditoriaEstoqueVoz() { Object.values(catalogo).forEach(i => falar(`${textToAsciiNoAccents(i.nome)}: ${i.estoque || 0} unidades.`)); }
-        
-        function renderizarGrafico(l, d) {
-            const ctx = document.getElementById('graficoVendas').getContext('2d');
-            if(graficoVendas) graficoVendas.destroy();
-            graficoVendas = new Chart(ctx, { type: 'line', data: { labels: l, datasets: [{ data: d, borderColor: '#00f2ff', borderWidth: 2, tension: 0.4, fill: true, backgroundColor: 'rgba(0,242,255,0.05)', pointRadius: 0 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { display: false } } } });
         }
     </script>
 </body>
 </html>
+
