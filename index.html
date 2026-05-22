@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dony Burguer's - Painel do Entregador</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-[#0d0e12] text-[#e2e8f0] font-sans min-h-screen flex flex-col justify-between">
+
+    <header class="bg-[#161820] p-4 text-center border-b-2 border-[#00f2ff] shadow-lg">
+        <h1 class="text-xl font-bold tracking-wider text-[#00f2ff]">DONY BURGUER'S</h1>
+        <p class="text-xs text-zinc-400 tracking-widest mt-1">SISTEMA LOGÍSTICO DE ENTREGA</p>
+    </header>
+
+    <main class="flex-1 p-4 flex flex-col items-center gap-4 max-w-md mx-auto w-full">
+        
+        <div id="areaIdentificacao" class="w-full bg-[#161820] rounded-xl p-4 border border-zinc-800 shadow-xl">
+            <label class="block text-xs font-bold uppercase tracking-wider text-amber-500 mb-2">Piloto Operacional:</label>
+            <input type="text" id="nomeMotoboy" class="w-full p-3 bg-[#0d0e12] border border-zinc-700 rounded-lg text-white font-semibold text-center focus:border-[#00f2ff] focus:outline-none uppercase" placeholder="DIGITE SEU NOME (BIEL / LOURINHO)">
+        </div>
+
+        <div class="w-full bg-[#161820] rounded-xl p-4 border-l-4 border-amber-500 shadow-xl">
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-500 block mb-2"><i class="fas fa-box"></i> Entrega Atual Solicitada</span>
+            
+            <div id="dadosEntrega" class="flex flex-col gap-2">
+                <p class="text-sm"><span class="text-zinc-500 font-mono">CLIENTE:</span> <strong id="entCliente" class="text-white">Aguardando comando do PDV...</strong></p>
+                <p class="text-sm"><span class="text-zinc-500 font-mono">ENDEREÇO:</span> <span id="entEndereco" class="text-zinc-300 font-medium">---</span></p>
+                <div class="grid grid-columns-2 gap-2 mt-2 pt-2 border-t border-zinc-800 text-xs">
+                    <div><span class="text-zinc-500">VALOR:</span> <span id="entValor" class="text-emerald-400 font-bold">R$ 0,00</span></div>
+                    <div><span class="text-zinc-500">ITENS:</span> <span id="entItens" class="text-zinc-400 truncate block">---</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full bg-[#161820] rounded-xl p-4 border border-zinc-800 shadow-xl text-center">
+            <span class="text-xs font-bold uppercase tracking-widest text-zinc-500">Status do Rastreamento</span>
+            <div id="statusGPS" class="text-base font-black text-red-500 mt-1 uppercase tracking-wide">🔴 Fora de Rota</div>
+            
+            <div class="mt-2 pt-2 border-t border-zinc-800 text-left text-[11px] text-zinc-500 flex justify-between font-mono">
+                <div>LAT: <span id="lat" class="text-[#00f2ff]">---</span></div>
+                <div>LNG: <span id="lng" class="text-[#00f2ff]">---</span></div>
+                <div>PRECISÃO: <span id="precisao" class="text-emerald-400">---</span></div>
+            </div>
+        </div>
+
+        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black text-base py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider flex items-center justify-center gap-2">
+            <i class="fas fa-motorcycle"></i> Iniciar Rota de Entrega
+        </button>
+
+    </main>
+
+    <footer class="p-3 bg-[#0d0e12] text-center text-[9px] text-zinc-600 font-mono tracking-widest">
+        SISTEMA SOBERANO INDUSTRIAL JDP &copy; 2026
+    </footer>
+
+    <script>
+        const firebaseConfig = {
+            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+
+        let watchId = null;
+        let emRota = false;
+
+        // 👁️ ESCUTA EM TEMPO REAL: Monitora quando você joga um endereço no seu PDV
+        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
+            const pedido = snap.val();
+            if(pedido) {
+                document.getElementById('entCliente').innerText = pedido.cliente.toUpperCase();
+                document.getElementById('entEndereco').innerText = pedido.endereco.toUpperCase();
+                document.getElementById('entValor').innerText = "R$ " + parseFloat(pedido.valor).toFixed(2);
+                document.getElementById('entItens').innerText = pedido.produtos;
+            } else {
+                document.getElementById('entCliente').innerText = "NENHUM PEDIDO ENVIADO";
+                document.getElementById('entEndereco').innerText = "Aguardando comando do PDV...";
+                document.getElementById('entValor').innerText = "R$ 0,00";
+                document.getElementById('entItens').innerText = "---";
+            }
+        });
+
+        function alternarRastreamento() {
+            const btn = document.getElementById('btnRota');
+            const statusGPS = document.getElementById('statusGPS');
+            const inputNome = document.getElementById('nomeMotoboy');
+            const nome = inputNome.value.trim().toUpperCase();
+
+            if (nome === "") {
+                alert("ERRO: Insira o nome do entregador para iniciar o rastreamento.");
+                inputNome.focus();
+                return;
+            }
+
+            if (!emRota) {
+                if (!navigator.geolocation) {
+                    alert("FALHA: Aparelho sem suporte a GPS.");
+                    return;
+                }
+
+                inputNome.disabled = true;
+
+                const gpsOptions = {
+                    enableHighAccuracy: true, 
+                    maximumAge: 0,            
+                    timeout: 12000            
+                };
+
+                watchId = navigator.geolocation.watchPosition(
+                    (pos) => enviarDadosGps(pos, nome), 
+                    (err) => console.error(err), 
+                    gpsOptions
+                );
+                
+                emRota = true;
+                btn.innerHTML = '<i class="fas fa-hand-paper"></i> Finalizar Entrega';
+                btn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-black text-base py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider flex items-center justify-center gap-2";
+                statusGPS.innerHTML = "🟢 Transmitindo Rota de Entrega";
+                statusGPS.className = "text-base font-black text-emerald-400 mt-1 uppercase tracking-wide";
+            } else {
+                // Desliga o rastreamento do hardware
+                navigator.geolocation.clearWatch(watchId);
+                
+                // Limpa o pedido ativo e desliga o status online do motoboy no banco
+                db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({ online: false, nome: nome });
+                db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove(); // Limpa a tela para a próxima entrega
+
+                inputNome.disabled = false;
+                emRota = false;
+                btn.innerHTML = '<i class="fas fa-motorcycle"></i> Iniciar Rota de Entrega';
+                btn.className = "w-full bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black text-base py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider flex items-center justify-center gap-2";
+                statusGPS.innerHTML = "🔴 Fora de Rota";
+                statusGPS.className = "text-base font-black text-red-500 mt-1 uppercase tracking-wide";
+                
+                document.getElementById('lat').innerHTML = "---";
+                document.getElementById('lng').innerHTML = "---";
+                document.getElementById('precisao').innerHTML = "---";
+            }
+        }
+
+        function enviarDadosGps(posicao, nomeMotoboy) {
+            const latitude = posicao.coords.latitude;
+            const longitude = posicao.coords.longitude;
+            const precisao = posicao.coords.accuracy;
+
+            document.getElementById('lat').innerHTML = latitude.toFixed(6);
+            document.getElementById('lng').innerHTML = longitude.toFixed(6);
+            document.getElementById('precisao').innerHTML = precisao.toFixed(1) + "m";
+
+            db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({
+                online: true,
+                nome: nomeMotoboy,
+                latitude: latitude,
+                longitude: longitude,
+                precisao: precisao,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+    </script>
+</body>
+</html>
