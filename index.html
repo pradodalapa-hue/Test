@@ -51,6 +51,14 @@
             <i class="fas fa-motorcycle"></i> Iniciar Rota
         </button>
     </div>
+<!-- Novo bloco dentro da área inferior (adicionar perto do nome do motoboy) -->
+<div id="areaDestino" class="mt-4 flex gap-2">
+    <input type="text" id="latDestino" class="w-1/2 p-2 bg-[#0d0e12] border border-zinc-700 rounded-lg text-gold font-bold text-center" placeholder="LAT">
+    <input type="text" id="lngDestino" class="w-1/2 p-2 bg-[#0d0e12] border border-zinc-700 rounded-lg text-gold font-bold text-center" placeholder="LNG">
+</div>
+<button onclick="definirDestino()" class="w-full mt-2 bg-zinc-800 text-gold border border-gold py-2 rounded-lg font-bold uppercase text-xs hover:bg-gold hover:text-black">
+    Salvar Destino no Mapa
+</button>
 
     <script>
         firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
@@ -94,6 +102,28 @@ function abrirModal(titulo, dados) {
 function verPendentes() {
     db.ref(`lojas/${LOJA_ID}/pendentes`).once('value', snap => {
         abrirModal("ENTREGAS PENDENTES", snap.val());
+    });
+}
+function definirDestino() {
+    const lat = document.getElementById('latDestino').value;
+    const lng = document.getElementById('lngDestino').value;
+    const nomeCliente = document.getElementById('entCliente').innerText; // Pega o nome do cliente atual
+
+    if (!lat || !lng) {
+        alert("Por favor, preencha Latitude e Longitude!");
+        return;
+    }
+
+    // Envia os dados para o Firebase no pedido ativo
+    db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).update({
+        latDestino: parseFloat(lat),
+        lngDestino: parseFloat(lng)
+    }).then(() => {
+        alert("Destino atualizado com sucesso!");
+        // O listener que você já tem (db.ref(...pedido_em_entrega).on) 
+        // vai detectar a mudança automaticamente e atualizar o mapa.
+    }).catch(error => {
+        alert("Erro ao salvar: " + error.message);
     });
 }
 
