@@ -118,6 +118,42 @@ async function colarEndereco() {
                 location.reload();
             }
         }
+async function verificarPedido(novoPedidoId) {
+    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${novoPedidoId}`).once('value');
+    if (snapshot.exists()) {
+        console.warn("TRAVA ATIVADA: Pedido já entregue. Bloqueando duplicidade.");
+        return false; // Bloqueia o processamento
+    }
+    return true; // Pedido legítimo
+}
+// --- MÓDULO DE SEGURANÇA E TRAVA ANTI-LOOP ---
+
+async function registrarEntregaSegura(pedidoData, pedidoId) {
+    // 1. Verifica se já existe nos concluídos
+    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).once('value');
+    
+    if (snapshot.exists()) {
+        console.error("ALERTA: Tentativa de reprocessamento bloqueada!");
+        return false;
+    }
+
+    // 2. Grava permanentemente como concluído
+    await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).set({
+        ...pedidoData,
+        status: "CONCLUIDO",
+        finalizado_em: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    // 3. Remove do painel ativo para evitar loop visual
+    await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
+    return true;
+}
+
+// Quando for iniciar uma nova entrega pelo seu input, crie o ID assim:
+function gerarIdUnico() {
+    return 'ID-' + Date.now().toString(36);
+}
+
     </script>
 </body>
 </html>
