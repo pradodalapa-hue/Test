@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Estilo Base - Bunker Digital */
+        /* Estilo Base - Bunker Digital (Fundo Preto Absoluto) */
         * {
             margin: 0;
             padding: 0;
@@ -106,14 +106,14 @@
         }
 
         #map {
-            height: 320px;
+            height: 340px;
             width: 100%;
             border-radius: 12px;
             border: 2px solid #ffbc0d;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
         }
 
-        /* Filtro Modo Noturno para o OpenStreetMap */
+        /* Filtro de Modo Noturno para o OpenStreetMap */
         .leaflet-layer,
         .leaflet-control-zoom-in,
         .leaflet-control-zoom-out {
@@ -124,8 +124,9 @@
         .telemetria {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             background: #11141a;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border-radius: 6px;
             font-size: 11px;
             font-family: 'Orbitron', sans-serif;
@@ -207,9 +208,9 @@
         </div>
 
         <div class="telemetria">
-            <div><span class="status-dot"></span> <span style="color: #00e676;">TRANSMITINDO ROTA</span></div>
-            <div id="coordenadas">LAT: -2.990287 | LNG: -60.067419</div>
-            <div id="precisao">PRECISÃO: 8.4m</div>
+            <div><span class="status-dot"></span> <span style="color: #00e676;">ROTA TRAÇADA POR RUA</span></div>
+            <div id="coordenadas">LAT: -2.990352 | LNG: -60.067340</div>
+            <div id="precisao">PRECISÃO: 2.7m</div>
         </div>
 
         <button class="btn-finalizar" onclick="finalizarEntrega()">
@@ -220,101 +221,130 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <script>
-        // Configurações e Variáveis de Controle do Mapa
         let mapa;
         let marcadorBololo;
         let marcadorDestino;
+        let linhaRotaNeon;
 
-        // Coordenadas Fixas da Casa do Cliente (Rua Professor Ernani Simão, 1563)
+        // Coordenadas da Origem (Banca da Merenda)
+        const latOrigem = -2.990352; 
+        const lngOrigem = -60.067340;
+
+        // Coordenadas Reais do Destino (Rua Professor Ernani Simão, 1563)
         const latCliente = -2.986500; 
         const lngCliente = -60.062000;
 
-        // Inicializa o sistema de mapas assim que a página carregar
         window.onload = function() {
-            // Posição inicial padrão (Coordenada base do seu painel)
-            const latInicial = -2.990287;
-            const lngInicial = -60.067419;
+            // Inicializa o mapa focado na origem
+            mapa = L.map('map').setView([latOrigem, lngOrigem], 15);
 
-            // 1. Criar o mapa focando na área da entrega
-            mapa = L.map('map').setView([latInicial, lngInicial], 15);
-
-            // 2. Adicionar as camadas de mapa do OpenStreetMap
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap'
             }).addTo(mapa);
 
-            // 3. Ícones Customizados
-            const iconeMoto = L.icon({
-                iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png', // Ícone de Moto de Entrega
+            // Ícones em formato SVG nativo
+            const iconeMoto = L.divIcon({
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00e5ff" width="36px" height="36px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>`,
+                className: 'custom-gps-icon',
                 iconSize: [36, 36],
-                iconAnchor: [18, 36],
-                popupAnchor: [0, -32]
+                iconAnchor: [18, 18]
             });
 
-            const iconeCasa = L.icon({
-                iconUrl: 'https://cdn-icons-png.flaticon.com/512/619/619153.png', // Ícone de Casa/Destino
+            const iconeCasa = L.divIcon({
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ffbc0d" width="36px" height="36px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm1 11h-2v-2h2v2z"/></svg>`,
+                className: 'custom-home-icon',
                 iconSize: [36, 36],
-                iconAnchor: [18, 36],
-                popupAnchor: [0, -32]
+                iconAnchor: [18, 18]
             });
 
-            // 4. Inserir marcador do Entregador (Bololo)
-            marcadorBololo = L.marker([latInicial, lngInicial], {icon: iconeMoto}).addTo(mapa);
-            marcadorBololo.bindPopup("<b style='color:#000;'>Piloto Bololo</b><br>A caminho...").openPopup();
+            // Adiciona os marcadores iniciais
+            marcadorBololo = L.marker([latOrigem, lngOrigem], {icon: iconeMoto}).addTo(mapa);
+            marcadorBololo.bindPopup("<b style='color:#000;'>Piloto Bololo</b>").openPopup();
 
-            // 5. Inserir marcador do Cliente
             marcadorDestino = L.marker([latCliente, lngCliente], {icon: iconeCasa}).addTo(mapa);
-            marcadorDestino.bindPopup("<b style='color:#000;'>Destino do Cliente</b><br>Entregar aqui.");
+            marcadorDestino.bindPopup("<b style='color:#000;'>Destino: Rua Prof. Ernani Simão, 1563</b>");
 
-            // Ajusta a tela automaticamente para mostrar os dois pontos ao mesmo tempo
-            ajustarFocoMapa();
+            // CHAMAR O MOTOR DE ROTEAMENTO REAL
+            calcularRotaPorRuas(latOrigem, lngOrigem, latCliente, lngCliente);
 
-            // Ativa o rastreamento em tempo real do GPS do celular
             ativarRastreamentoRealtime();
         };
 
-        // Função para enquadrar perfeitamente a rota na tela
-        function ajustarFocoMapa() {
-            const grupoMarcadores = new L.featureGroup([marcadorBololo, marcadorDestino]);
-            mapa.fitBounds(grupoMarcadores.getBounds().pad(0.3));
+        // Função que consome a API OSRM para obter os pontos exatos das ruas
+        function calcularRotaPorRuas(latA, lngA, latB, lngB) {
+            const url = `https://router.project-osrm.org/route/v1/driving/${lngA},${latA};${lngB},${latB}?overview=full&geometries=geojson`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.routes && data.routes.length > 0) {
+                        // Extrai as coordenadas da rua real feitas pelo motor de mapas
+                        const coordenadasInvertidas = data.routes[0].geometry.coordinates;
+                        
+                        // O OSRM retorna [lng, lat], o Leaflet precisa de [lat, lng], então invertemos:
+                        const pontosDaRua = coordenadasInvertidas.map(ponto => [ponto[1], ponto[0]]);
+
+                        // Se já houver uma linha plotada, remove ela antes de desenhar a nova
+                        if (linhaRotaNeon) {
+                            mapa.removeLayer(linhaRotaNeon);
+                        }
+
+                        // Desenha a linha perfeitamente encaixada nas curvas das ruas
+                        linhaRotaNeon = L.polyline(pontosDaRua, {
+                            color: '#00e5ff',       // Azul Neon
+                            weight: 6,              // Linha grossa e visível
+                            opacity: 0.9,
+                            lineJoin: 'round'
+                        }).addTo(mapa);
+
+                        // Ajusta a câmera do mapa para cobrir a rota real inteira
+                        mapa.fitBounds(linhaRotaNeon.getBounds().pad(0.2));
+                    }
+                })
+                .catch(err => {
+                    console.log("Erro ao processar roteamento rodoviário. Usando linha de contingência reta.", err);
+                    // Contingência caso caia a rede: faz linha reta temporária
+                    linhaRotaNeon = L.polyline([[latA, lngA], [latB, lngB]], {
+                        color: '#ff3d00', 
+                        weight: 4, 
+                        dashArray: '5, 10'
+                    }).addTo(mapa);
+                });
         }
 
-        // Captura a geolocalização nativa do hardware do celular
-        function ativarRastreamentoRealtime() {
+        function activarRastreamentoRealtime() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(function(position) {
                     const novaLat = position.coords.latitude;
                     const novaLng = position.coords.longitude;
                     const precisaoMetros = position.coords.accuracy.toFixed(1);
 
-                    // Move o marcador do Bololo suavemente no mapa
                     marcadorBololo.setLatLng([novaLat, novaLng]);
 
-                    // Atualiza a barra de telemetria inferior na interface
                     document.getElementById('coordenadas').innerText = `LAT: ${novaLat.toFixed(6)} | LNG: ${novaLng.toFixed(6)}`;
                     document.getElementById('precisao').innerText = `PRECISÃO: ${precisaoMetros}m`;
 
+                    // RECALCULA A ROTA EM TEMPO REAL CONFORME ELE ANDA PELAS RUAS
+                    calcularRotaPorRuas(novaLat, novaLng, latCliente, lngCliente);
+
                 }, function(error) {
-                    console.log("Erro ao capturar GPS real, mantendo simulação fixa: ", error.message);
+                    console.log("Aguardando estabilização dos satélites.");
                 }, {
-                    enableHighAccuracy: true, // Força o uso do hardware de GPS de alta precisão
+                    enableHighAccuracy: true,
                     maximumAge: 0,
                     timeout: 5000
                 });
-            } else {
-                alert("GPS não suportado neste aparelho.");
             }
         }
 
-        // Ação do Botão Vermelho de Finalizar
         function finalizarEntrega() {
-            if (confirm("Deseja confirmar a entrega e finalizar a rota de transmissão?")) {
-                alert("Entrega Concluída com sucesso! Sistema reiniciado.");
-                // Aqui você pode colocar o seu comando de retorno para o PDV local
+            if (confirm("Deseja confirmar a entrega e encerrar o rastreamento desta rota?")) {
+                alert("Entrega Concluída com sucesso!");
                 window.location.reload();
             }
         }
     </script>
 </body>
 </html>
+
