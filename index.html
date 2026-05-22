@@ -19,14 +19,7 @@
 </head>
 <body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden">
 
-    <!-- Modal de Entregas -->
-    <div id="modalEntregas" class="hidden absolute inset-0 bg-[#0d0e12]/95 z-[2000] p-6 text-gold overflow-y-auto">
-        <button onclick="document.getElementById('modalEntregas').classList.add('hidden')" class="text-white text-2xl font-bold mb-4"><i class="fas fa-times"></i> FECHAR</button>
-        <h2 id="tituloModal" class="text-2xl font-bold uppercase mb-4 text-center border-b border-gold pb-2"></h2>
-        <div id="listaConteudo" class="space-y-4"></div>
-    </div>
-
-    <!-- Menu Flutuante -->
+    <!-- Menu Flutuante Superior Direito -->
     <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
         <button onclick="verPendentes()" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">
             <i class="fas fa-clock"></i> Pendentes
@@ -42,7 +35,10 @@
     <div id="map" class="flex-1 z-0"></div>
 
     <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-gold shadow-2xl z-10">
-        <input type="text" id="nomeMotoboy" class="w-full p-2 mb-4 bg-[#0d0e12] border border-zinc-700 rounded-lg text-gold font-bold text-center uppercase" placeholder="NOME DO PILOTO">
+        <div id="areaIdentificacao" class="mb-4">
+            <input type="text" id="nomeMotoboy" class="w-full p-2 bg-[#0d0e12] border border-zinc-700 rounded-lg text-gold font-bold text-center uppercase" placeholder="NOME DO PILOTO">
+        </div>
+
         <div class="flex justify-between items-center mb-4">
             <div>
                 <p id="entCliente" class="text-white font-bold text-lg">AGUARDANDO PEDIDO...</p>
@@ -50,6 +46,7 @@
             </div>
             <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
         </div>
+
         <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold hover:bg-yellow-500 text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] transition-all uppercase">
             <i class="fas fa-motorcycle"></i> Iniciar Rota
         </button>
@@ -65,40 +62,68 @@
 
         let markerBololo, markerCliente, watchId, emRota = false;
 
-        // Funções do Modal e Dados
-        function abrirModal(titulo, dados) {
-            const modal = document.getElementById('modalEntregas');
-            const lista = document.getElementById('listaConteudo');
-            document.getElementById('tituloModal').innerText = titulo;
-            lista.innerHTML = '';
-            
-            if(!dados) lista.innerHTML = '<p class="text-center">Nenhum dado encontrado.</p>';
-            else Object.values(dados).forEach(item => {
-                lista.innerHTML += `
-                    <div class="border border-gold p-4 rounded-lg bg-black/50">
-                        <p class="font-bold text-white uppercase">${item.cliente || 'Sem Nome'}</p>
-                        <p class="text-xs text-zinc-400">${item.endereco || 'Sem endereço'}</p>
-                    </div>`;
-            });
-            modal.classList.remove('hidden');
-        }
+        // Escuta Pedidos
+        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
+            const p = snap.val();
+            if(p) {
+                document.getElementById('entCliente').innerText = p.cliente;
+                document.getElementById('entEndereco').innerText = p.endereco;
+                if(p.latDestino) {
+                    if(markerCliente) map.removeLayer(markerCliente);
+                    markerCliente = L.marker([p.latDestino, p.lngDestino]).addTo(map).bindPopup("DESTINO CLIENTE").openPopup();
+                }
+            }
+        });
+function abrirModal(titulo, dados) {
+    const modal = document.getElementById('modalEntregas');
+    const lista = document.getElementById('listaConteudo');
+    document.getElementById('tituloModal').innerText = titulo;
+    lista.innerHTML = '';
+    
+    // Supondo que dados seja um objeto vindo do Firebase
+    Object.values(dados || {}).forEach(item => {
+        lista.innerHTML += `
+            <div class="border border-gold p-4 rounded-lg">
+                <p class="font-bold text-white">${item.cliente || 'Sem Nome'}</p>
+                <p class="text-xs text-zinc-400">${item.endereco || 'Sem endereço'}</p>
+            </div>`;
+    });
+    modal.classList.remove('hidden');
+}
 
+function verPendentes() {
+    db.ref(`lojas/${LOJA_ID}/pendentes`).once('value', snap => {
+        abrirModal("ENTREGAS PENDENTES", snap.val());
+    });
+}
+
+function verConcluidas() {
+    db.ref(`lojas/${LOJA_ID}/concluidas`).limitToLast(10).once('value', snap => {
+        abrirModal("ÚLTIMAS CONCLUÍDAS", snap.val());
+    });
+}
+
+        // Funções de Gestão de Entregas
         function verPendentes() {
-            db.ref(`lojas/${LOJA_ID}/pendentes`).once('value', s => abrirModal("PENDENTES", s.val()));
-        }
-
-        function verConcluidas() {
-            db.ref(`lojas/${LOJA_ID}/concluidas`).limitToLast(10).once('value', s => abrirModal("CONCLUÍDAS", s.val()));
+            alert("SISTEMA: Carregando fila de entregas pendentes...");
         }
 
         function verEntregaAtual() {
-            if(markerCliente) map.setView(markerCliente.getLatLng(), 18);
-            else alert("Nenhuma entrega ativa no momento.");
+            if(markerCliente) {
+                map.setView(markerCliente.getLatLng(), 18);
+            } else {
+                alert("Nenhuma entrega ativa no momento.");
+            }
+        }
+
+        function verConcluidas() {
+            alert("SISTEMA: Exibindo histórico de entregas concluídas...");
         }
 
         function alternarRastreamento() {
             const nome = document.getElementById('nomeMotoboy').value;
             if(!nome) return alert("INSIRA O NOME!");
+
             if(!emRota) {
                 watchId = navigator.geolocation.watchPosition(pos => {
                     const {latitude, longitude} = pos.coords;
@@ -107,8 +132,10 @@
                     map.setView([latitude, longitude]);
                     db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome});
                 }, null, {enableHighAccuracy: true});
+                
                 emRota = true;
                 document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
+                document.getElementById('statusGPS').className = "text-[10px] font-black text-green-500 uppercase";
                 document.getElementById('btnRota').innerText = "FINALIZAR ENTREGA";
             } else {
                 navigator.geolocation.clearWatch(watchId);
