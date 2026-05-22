@@ -12,31 +12,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
-        .text-gold { color: #FFD700; }
-        .border-gold { border-color: #FFD700; }
-        .bg-gold { background-color: #FFD700; }
     </style>
 </head>
 <body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden">
 
-    <!-- Menu Flutuante Superior Direito -->
-    <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-        <button onclick="alert('Entregas Pendentes')" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">
-            <i class="fas fa-clock"></i> Pendentes
-        </button>
-        <button onclick="alert('Entrega Atual')" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">
-            <i class="fas fa-map-marker-alt"></i> Entrega Atual
-        </button>
-        <button onclick="alert('Entregas Concluídas')" class="bg-[#161820] border border-gold text-gold px-4 py-2 rounded-lg font-bold hover:bg-gold hover:text-black transition uppercase text-xs">
-            <i class="fas fa-check-circle"></i> Concluídas
-        </button>
-    </div>
-
     <div id="map" class="flex-1 z-0"></div>
 
-    <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-gold shadow-2xl z-10">
+    <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-[#00f2ff] shadow-2xl z-10">
         <div id="areaIdentificacao" class="mb-4">
-            <input type="text" id="nomeMotoboy" class="w-full p-2 bg-[#0d0e12] border border-zinc-700 rounded-lg text-gold font-bold text-center uppercase" placeholder="NOME DO PILOTO">
+            <input type="text" id="nomeMotoboy" class="w-full p-2 bg-[#0d0e12] border border-zinc-700 rounded-lg text-[#00f2ff] font-bold text-center uppercase" placeholder="NOME DO PILOTO">
         </div>
 
         <div class="flex justify-between items-center mb-4">
@@ -47,7 +31,7 @@
             <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
         </div>
 
-        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold hover:bg-yellow-500 text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] transition-all uppercase">
+        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-[#00f2ff] hover:bg-cyan-400 text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(0,242,255,0.4)] transition-all uppercase">
             <i class="fas fa-motorcycle"></i> Iniciar Rota
         </button>
     </div>
@@ -62,6 +46,7 @@
 
         let markerBololo, markerCliente, watchId, emRota = false;
 
+        // Escuta Pedidos
         db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
             const p = snap.val();
             if(p) {
@@ -81,8 +66,10 @@
             if(!emRota) {
                 watchId = navigator.geolocation.watchPosition(pos => {
                     const {latitude, longitude} = pos.coords;
+                    
                     if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
-                    else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
+                    else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-amber-500"></i>'})}).addTo(map);
+                    
                     map.setView([latitude, longitude]);
                     db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome});
                 }, null, {enableHighAccuracy: true});
@@ -100,4 +87,3 @@
     </script>
 </body>
 </html>
-
