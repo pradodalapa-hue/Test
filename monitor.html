@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>CENTRAL DE LOGÍSTICA - DONY BURGUER'S</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0d0e12] text-white p-4">
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="md:col-span-3 h-[600px] rounded-xl border-2 border-[#00f2ff] shadow-xl" id="map"></div>
+        
+        <div class="bg-[#161820] p-6 rounded-xl border border-zinc-800 flex flex-col gap-4">
+            <h2 class="text-[#00f2ff] font-bold text-lg border-b border-zinc-700 pb-2">METRIFICAÇÃO EM TEMPO REAL</h2>
+            <div class="bg-[#0d0e12] p-4 rounded-lg">
+                <p class="text-zinc-400 text-xs uppercase">Distância Total</p>
+                <p id="distancia" class="text-2xl font-black text-amber-500">0.0 KM</p>
+            </div>
+            <div class="bg-[#0d0e12] p-4 rounded-lg">
+                <p class="text-zinc-400 text-xs uppercase">Previsão de Chegada</p>
+                <p id="tempo" class="text-2xl font-black text-green-500">0 MIN</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
+        const db = firebase.database();
+        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+
+        const map = L.map('map').setView([-2.9903, -60.0673], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        let routingControl;
+        let posBololo = { lat: -2.9903, lng: -60.0673 };
+        let posCliente = { lat: -2.9903, lng: -60.0673 };
+
+        // Escuta a posição do Bololo
+        db.ref(`lojas/${LOJA_ID}/motoboy_status`).on('value', snap => {
+            const data = snap.val();
+            if(data && data.online) {
+                posBololo = { lat: data.latitude, lng: data.longitude };
+                desenharRota();
+            }
+        });
+
+        // Escuta o destino do cliente
+        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
+            const data = snap.val();
+            if(data && data.latDestino) {
+                posCliente = { lat: data.latDestino, lng: data.lngDestino };
+                desenharRota();
+            }
+        });
+
+        function desenharRota() {
+            if(routingControl) map.removeControl(routingControl);
+
+            routingControl = L.Routing.control({
+                waypoints: [ L.latLng(posBololo.lat, posBololo.lng), L.latLng(posCliente.lat, posCliente.lng) ],
+                lineOptions: { styles: [{ color: '#00f2ff', opacity: 0.8, weight: 6 }] },
+                createMarker: function() { return null; },
+                addWaypoints: false
+            }).on('routesfound', function(e) {
+                const summary = e.routes[0].summary;
+                document.getElementById('distancia').innerText = (summary.totalDistance / 1000).toFixed(1) + " KM";
+                document.getElementById('tempo').innerText = Math.round(summary.totalTime / 60) + " MIN";
+            }).addTo(map);
+        }
+    </script>
+</body>
+</html>
