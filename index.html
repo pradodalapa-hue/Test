@@ -36,6 +36,9 @@
 
         <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] uppercase">INICIAR ROTA</button>
     </div>
+<button onclick="colarEndereco()" class="bg-zinc-800 text-gold p-3 rounded-lg border border-gold">
+    <i class="fas fa-paste"></i> COLAR ENDEREÇO
+</button>
 
     <script>
         firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
@@ -45,6 +48,32 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         let markerCliente, markerBololo, watchId, emRota = false;
+// ESCUTA ATIVA: Adicione isso logo abaixo da declaração da constante 'db'
+db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', (snapshot) => {
+    const pedido = snapshot.val();
+    if (pedido) {
+        // Atualiza a interface quando um novo pedido é detectado
+        document.getElementById('entCliente').innerText = pedido.cliente.toUpperCase();
+        document.getElementById('entEndereco').innerText = pedido.endereco.toUpperCase();
+        
+        // Centraliza o mapa no novo destino automaticamente
+        if (pedido.latDestino && pedido.lngDestino) {
+            map.setView([pedido.latDestino, pedido.lngDestino], 17);
+            if(markerCliente) map.removeLayer(markerCliente);
+            markerCliente = L.marker([pedido.latDestino, pedido.lngDestino]).addTo(map).bindPopup("DESTINO ATUAL").openPopup();
+        }
+    }
+});
+
+async function colarEndereco() {
+    try {
+        const texto = await navigator.clipboard.readText();
+        document.getElementById('inputEndereco').value = texto;
+        buscarEndereco(); // Dispara a busca automaticamente ao colar
+    } catch (err) {
+        alert("PERMISSÃO DE ÁREA DE TRANSFERÊNCIA NEGADA.");
+    }
+}
 
         async function buscarEndereco() {
             const end = document.getElementById('inputEndereco').value;
