@@ -2,109 +2,123 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>DONY BURGUER'S - SISTEMA SOBERANO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DONY BURGUER'S - PAINEL INDUSTRIAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Leaflet Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
-        .text-gold { color: #FFD700 !important; }
-        .bg-gold { background-color: #FFD700 !important; }
+        .bg-gold { background-color: #FFD700; }
+        .text-gold { color: #FFD700; }
+        .border-gold { border-color: #FFD700; }
+        /* Filtro industrial para o mapa */
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
     </style>
 </head>
-<body class="bg-[#0d0e12] h-screen flex flex-col text-gold">
+<body class="bg-[#0d0e12] text-[#e2e8f0] font-sans h-screen flex flex-col">
 
-    <div id="map" class="flex-1 z-0"></div>
+    <!-- Mapa ocupando o fundo -->
+    <div id="map" class="absolute inset-0 z-0"></div>
 
-    <div class="absolute bottom-0 w-full bg-[#161820]/90 p-6 rounded-t-3xl border-t-2 border-gold z-10">
-        <div class="flex justify-between items-center mb-4">
-            <div>
-                <p id="entCliente" class="text-gold font-black text-lg uppercase">AGUARDANDO CORRIDA...</p>
-                <p id="entEndereco" class="text-zinc-400 text-xs uppercase">---</p>
+    <header class="relative z-10 bg-[#161820]/90 p-4 text-center border-b-2 border-gold shadow-lg">
+        <h1 class="text-xl font-black tracking-wider text-gold">DONY BURGUER'S</h1>
+    </header>
+
+    <main class="relative z-10 flex-1 p-4 flex flex-col justify-end gap-4 max-w-md mx-auto w-full">
+        
+        <div id="areaIdentificacao" class="bg-[#161820]/90 rounded-xl p-4 border border-zinc-700 shadow-xl">
+            <label class="block text-[10px] font-black uppercase tracking-wider text-gold mb-1">Piloto:</label>
+            <input type="text" id="nomeMotoboy" class="w-full p-2 bg-[#0d0e12] border border-zinc-600 rounded text-white font-bold text-center uppercase" placeholder="NOME DO PILOTO">
+        </div>
+
+        <div class="bg-[#161820]/90 rounded-xl p-4 border-l-4 border-gold shadow-xl">
+            <div id="dadosEntrega">
+                <p class="text-xs text-zinc-500 font-mono">CLIENTE:</p>
+                <p id="entCliente" class="text-white font-bold text-lg uppercase mb-2">AGUARDANDO...</p>
+                <p class="text-xs text-zinc-500 font-mono">ENDEREÇO:</p>
+                <p id="entEndereco" class="text-zinc-300 font-medium text-sm">---</p>
             </div>
-            <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
         </div>
 
-        <div id="areaAcao">
-            <button id="btnPrincipal" onclick="acaoPrincipal()" class="w-full bg-gold text-black font-black py-4 rounded-xl uppercase">AGUARDANDO...</button>
-        </div>
-    </div>
+        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold hover:bg-yellow-500 text-black font-black py-4 rounded-xl uppercase tracking-widest transition-all">
+            Iniciar Rota
+        </button>
+    </main>
 
     <script>
-        firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
+        const firebaseConfig = { databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" };
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const LOJA_ID = 'LEOVARDIOS_burguer_2026';
-        
+
+        // Inicializa Mapa
         const map = L.map('map').setView([-2.9903, -60.0673], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        let watchId = null;
+        let emRota = false;
+        let markerBololo = null;
+        let markerDestino = null;
 
-        let markerCliente, markerBololo, watchId, estadoAtual = "AGUARDANDO";
-        let pedidoAtivoId = null;
-
-        // ÚNICO LISTENER DE FILA - EVITA CONFLITOS
-        db.ref(`lojas/${LOJA_ID}/fila_pedidos`).limitToLast(1).on('child_added', (snapshot) => {
-            if(estadoAtual !== "AGUARDANDO") return; // Não aceita nova oferta se já estiver em rota
-            
-            const pedido = snapshot.val();
-            pedidoAtivoId = snapshot.key;
-
-            document.getElementById('entCliente').innerText = "NOVA CORRIDA: " + pedido.nome_cliente;
-            document.getElementById('entEndereco').innerText = pedido.endereco_completo;
-            
-            const btn = document.getElementById('btnPrincipal');
-            btn.innerText = "ACEITAR CORRIDA";
-            btn.className = "w-full bg-green-600 text-white font-black py-4 rounded-xl uppercase";
-            estadoAtual = "OFERTA_RECEBIDA";
+        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
+            const pedido = snap.val();
+            if(pedido) {
+                document.getElementById('entCliente').innerText = pedido.cliente.toUpperCase();
+                document.getElementById('entEndereco').innerText = pedido.endereco.toUpperCase();
+                
+                // Marca destino no mapa
+                if(pedido.latDestino) {
+                    if(markerDestino) map.removeLayer(markerDestino);
+                    markerDestino = L.marker([pedido.latDestino, pedido.lngDestino]).addTo(map).bindPopup("DESTINO").openPopup();
+                }
+            } else {
+                document.getElementById('entCliente').innerText = "AGUARDANDO...";
+                document.getElementById('entEndereco').innerText = "---";
+            }
         });
 
-        function acaoPrincipal() {
-            if(estadoAtual === "OFERTA_RECEBIDA") {
-                aceitarCorrida();
-            } else if(estadoAtual === "EM_ROTA") {
-                finalizarEntrega();
+        function alternarRastreamento() {
+            const btn = document.getElementById('btnRota');
+            const nome = document.getElementById('nomeMotoboy').value.trim().toUpperCase();
+
+            if (nome === "") { alert("INSIRA SEU NOME!"); return; }
+
+            if (!emRota) {
+                document.getElementById('nomeMotoboy').disabled = true;
+                watchId = navigator.geolocation.watchPosition(pos => enviarDadosGps(pos, nome), null, {enableHighAccuracy: true});
+                emRota = true;
+                btn.innerText = "FINALIZAR ENTREGA";
+                btn.classList.replace('bg-gold', 'bg-red-600');
+            } else {
+                navigator.geolocation.clearWatch(watchId);
+                db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({ online: false });
+                db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
+                
+                location.reload(); // Recarrega para limpar estado
             }
         }
 
-        async function aceitarCorrida() {
-            // Move da fila para pedido_em_entrega
-            const refFila = db.ref(`lojas/${LOJA_ID}/fila_pedidos/${pedidoAtivoId}`);
-            const snapshot = await refFila.once('value');
-            const data = snapshot.val();
+        function enviarDadosGps(posicao, nome) {
+            const lat = posicao.coords.latitude;
+            const lng = posicao.coords.longitude;
 
-            await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
-                ...data,
-                id: pedidoAtivoId,
-                status: "EM_ANDAMENTO"
+            // Atualiza marker do motoboy
+            if(markerBololo) markerBololo.setLatLng([lat, lng]);
+            else markerBololo = L.marker([lat, lng], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
+            
+            map.setView([lat, lng]); // Segue o motoboy
+
+            db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({
+                online: true, nome, latitude: lat, longitude: lng
             });
-            await refFila.remove(); // Remove da fila
-            
-            estadoAtual = "EM_ROTA";
-            document.getElementById('btnPrincipal').innerText = "FINALIZAR ENTREGA";
-            document.getElementById('btnPrincipal').className = "w-full bg-red-600 text-white font-black py-4 rounded-xl uppercase";
-            
-            iniciarRastreamento();
-        }
-
-        function iniciarRastreamento() {
-            watchId = navigator.geolocation.watchPosition(pos => {
-                const {latitude, longitude} = pos.coords;
-                if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
-                else markerBololo = L.marker([latitude, longitude]).addTo(map).bindPopup("VOCÊ");
-                
-                db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true});
-            }, null, {enableHighAccuracy: true});
-            
-            document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
-        }
-
-        async function finalizarEntrega() {
-            navigator.geolocation.clearWatch(watchId);
-            await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
-            await db.ref(`lojas/${LOJA_ID}/motoboy_status`).update({online: false});
-            location.reload(); // Reseta tudo para começar limpo
         }
     </script>
 </body>
 </html>
+
