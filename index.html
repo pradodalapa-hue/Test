@@ -11,149 +11,100 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .text-gold { color: #FFD700 !important; }
-        .border-gold { border-color: #FFD700 !important; }
         .bg-gold { background-color: #FFD700 !important; }
-        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
     </style>
 </head>
-<body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden text-gold">
+<body class="bg-[#0d0e12] h-screen flex flex-col text-gold">
 
     <div id="map" class="flex-1 z-0"></div>
 
-    <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-gold z-10">
-        <div class="flex gap-2 mb-4">
-            <input type="text" id="inputEndereco" class="flex-1 p-3 bg-[#0d0e12] border border-gold rounded-lg text-gold font-bold uppercase" placeholder="DIGITE O ENDEREÇO DO CLIENTE...">
-            <button onclick="buscarEndereco()" class="bg-gold text-black px-4 py-2 rounded-lg font-black uppercase"><i class="fas fa-search"></i></button>
-        </div>
-
+    <div class="absolute bottom-0 w-full bg-[#161820]/90 p-6 rounded-t-3xl border-t-2 border-gold z-10">
         <div class="flex justify-between items-center mb-4">
             <div>
-                <p id="entCliente" class="text-gold font-black text-lg uppercase">AGUARDANDO PEDIDO...</p>
+                <p id="entCliente" class="text-gold font-black text-lg uppercase">AGUARDANDO CORRIDA...</p>
                 <p id="entEndereco" class="text-zinc-400 text-xs uppercase">---</p>
             </div>
             <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
         </div>
 
-        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] uppercase">INICIAR ROTA</button>
+        <div id="areaAcao">
+            <button id="btnPrincipal" onclick="acaoPrincipal()" class="w-full bg-gold text-black font-black py-4 rounded-xl uppercase">AGUARDANDO...</button>
+        </div>
     </div>
-<button onclick="colarEndereco()" class="bg-zinc-800 text-gold p-3 rounded-lg border border-gold">
-    <i class="fas fa-paste"></i> COLAR ENDEREÇO
-</button>
 
     <script>
         firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
         const db = firebase.database();
         const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+        
         const map = L.map('map').setView([-2.9903, -60.0673], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let markerCliente, markerBololo, watchId, emRota = false;
-// ESCUTA ATIVA: Adicione isso logo abaixo da declaração da constante 'db'
-db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', (snapshot) => {
-    const pedido = snapshot.val();
-    if (pedido) {
-        // Atualiza a interface quando um novo pedido é detectado
-        document.getElementById('entCliente').innerText = pedido.cliente.toUpperCase();
-        document.getElementById('entEndereco').innerText = pedido.endereco.toUpperCase();
-        
-        // Centraliza o mapa no novo destino automaticamente
-        if (pedido.latDestino && pedido.lngDestino) {
-            map.setView([pedido.latDestino, pedido.lngDestino], 17);
-            if(markerCliente) map.removeLayer(markerCliente);
-            markerCliente = L.marker([pedido.latDestino, pedido.lngDestino]).addTo(map).bindPopup("DESTINO ATUAL").openPopup();
-        }
-    }
-});
+        let markerCliente, markerBololo, watchId, estadoAtual = "AGUARDANDO";
+        let pedidoAtivoId = null;
 
-async function colarEndereco() {
-    try {
-        const texto = await navigator.clipboard.readText();
-        document.getElementById('inputEndereco').value = texto;
-        buscarEndereco(); // Dispara a busca automaticamente ao colar
-    } catch (err) {
-        alert("PERMISSÃO DE ÁREA DE TRANSFERÊNCIA NEGADA.");
-    }
-}
+        // ÚNICO LISTENER DE FILA - EVITA CONFLITOS
+        db.ref(`lojas/${LOJA_ID}/fila_pedidos`).limitToLast(1).on('child_added', (snapshot) => {
+            if(estadoAtual !== "AGUARDANDO") return; // Não aceita nova oferta se já estiver em rota
+            
+            const pedido = snapshot.val();
+            pedidoAtivoId = snapshot.key;
 
-        async function buscarEndereco() {
-            const end = document.getElementById('inputEndereco').value;
-            if(!end) return alert("DIGITE UM ENDEREÇO!");
+            document.getElementById('entCliente').innerText = "NOVA CORRIDA: " + pedido.nome_cliente;
+            document.getElementById('entEndereco').innerText = pedido.endereco_completo;
+            
+            const btn = document.getElementById('btnPrincipal');
+            btn.innerText = "ACEITAR CORRIDA";
+            btn.className = "w-full bg-green-600 text-white font-black py-4 rounded-xl uppercase";
+            estadoAtual = "OFERTA_RECEBIDA";
+        });
 
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(end)}, Manaus`);
-            const data = await res.json();
-
-            if(data.length > 0) {
-                const {lat, lon, display_name} = data[0];
-                if(markerCliente) map.removeLayer(markerCliente);
-                markerCliente = L.marker([lat, lon]).addTo(map).bindPopup("DESTINO: " + end).openPopup();
-                map.setView([lat, lon], 17);
-
-                db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
-                    cliente: end,
-                    endereco: display_name,
-                    latDestino: lat,
-                    lngDestino: lon
-                });
-                document.getElementById('entCliente').innerText = end;
-                document.getElementById('entEndereco').innerText = "DESTINO ENCONTRADO";
-            } else {
-                alert("ENDEREÇO NÃO ENCONTRADO.");
+        function acaoPrincipal() {
+            if(estadoAtual === "OFERTA_RECEBIDA") {
+                aceitarCorrida();
+            } else if(estadoAtual === "EM_ROTA") {
+                finalizarEntrega();
             }
         }
 
-        function alternarRastreamento() {
-            if(!emRota) {
-                watchId = navigator.geolocation.watchPosition(pos => {
-                    const {latitude, longitude} = pos.coords;
-                    if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
-                    else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
-                    db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome: "PILOTO"});
-                }, null, {enableHighAccuracy: true});
-                emRota = true;
-                document.getElementById('btnRota').innerText = "FINALIZAR ROTA";
-                document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
-            } else {
-                navigator.geolocation.clearWatch(watchId);
-                db.ref(`lojas/${LOJA_ID}/motoboy_status`).update({online: false});
-                location.reload();
-            }
+        async function aceitarCorrida() {
+            // Move da fila para pedido_em_entrega
+            const refFila = db.ref(`lojas/${LOJA_ID}/fila_pedidos/${pedidoAtivoId}`);
+            const snapshot = await refFila.once('value');
+            const data = snapshot.val();
+
+            await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
+                ...data,
+                id: pedidoAtivoId,
+                status: "EM_ANDAMENTO"
+            });
+            await refFila.remove(); // Remove da fila
+            
+            estadoAtual = "EM_ROTA";
+            document.getElementById('btnPrincipal').innerText = "FINALIZAR ENTREGA";
+            document.getElementById('btnPrincipal').className = "w-full bg-red-600 text-white font-black py-4 rounded-xl uppercase";
+            
+            iniciarRastreamento();
         }
-async function verificarPedido(novoPedidoId) {
-    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${novoPedidoId}`).once('value');
-    if (snapshot.exists()) {
-        console.warn("TRAVA ATIVADA: Pedido já entregue. Bloqueando duplicidade.");
-        return false; // Bloqueia o processamento
-    }
-    return true; // Pedido legítimo
-}
-// --- MÓDULO DE SEGURANÇA E TRAVA ANTI-LOOP ---
 
-async function registrarEntregaSegura(pedidoData, pedidoId) {
-    // 1. Verifica se já existe nos concluídos
-    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).once('value');
-    
-    if (snapshot.exists()) {
-        console.error("ALERTA: Tentativa de reprocessamento bloqueada!");
-        return false;
-    }
+        function iniciarRastreamento() {
+            watchId = navigator.geolocation.watchPosition(pos => {
+                const {latitude, longitude} = pos.coords;
+                if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
+                else markerBololo = L.marker([latitude, longitude]).addTo(map).bindPopup("VOCÊ");
+                
+                db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true});
+            }, null, {enableHighAccuracy: true});
+            
+            document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
+        }
 
-    // 2. Grava permanentemente como concluído
-    await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).set({
-        ...pedidoData,
-        status: "CONCLUIDO",
-        finalizado_em: firebase.database.ServerValue.TIMESTAMP
-    });
-
-    // 3. Remove do painel ativo para evitar loop visual
-    await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
-    return true;
-}
-
-// Quando for iniciar uma nova entrega pelo seu input, crie o ID assim:
-function gerarIdUnico() {
-    return 'ID-' + Date.now().toString(36);
-}
-
+        async function finalizarEntrega() {
+            navigator.geolocation.clearWatch(watchId);
+            await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
+            await db.ref(`lojas/${LOJA_ID}/motoboy_status`).update({online: false});
+            location.reload(); // Reseta tudo para começar limpo
+        }
     </script>
 </body>
 </html>
