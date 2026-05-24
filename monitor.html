@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JDP InDrive - Passageiro</title>
-    <!-- Tailwind CSS para Interface Industrial -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- SCRIPTS CORE DO FIREBASE (WEB V8 COMPATÍVEL) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -16,295 +13,119 @@
         .text-gold { color: #FFD700 !important; }
         .border-gold { border-color: #FFD700 !important; }
         .bg-gold { background-color: #FFD700 !important; }
+        #lista-sugestoes { max-height: 200px; overflow-y: auto; }
     </style>
 </head>
 <body class="bg-[#0d0e12] h-screen flex flex-col justify-between p-6 text-gold font-mono">
 
-    <!-- Cabeçalho de Elite -->
     <header class="border-b border-zinc-800 pb-4 text-center">
         <h1 class="text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-300">
             JDP INDUSTRIAL - PASSAGEIRO
         </h1>
-        <p class="text-xs text-gray-500 mt-1">Transmissão em Tempo Real via Firebase Database</p>
+        <p class="text-xs text-gray-500 mt-1">Soberania Digital - Modo Passageiro</p>
     </header>
 
-    <!-- Painel de Controle Principal -->
     <main class="flex-1 flex flex-col justify-center gap-4 max-w-md mx-auto w-full">
-        
         <div class="bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/80 flex flex-col gap-4">
             
-            <!-- SELETOR DINÂMICO DE EMBARQUE -->
+            <!-- ORIGEM -->
             <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-green-400">🟢 Ponto de Partida (Origem)</label>
-                <div class="grid grid-cols-2 gap-2 mb-2">
-                    <button id="btn-local-atual" onclick="selecionarModoEmbarque('atual')" class="bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all">
-                        Meu Local Atual
-                    </button>
-                    <button id="btn-local-outro" onclick="selecionarModoEmbarque('outro')" class="bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all">
-                        Outro Endereço
-                    </button>
-                </div>
-                
-                <div id="wrapper-origem" class="mt-2">
-                    <input id="origem" type="text" value="MEU LOCAL ATUAL (GPS ATIVO)" readonly class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-yellow-400 font-bold uppercase">
-                </div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-green-400">🟢 Ponto de Partida</label>
+                <input id="origem" type="text" value="MEU LOCAL ATUAL (GPS ATIVO)" readonly class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none text-yellow-400 font-bold uppercase">
             </div>
 
-            <!-- PONTO B: DESTINO TERRESTRE -->
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-cyan-400">🔵 Ponto de Chegada (Destino Exato)</label>
-                <input id="destino" type="text" value="Av Torquato Tapajós" placeholder="EX: CENTRO, TORQUATO TAPAJOS, DJALMA BATISTA" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-400 text-white font-bold uppercase">
+            <!-- DESTINO COM BUSCA INTELIGENTE -->
+            <div class="relative">
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-cyan-400">🔵 Destino (Selecione na lista)</label>
+                <input id="destino" type="text" placeholder="DIGITE O DESTINO..." class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-400 text-white font-bold uppercase">
+                <div id="lista-sugestoes" class="absolute z-50 bg-black border border-gold w-full mt-1 rounded-xl shadow-2xl hidden"></div>
             </div>
 
-            <!-- VALOR DA OFERTA DO LEILÃO -->
+            <!-- VALOR -->
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-2">Sua Oferta (R$)</label>
                 <input id="valor" type="number" value="15" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-gold text-white font-bold text-lg">
             </div>
         </div>
 
-        <button onclick="solicitarCorrida()" class="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black py-4 rounded-xl shadow-lg uppercase tracking-wider text-sm transition-all active:scale-95">
+        <button onclick="solicitarCorrida()" class="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black py-4 rounded-xl shadow-lg uppercase tracking-wider text-sm">
             SOLICITAR MOTORISTA
         </button>
 
-        <!-- Monitor de Status de Rede -->
         <div class="bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800 p-4 min-h-[110px] flex flex-col justify-between">
             <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Status do Barramento</span>
-            <div id="status-leilao" class="text-xs text-zinc-400 my-2 font-bold uppercase">
-                Conectando ao Firebase...
-            </div>
+            <div id="status-leilao" class="text-xs text-zinc-400 my-2 font-bold uppercase">Conectando...</div>
             <div id="container-acao-passageiro" class="hidden pt-2 border-t border-zinc-900"></div>
         </div>
-
     </main>
 
-    <footer class="text-center text-[10px] text-zinc-600 border-t border-zinc-900 pt-3">
-        Manaus Perímetro Monitorado • Control System
-    </footer>
-
     <script>
-        // Configuração do Firebase
-        const firebaseConfig = {
-            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"
-        };
-        
-        // Inicialização Segura do App
-        let database = null;
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            database = firebase.database();
-        } catch (e) {
-            console.error("Erro na inicialização do barramento:", e);
-        }
+        const firebaseConfig = { databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
         const MAPA_INTERNO_MANAUS = {
             "BANCA DA MERENDA": { lat: -2.990333, lng: -60.067333, nomeOficial: "BANCA DA MERENDA (COLÔNIA TERRA NOVA)" },
             "RUA NOVA VENEZA": { lat: -2.991500, lng: -60.065200, nomeOficial: "RUA NOVA VENEZA (TERRA NOVA)" },
-            "VENEZA": { lat: -2.991500, lng: -60.065200, nomeOficial: "RUA NOVA VENEZA (TERRA NOVA)" },
-            "TORQUATO": { lat: -3.033500, lng: -60.024600, nomeOficial: "AV. TORQUATO TAPAJÓS" },
             "TORQUATO TAPAJOS": { lat: -3.033500, lng: -60.024600, nomeOficial: "AV. TORQUATO TAPAJÓS" },
-            "TAPAJOS": { lat: -3.033500, lng: -60.024600, nomeOficial: "AV. TORQUATO TAPAJÓS" },
-            "DJALMA": { lat: -3.102300, lng: -60.021100, nomeOficial: "AV. DJALMA BATISTA" },
             "DJALMA BATISTA": { lat: -3.102300, lng: -60.021100, nomeOficial: "AV. DJALMA BATISTA" },
-            "CONSTANTINO": { lat: -3.105400, lng: -60.027500, nomeOficial: "AV. CONSTANTINO NERY" },
-            "CONSTANTINO NERY": { lat: -3.105400, lng: -60.027500, nomeOficial: "AV. CONSTANTINO NERY" },
-            "RODRIGO OTAVIO": { lat: -3.120500, lng: -59.984100, nomeOficial: "AV. RODRIGO OTÁVIO (JAPIIM)" },
-            "AVENIDA BOM PASTOR": { lat: -3.098200, lng: -59.974500, nomeOficial: "AVENIDA BOM PASTOR (CRESPO)" },
-            "BOM PASTOR": { lat: -3.098200, lng: -59.974500, nomeOficial: "AVENIDA BOM PASTOR (CRESPO)" },
-            "CENTRO DE MANAUS": { lat: -3.131600, lng: -60.024200, nomeOficial: "CENTRO HISTÓRICO DE MANAUS" },
-            "CENTRO": { lat: -3.131600, lng: -60.024200, nomeOficial: "CENTRO HISTÓRICO DE MANAUS" },
-            "AEROPORTO": { lat: -3.035600, lng: -60.046300, nomeOficial: "AEROPORTO INTERNACIONAL DE MANAUS" },
-            "PONTA NEGRA": { lat: -3.063200, lng: -60.101500, nomeOficial: "ORLA DA PONTA NEGRA" }
+            "CENTRO": { lat: -3.131600, lng: -60.024200, nomeOficial: "CENTRO HISTÓRICO DE MANAUS" }
         };
 
-        let modoEmbarque = "atual";
-        let gpsLat = -2.990333; 
-        let gpsLng = -60.067333;
+        // Motor de Busca
+        const campoDestino = document.getElementById("destino");
+        const lista = document.getElementById("lista-sugestoes");
 
-        function capturarGps() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    gpsLat = position.coords.latitude;
-                    gpsLng = position.coords.longitude;
-                    if(modoEmbarque === "atual") {
-                        document.getElementById("origem").value = "MEU LOCAL ATUAL (GPS ATIVO)";
-                    }
-                }, (error) => {
-                    console.log("Aviso: GPS não respondeu, usando coordenada padrão.");
+        campoDestino.addEventListener("input", (e) => {
+            const termo = e.target.value.toUpperCase();
+            lista.innerHTML = "";
+            const matches = Object.keys(MAPA_INTERNO_MANAUS).filter(k => k.includes(termo));
+            
+            if (termo.length > 0 && matches.length > 0) {
+                lista.classList.remove("hidden");
+                matches.forEach(k => {
+                    const div = document.createElement("div");
+                    div.className = "p-3 text-xs text-white border-b border-zinc-800 hover:bg-zinc-800 cursor-pointer";
+                    div.innerText = MAPA_INTERNO_MANAUS[k].nomeOficial;
+                    div.onclick = () => {
+                        campoDestino.value = div.innerText;
+                        campoDestino.dataset.lat = MAPA_INTERNO_MANAUS[k].lat;
+                        campoDestino.dataset.lng = MAPA_INTERNO_MANAUS[k].lng;
+                        lista.classList.add("hidden");
+                    };
+                    lista.appendChild(div);
                 });
-            }
-        }
-        capturarGps();
-
-        function selecionarModoEmbarque(modo) {
-            modoEmbarque = modo;
-            const btnAtual = document.getElementById("btn-local-atual");
-            const btnOutro = document.getElementById("btn-local-outro");
-            const campoOrigem = document.getElementById("origem");
-
-            if (modo === "atual") {
-                btnAtual.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                btnOutro.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                
-                campoOrigem.value = "SOLICITANDO GPS...";
-                campoOrigem.readOnly = true;
-                campoOrigem.className = "w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-yellow-400 font-bold uppercase";
-
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition((position) => {
-                        gpsLat = position.coords.latitude;
-                        gpsLng = position.coords.longitude;
-                        campoOrigem.value = "LOCAL INTEGRADO VIA GPS";
-                    }, (error) => {
-                        campoOrigem.value = "MEU LOCAL ATUAL (PADRÃO)";
-                    }, {
-                        enableHighAccuracy: true,
-                        timeout: 4000
-                    });
-                }
             } else {
-                btnAtual.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                btnOutro.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                campoOrigem.value = "Banca da Merenda";
-                campoOrigem.readOnly = false;
-                campoOrigem.className = "w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-white font-bold uppercase";
+                lista.classList.add("hidden");
             }
-        }
+        });
 
-        function encontrarLocalizacaoExata(texto) {
-            const digitado = texto.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            for (let chave in MAPA_INTERNO_MANAUS) {
-                if (digitado.includes(chave) || chave.includes(digitado)) {
-                    return MAPA_INTERNO_MANAUS[chave];
-                }
-            }
-            return {
-                lat: -3.102300,
-                lng: -60.021100,
-                nomeOficial: texto.toUpperCase() + " (LOCALIZAÇÃO ESTIMADA TERRESTRE)"
-            };
-        }
-
-        // FUNÇÃO PROTEGIDA CONTRA COMPORTAMENTO DE ERRO DE CONEXÃO E GRAVAÇÃO
         function solicitarCorrida() {
-            if (!database) {
-                document.getElementById("status-leilao").innerText = "ERRO: INSTÂNCIA DO FIREBASE INDISPONÍVEL.";
-                return;
-            }
+            const destLat = campoDestino.dataset.lat;
+            const destLng = campoDestino.dataset.lng;
 
-            let nomeOrigem = "MEU LOCAL ATUAL";
-            let latOrig = gpsLat;
-            let lngOrig = gpsLng;
-
-            if (modoEmbarque === "outro") {
-                const campoOrigemVal = document.getElementById("origem").value;
-                if (!campoOrigemVal || campoOrigemVal === "SOLICITANDO GPS...") {
-                    alert("ERRO: DIGITE O ENDEREÇO DE EMBARQUE!");
-                    return;
-                }
-                const localOrigem = encontrarLocalizacaoExata(campoOrigemVal);
-                latOrig = localOrigem.lat;
-                lngOrig = localOrigem.lng;
-                nomeOrigem = localOrigem.nomeOficial;
-            }
-
-            const campoDestino = document.getElementById("destino").value;
-            if (!campoDestino) {
-                alert("ERRO: PREENCHA O DESTINO DA CORRIDA!");
-                return;
-            }
-
-            const valorNum = parseFloat(document.getElementById("valor").value);
-            if (isNaN(valorNum)) {
-                alert("ERRO: DEFINA UM VALOR VÁLIDO!");
-                return;
-            }
-
-            const localDestino = encontrarLocalizacaoExata(campoDestino);
+            if (!destLat) return alert("ERRO: SELECIONE UM DESTINO VÁLIDO NA LISTA!");
 
             const novaCorrida = {
-                id: "RUN_MAIN",
-                origem: nomeOrigem,
-                destino: localDestino.nomeOficial,
-                valor_oferecido: valorNum,
-                latOrigem: latOrig,
-                lngOrigem: lngOrig,
-                latDestino: localDestino.lat,
-                lngDestino: localDestino.lng,
-                status: "procurando",
-                contraproposta: 0
+                id: "RUN_" + Date.now(),
+                origem: "Banca da Merenda",
+                destino: campoDestino.value,
+                valor_oferecido: parseFloat(document.getElementById("valor").value),
+                latOrigem: -2.990333, lngOrigem: -60.067333,
+                latDestino: parseFloat(destLat), lngDestino: parseFloat(destLng),
+                status: "procurando"
             };
 
-            // Proteção síncrona com try/catch para interceptar falhas antes de subir a pilha do console
-            try {
-                database.ref("corrida_teste").set(novaCorrida)
-                    .then(() => {
-                        document.getElementById("status-leilao").innerHTML = "<i class='fas fa-wifi text-green-400 mr-2 animate-pulse'></i>TRANSMITINDO COMPORTAMENTO EM REDE...";
-                    })
-                    .catch((error) => {
-                        // Captura erro assíncrono (ex: Regras de segurança bloqueadas ou queda repentina)
-                        document.getElementById("status-leilao").innerHTML = "<span class='text-red-500 font-bold'>FALHA NO BARRAMENTO: REGRAS/ACESSO NEGADO</span>";
-                        console.warn("Transmissão contida:", error.message);
-                    });
-            } catch (err) {
-                // Captura falha crítica de execução síncrona
-                document.getElementById("status-leilao").innerText = "ERRO INTERNO DE TRANSMISSÃO SÍNCRONA.";
-            }
+            database.ref("corrida_teste").set(novaCorrida)
+                .then(() => document.getElementById("status-leilao").innerText = "SOLICITAÇÃO ENVIADA!");
         }
 
-        // ESCUTADOR INDUSTRIAL SEGURO
-        if (database) {
-            try {
-                database.ref("corrida_teste").on("value", (snapshot) => {
-                    const dados = snapshot.val();
-                    const statusTxt = document.getElementById("status-leilao");
-                    const containerAcao = document.getElementById("container-acao-passageiro");
-
-                    if (!dados) {
-                        statusTxt.innerText = "Pronto para enviar nova solicitação.";
-                        containerAcao.classList.add("hidden");
-                        return;
-                    }
-
-                    if (dados.status === "procurando") {
-                        statusTxt.innerHTML = "<i class='fas fa-spinner animate-spin mr-2 text-yellow-500'></i>AGUARDANDO MOTORISTA ACEITAR VIA SINAL...";
-                        containerAcao.classList.add("hidden");
-                    } else if (dados.status === "aceito") {
-                        statusTxt.innerHTML = "<span class='text-green-500 font-bold'>🟢 MOTORISTA ACEITOU! ELE ESTÁ SE DESLOCANDO.</span>";
-                        containerAcao.classList.add("hidden");
-                    } else if (dados.status === "contraproposta") {
-                        statusTxt.innerHTML = `O MOTORISTA ENVIOU UMA CONTRAPROPOSTA DE: <span class='text-white font-bold'>R$ ${dados.contraproposta}</span>`;
-                        containerAcao.classList.remove("hidden");
-                        containerAcao.innerHTML = `<button onclick="aceitarContraproposta(${dados.contraproposta})" class="w-full bg-green-600 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider">ACEITAR R$ ${dados.contraproposta}</button>`;
-                    } else if (dados.status === "finalizado") {
-                        statusTxt.innerHTML = "<span class='text-cyan-400 font-bold'>🏁 CORRIDA FINALIZADA PELO MOTORISTA!</span>";
-                        containerAcao.classList.add("hidden");
-                        setTimeout(() => { 
-                            try { database.ref("corrida_teste").remove(); } catch(e){}
-                        }, 3000);
-                    }
-                }, (error) => {
-                    document.getElementById("status-leilao").innerHTML = "<span class='text-red-500 font-bold'>ERRO DE SINCRONIZAÇÃO: CONEXÃO COMPROMETIDA</span>";
-                });
-            } catch (e) {
-                console.error("Falha ao registrar escutador do Firebase:", e);
-            }
-        } else {
-            document.getElementById("status-leilao").innerText = "Barramento do Firebase desconectado de forma permanente.";
-        }
-
-        function aceitarContraproposta(novoValor) {
-            if (database) {
-                try {
-                    database.ref("corrida_teste").update({
-                        status: "aceito",
-                        valor_oferecido: novoValor
-                    });
-                } catch(e) {}
-            }
-        }
+        // Escutador
+        database.ref("corrida_teste").on("value", (snap) => {
+            const dados = snap.val();
+            const status = document.getElementById("status-leilao");
+            if (dados) status.innerText = "STATUS: " + dados.status.toUpperCase();
+        });
     </script>
 </body>
 </html>
