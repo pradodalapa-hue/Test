@@ -3,122 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DONY BURGUER'S - PAINEL INDUSTRIAL</title>
+    <title>JDP InDrive - Passageiro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Leaflet Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
-        .bg-gold { background-color: #FFD700; }
-        .text-gold { color: #FFD700; }
-        .border-gold { border-color: #FFD700; }
-        /* Filtro industrial para o mapa */
-        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
+        .text-gold { color: #FFD700 !important; }
+        .border-gold { border-color: #FFD700 !important; }
+        .bg-gold { background-color: #FFD700 !important; }
     </style>
 </head>
-<body class="bg-[#0d0e12] text-[#e2e8f0] font-sans h-screen flex flex-col">
+<body class="bg-[#0d0e12] h-screen flex flex-col justify-between p-6 text-gold font-mono">
 
-    <!-- Mapa ocupando o fundo -->
-    <div id="map" class="absolute inset-0 z-0"></div>
-
-    <header class="relative z-10 bg-[#161820]/90 p-4 text-center border-b-2 border-gold shadow-lg">
-        <h1 class="text-xl font-black tracking-wider text-gold">DONY BURGUER'S</h1>
+    <header class="border-b border-zinc-800 pb-4 text-center">
+        <h1 class="text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-300">
+            JDP INDUSTRIAL - PASSAGEIRO
+        </h1>
+        <p class="text-xs text-gray-500 mt-1">Módulo de Solicitação Inteligente</p>
     </header>
 
-    <main class="relative z-10 flex-1 p-4 flex flex-col justify-end gap-4 max-w-md mx-auto w-full">
+    <main class="flex-1 flex flex-col justify-center gap-4 max-w-md mx-auto w-full">
         
-        <div id="areaIdentificacao" class="bg-[#161820]/90 rounded-xl p-4 border border-zinc-700 shadow-xl">
-            <label class="block text-[10px] font-black uppercase tracking-wider text-gold mb-1">Piloto:</label>
-            <input type="text" id="nomeMotoboy" class="w-full p-2 bg-[#0d0e12] border border-zinc-600 rounded text-white font-bold text-center uppercase" placeholder="NOME DO PILOTO">
-        </div>
+        <div class="bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/80 flex flex-col gap-4">
+            
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-green-400">🟢 Onde deseja embarcar?</label>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <button id="btn-local-atual" onclick="selecionarModoEmbarque('atual')" class="bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all">
+                        Meu Local Atual
+                    </button>
+                    <button id="btn-local-outro" onclick="selecionarModoEmbarque('outro')" class="bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all">
+                        Outro Endereço
+                    </button>
+                </div>
+                
+                <div id="wrapper-origem" class="hidden mt-2">
+                    <input id="origem" type="text" value="Banca da Merenda" placeholder="DIGITE O ENDEREÇO DE PARTIDA" class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-white font-bold uppercase">
+                </div>
+            </div>
 
-        <div class="bg-[#161820]/90 rounded-xl p-4 border-l-4 border-gold shadow-xl">
-            <div id="dadosEntrega">
-                <p class="text-xs text-zinc-500 font-mono">CLIENTE:</p>
-                <p id="entCliente" class="text-white font-bold text-lg uppercase mb-2">AGUARDANDO...</p>
-                <p class="text-xs text-zinc-500 font-mono">ENDEREÇO:</p>
-                <p id="entEndereco" class="text-zinc-300 font-medium text-sm">---</p>
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-cyan-400">🔵 Para onde deseja ir? (Destino)</label>
+                <input id="destino" type="text" value="Centro de Manaus" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-400 text-white font-bold uppercase">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2">Sua Oferta (R$)</label>
+                <input id="valor" type="number" value="15" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-gold text-white font-bold text-lg">
             </div>
         </div>
 
-        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold hover:bg-yellow-500 text-black font-black py-4 rounded-xl uppercase tracking-widest transition-all">
-            Iniciar Rota
+        <button onclick="solicitarCorrida()" class="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black py-4 rounded-xl shadow-lg uppercase tracking-wider text-sm transition-all active:scale-95">
+            SOLICITAR MOTORISTA
         </button>
+
+        <div class="bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800 p-4 min-h-[110px] flex flex-col justify-between">
+            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Status do Leilão</span>
+            <div id="status-leilao" class="text-xs text-zinc-400 my-2 font-bold uppercase">
+                Aguardando envio de solicitação...
+            </div>
+            <div id="container-acao-passageiro" class="hidden pt-2 border-t border-zinc-900"></div>
+        </div>
+
     </main>
 
+    <footer class="text-center text-[10px] text-zinc-600 border-t border-zinc-900 pt-3">
+        Manaus Perímetro Monitorado • Control System
+    </footer>
+
     <script>
-        const firebaseConfig = { databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+        // Coordenadas internas para simulação rápida no perímetro de Manaus
+        const coordenadasManaus = {
+            "BANCA DA MERENDA": { lat: -2.9903, lng: -60.0673 },
+            "CENTRO DE MANAUS": { lat: -3.1316, lng: -60.0242 },
+            "AVENIDA BOM PASTOR": { lat: -3.0982, lng: -59.9745 },
+            "AEROPORTO": { lat: -3.0356, lng: -60.0463 },
+            "PONTA NEGRA": { lat: -3.0632, lng: -60.1015 }
+        };
 
-        // Inicializa Mapa
-        const map = L.map('map').setView([-2.9903, -60.0673], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        
-        let watchId = null;
-        let emRota = false;
-        let markerBololo = null;
-        let markerDestino = null;
+        let modoEmbarque = "atual"; // Padrão inicial
+        let gpsLat = -2.9903;
+        let gpsLng = -60.0673;
 
-        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
-            const pedido = snap.val();
-            if(pedido) {
-                document.getElementById('entCliente').innerText = pedido.cliente.toUpperCase();
-                document.getElementById('entEndereco').innerText = pedido.endereco.toUpperCase();
-                
-                // Marca destino no mapa
-                if(pedido.latDestino) {
-                    if(markerDestino) map.removeLayer(markerDestino);
-                    markerDestino = L.marker([pedido.latDestino, pedido.lngDestino]).addTo(map).bindPopup("DESTINO").openPopup();
-                }
+        // Captura a localização real do hardware em background
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                gpsLat = position.coords.latitude;
+                gpsLng = position.coords.longitude;
+            });
+        }
+
+        function selecionarModoEmbarque(modo) {
+            modoEmbarque = modo;
+            const btnAtual = document.getElementById("btn-local-atual");
+            const btnOutro = document.getElementById("btn-local-outro");
+            const wrapperOrigem = document.getElementById("wrapper-origem");
+
+            if (modo === "atual") {
+                btnAtual.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                btnOutro.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                wrapperOrigem.classList.add("hidden");
             } else {
-                document.getElementById('entCliente').innerText = "AGUARDANDO...";
-                document.getElementById('entEndereco').innerText = "---";
-            }
-        });
-
-        function alternarRastreamento() {
-            const btn = document.getElementById('btnRota');
-            const nome = document.getElementById('nomeMotoboy').value.trim().toUpperCase();
-
-            if (nome === "") { alert("INSIRA SEU NOME!"); return; }
-
-            if (!emRota) {
-                document.getElementById('nomeMotoboy').disabled = true;
-                watchId = navigator.geolocation.watchPosition(pos => enviarDadosGps(pos, nome), null, {enableHighAccuracy: true});
-                emRota = true;
-                btn.innerText = "FINALIZAR ENTREGA";
-                btn.classList.replace('bg-gold', 'bg-red-600');
-            } else {
-                navigator.geolocation.clearWatch(watchId);
-                db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({ online: false });
-                db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
-                
-                location.reload(); // Recarrega para limpar estado
+                btnAtual.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                btnOutro.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                wrapperOrigem.classList.remove("hidden");
             }
         }
 
-        function enviarDadosGps(posicao, nome) {
-            const lat = posicao.coords.latitude;
-            const lng = posicao.coords.longitude;
+        function obterCoordenada(texto) {
+            const limpo = texto.trim().toUpperCase();
+            for (let chave in coordenadasManaus) {
+                if (limpo.includes(chave) || chave.includes(limpo)) {
+                    return coordenadasManaus[chave];
+                }
+            }
+            return {
+                lat: -3.1000 + (Math.random() - 0.5) * 0.06,
+                lng: -60.0500 + (Math.random() - 0.5) * 0.06
+            };
+        }
 
-            // Atualiza marker do motoboy
-            if(markerBololo) markerBololo.setLatLng([lat, lng]);
-            else markerBololo = L.marker([lat, lng], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
-            
-            map.setView([lat, lng]); // Segue o motoboy
+        function solicitarCorrida() {
+            let origTxt = "MEU LOCAL ATUAL";
+            let latOrig = gpsLat;
+            let lngOrig = gpsLng;
 
-            db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({
-                online: true, nome, latitude: lat, longitude: lng
-            });
+            if (modoEmbarque === "outro") {
+                origTxt = document.getElementById("origem").value;
+                if (!origTxt) {
+                    alert("ERRO: DIGITE O ENDEREÇO DE EMBARQUE!");
+                    return;
+                }
+                const geoOrigem = obterCoordenada(origTxt);
+                latOrig = geoOrigem.lat;
+                lngOrig = geoOrigem.lng;
+            }
+
+            const destTxt = document.getElementById("destino").value;
+            const valorNum = parseFloat(document.getElementById("valor").value);
+
+            if (!destTxt || isNaN(valorNum)) {
+                alert("ERRO: PREENCHA O DESTINO E O VALOR!");
+                return;
+            }
+
+            const geoDestino = obterCoordenada(destTxt);
+
+            const novaCorrida = {
+                id: "RUN_" + Date.now(),
+                origem: origTxt.toUpperCase(),
+                destino: destTxt.toUpperCase(),
+                valor_oferecido: valorNum,
+                latOrigem: latOrig,
+                lngOrigem: lngOrig,
+                latDestino: geoDestino.lat,
+                lngDestino: geoDestino.lng,
+                status: "procurando",
+                contraproposta: 0
+            };
+
+            localStorage.setItem("corrida_teste", JSON.stringify(novaCorrida));
+            document.getElementById("status-leilao").innerHTML = "<i class='fas fa-spinner animate-spin mr-2 text-yellow-500'></i>TRANSMITINDO ROTA PARA O RADAR...";
+        }
+
+        setInterval(() => {
+            const dadosJson = localStorage.getItem("corrida_teste");
+            const statusTxt = document.getElementById("status-leilao");
+            const containerAcao = document.getElementById("container-acao-passageiro");
+
+            if (dadosJson) {
+                const dados = JSON.parse(dadosJson);
+                if (dados.status === "procurando") {
+                    statusTxt.innerHTML = "<i class='fas fa-spinner animate-spin mr-2 text-yellow-500'></i>AGUARDANDO MOTORISTA...";
+                    containerAcao.classList.add("hidden");
+                } else if (dados.status === "aceito") {
+                    statusTxt.innerHTML = "<span class='text-green-500 font-bold'>🟢 MOTORISTA ACEITOU! EM ROTA DE EMBARQUE...</span>";
+                    containerAcao.classList.add("hidden");
+                } else if (dados.status === "contraproposta") {
+                    statusTxt.innerHTML = `MOTORISTA PEDIU R$ ${dados.contraproposta}`;
+                    containerAcao.classList.remove("hidden");
+                    containerAcao.innerHTML = `<button onclick="aceitarContraproposta(${dados.contraproposta})" class="w-full bg-green-600 text-white font-bold py-2 rounded-lg text-xs uppercase">ACEITAR R$ ${dados.contraproposta}</button>`;
+                } else if (dados.status === "finalizado") {
+                    statusTxt.innerHTML = "<span class='text-cyan-400 font-bold'>🏁 VIAGEM CONCLUÍDA!</span>";
+                    containerAcao.classList.add("hidden");
+                    setTimeout(() => { localStorage.removeItem("corrida_teste"); statusTxt.innerText = "Aguardando envio de solicitação..."; }, 2000);
+                }
+            }
+        }, 1000);
+
+        function aceitarContraproposta(novoValor) {
+            const dados = JSON.parse(localStorage.getItem("corrida_teste"));
+            dados.status = "aceito";
+            dados.valor_oferecido = novoValor;
+            localStorage.setItem("corrida_teste", JSON.stringify(dados));
         }
     </script>
 </body>
 </html>
-
