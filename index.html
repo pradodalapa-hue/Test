@@ -67,7 +67,7 @@
     <div id="map" class="flex-1 z-0"></div>
 
     <!-- Painel de Operações Inferior -->
-    <div class="absolute bottom-0 w-full bg-[#161820]/95 backdrop-blur-lg p-5 rounded-t-3xl border-t-2 border-gold z-10 max-h-[350px] flex flex-col justify-between">
+    <div class="absolute bottom-0 w-full bg-[#161820]/95 backdrop-blur-lg p-5 rounded-t-3xl border-t-2 border-gold z-10 max-h-[380px] flex flex-col justify-between">
         
         <!-- Radar de varredura -->
         <div id="radar-status" class="text-center text-sm text-zinc-500 py-6 border border-dashed border-zinc-800 rounded-xl">
@@ -76,6 +76,11 @@
 
         <!-- Card de Pedido Ativo Otimizado -->
         <div id="card-pedido" class="hidden flex flex-col gap-2">
+            <!-- DISPLAY DE LONJURA (CÁLCULO HA VERSINE OFFLINE) -->
+            <div id="painel-lonjura" class="bg-amber-950/40 border border-amber-600/40 rounded-lg p-2 text-center text-xs font-black text-amber-400 tracking-wider hidden">
+                <i class="fas fa-route mr-1 animate-pulse"></i> DISTÂNCIA ATÉ O CLIENTE: <span id="view-lonjura" class="text-white">CALCULANDO...</span>
+            </div>
+
             <div class="flex justify-between items-start">
                 <div class="flex-1">
                     <span class="bg-cyan-950 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold border border-cyan-800 uppercase tracking-widest">NOVA SOLICITAÇÃO</span>
@@ -160,8 +165,40 @@
             return null;
         }
 
+        // ALGORITMO INDUSTRIAL DE HAVERSINE PARA PROVER SOBERANIA DIGITAL (CÁLCULO DE LONJURA OFFLINE)
+        function calcularDistanciaOffline(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Raio da Terra em KM
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // Retorna em KM
+        }
+
         let markerCliente = null, markerOrigem = null, markerBololo = null, watchId = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
         let ultimoIdCorrida = ""; 
+        let localizacaoAtualDispositivo = null; // Guarda posição do piloto em tempo real
+
+        // Deixa o GPS do aparelho ativo em segundo plano para saber a lonjura instantaneamente
+        function iniciarLeituraGpsDispositivo() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    localizacaoAtualDispositivo = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    };
+                    if (!emRota) {
+                        document.getElementById('statusGPS').innerText = "🟢 GPS ONLINE - AGUARDANDO";
+                        document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
+                    }
+                }, () => {
+                    console.warn("Permissão de GPS negada ou indisponível localmente.");
+                }, { enableHighAccuracy: true });
+            }
+        }
 
         function checarCadastro() {
             const perfil = localStorage.getItem("jdp_motorista_perfil");
@@ -170,8 +207,9 @@
                 document.getElementById("tela-cadastro").classList.add("hidden");
                 document.getElementById("driver-avatar").src = dados.foto;
                 document.getElementById("entCliente").innerText = `PILOTO: ${dados.nome}`;
+                iniciarLeituraGpsDispositivo();
             } else {
-                document.getElementById("tela-cadastro").remove classList.remove("hidden");
+                document.getElementById("tela-cadastro").classList.remove("hidden");
             }
         }
 
@@ -214,6 +252,8 @@
                     const card = document.getElementById('card-pedido');
                     const radar = document.getElementById('radar-status');
                     const btnRota = document.getElementById('btnRota');
+                    const painelLonjura = document.getElementById('painel-lonjura');
+                    const viewLonjura = document.getElementById('view-lonjura');
                     const dados = snapshot.val();
                     const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
 
@@ -251,6 +291,23 @@
                             const geoDestino = obterCoordenadasPorTexto(dados.destino);
                             if (geoDestino && !latD) { latD = geoDestino.lat; lngD = geoDestino.lng; }
 
+                            // PROCESSAMENTO EM TEMPO REAL DA LONJURA
+                            if (latO && lngO && localizacaoAtualDispositivo) {
+                                const dist = calcularDistanciaOffline(
+                                    localizacaoAtualDispositivo.lat, 
+                                    localizacaoAtualDispositivo.lng, 
+                                    latO, 
+                                    lngO
+                                );
+                                viewLonjura.innerText = `${dist.toFixed(2)} KM`;
+                                painelLonjura.classList.remove('hidden');
+                            } else if (latO && lngO) {
+                                viewLonjura.innerText = "AGUARDANDO GPS FIX...";
+                                painelLonjura.classList.remove('hidden');
+                            } else {
+                                painelLonjura.classList.add('hidden');
+                            }
+
                             // Renderiza Origem
                             if (latO && !markerOrigem) {
                                 markerOrigem = L.marker([latO, lngO], {
@@ -272,10 +329,12 @@
                             radar.classList.remove('hidden');
                             radar.innerHTML = "<span class='text-green-500 font-bold'>CORRIDA ACEITA! INICIE A VIAGEM.</span>";
                             btnRota.classList.remove('hidden');
+                            painelLonjura.classList.add('hidden');
                         } else if (dados.status === "contraproposta") {
                             card.classList.add('hidden');
                             radar.classList.remove('hidden');
                             radar.innerHTML = `AGUARDANDO PASSAGEIRO ACEITAR R$ ${dados.contraproposta}`;
+                            painelLonjura.classList.add('hidden');
                         }
                     } else {
                         ultimoIdCorrida = ""; 
@@ -283,6 +342,7 @@
                         radar.classList.remove('hidden');
                         radar.innerHTML = "<i class='fas fa-radar animate-spin mr-2'></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...";
                         btnRota.classList.add('hidden');
+                        painelLonjura.classList.add('hidden');
                         if (perfil) {
                             document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
                         }
@@ -320,6 +380,7 @@
             if(!emRota) {
                 watchId = navigator.geolocation.watchPosition(pos => {
                     const {latitude, longitude} = pos.coords;
+                    localizacaoAtualDispositivo = {lat: latitude, lng: longitude};
                     
                     if(markerBololo) {
                         markerBololo.setLatLng([latitude, longitude]);
@@ -363,8 +424,14 @@
             
             document.getElementById('btnRota').innerText = "INICIAR ROTA";
             document.getElementById('btnRota').className = "bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden";
-            document.getElementById('statusGPS').innerText = "🔴 GPS OFFLINE";
-            document.getElementById('statusGPS').className = "text-[9px] font-black text-red-500 uppercase mt-0.5";
+            
+            if (localizacaoAtualDispositivo) {
+                document.getElementById('statusGPS').innerText = "🟢 GPS ONLINE - AGUARDANDO";
+                document.getElementById('statusGPS').className = "text-[9px] font-black text-green-500 uppercase mt-0.5";
+            } else {
+                document.getElementById('statusGPS').innerText = "🔴 GPS OFFLINE";
+                document.getElementById('statusGPS').className = "text-[9px] font-black text-red-500 uppercase mt-0.5";
+            }
             
             const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
             if (perfil) {
@@ -376,4 +443,3 @@
     </script>
 </body>
 </html>
-
