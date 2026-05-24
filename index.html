@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -68,32 +67,37 @@
     <div id="map" class="flex-1 z-0"></div>
 
     <!-- Painel de Operações Inferior -->
-    <div class="absolute bottom-0 w-full bg-[#161820]/95 backdrop-blur-lg p-5 rounded-t-3xl border-t-2 border-gold z-10 max-h-[300px] flex flex-col justify-between">
+    <div class="absolute bottom-0 w-full bg-[#161820]/95 backdrop-blur-lg p-5 rounded-t-3xl border-t-2 border-gold z-10 max-h-[350px] flex flex-col justify-between">
         
         <!-- Radar de varredura -->
         <div id="radar-status" class="text-center text-sm text-zinc-500 py-6 border border-dashed border-zinc-800 rounded-xl">
             <i class="fas fa-radar animate-spin mr-2"></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...
         </div>
 
-        <!-- Card de Pedido Ativo -->
-        <div id="card-pedido" class="hidden">
-            <div class="flex justify-between items-start mb-3">
-                <div>
-                    <span class="bg-cyan-950 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold border border-cyan-800 uppercase">NOVA SOLICITAÇÃO</span>
-                    <h2 id="view-destino" class="text-md font-bold mt-1 text-white uppercase">---</h2>
+        <!-- Card de Pedido Ativo Otimizado -->
+        <div id="card-pedido" class="hidden flex flex-col gap-2">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <span class="bg-cyan-950 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold border border-cyan-800 uppercase tracking-widest">NOVA SOLICITAÇÃO</span>
+                    
+                    <!-- Exibição clara e real das ruas para o motoboy no Tarumã -->
+                    <div class="mt-2 text-xs">
+                        <p class="text-green-400 font-bold uppercase"><i class="fas fa-map-marker-alt mr-1"></i> DE: <span id="view-origem" class="text-white">---</span></p>
+                        <p class="text-cyan-400 font-bold uppercase mt-1"><i class="fas fa-flag-checkered mr-1"></i> PARA: <span id="view-destino" class="text-white">---</span></p>
+                    </div>
                 </div>
-                <div class="text-right">
+                <div class="text-right pl-2">
                     <span class="text-[10px] text-zinc-400 block uppercase">OFERTA</span>
                     <span id="view-valor" class="text-xl font-black text-gold">R$ 00</span>
                 </div>
             </div>
 
             <!-- Botões de Ação do Leilão -->
-            <div class="grid grid-cols-2 gap-3 mt-2">
-                <button onclick="aceitarDireto()" class="bg-gold text-black font-black py-3 rounded-lg text-xs uppercase tracking-wider">
+            <div class="grid grid-cols-2 gap-3 mt-1">
+                <button onclick="aceitarDireto()" class="bg-gold text-black font-black py-3 rounded-lg text-xs uppercase tracking-wider transition-all active:scale-95">
                     ACEITAR VALOR
                 </button>
-                <button onclick="contraproposta()" class="border border-gold/40 hover:bg-zinc-900 text-gold font-bold py-3 rounded-lg text-xs uppercase tracking-wider">
+                <button onclick="contraproposta()" class="border border-gold/40 hover:bg-zinc-900 text-gold font-bold py-3 rounded-lg text-xs uppercase tracking-wider transition-all active:scale-95">
                     PEDIR + R$ 5
                 </button>
             </div>
@@ -125,10 +129,19 @@
             firebase.initializeApp(firebaseConfig);
         }
         const database = firebase.database();
+        
+        // Inicializa o mapa focado no Tarumã / Colônia Terra Nova
         const map = L.map('map').setView([-2.9903, -60.0673], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let markerCliente = null, markerBololo = null, watchId = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
+        // Banco Geográfico Interno para precisão no Tarumã / Açu
+        const MAPA_INTERNO_MANAUS = {
+            "BANCA DA MERENDA": { lat: -2.990333, lng: -60.067333 },
+            "RUA NOVA VENEZA": { lat: -2.991500, lng: -60.065200 },
+            "VENEZA": { lat: -2.991500, lng: -60.065200 }
+        };
+
+        let markerCliente = null, markerOrigem = null, markerBololo = null, watchId = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
         let ultimoIdCorrida = ""; 
 
         function checarCadastro() {
@@ -193,22 +206,37 @@
                     radar.classList.add('hidden');
                     card.classList.remove('hidden');
                     btnRota.classList.add('hidden');
+                    
+                    // Injeta a Origem e o Destino em texto de verdade na tela
+                    document.getElementById('view-origem').innerText = dados.origem;
                     document.getElementById('view-destino').innerText = dados.destino;
                     document.getElementById('view-valor').innerText = `R$ ${dados.valor_oferecido}`;
                     valorAtualPassageiro = dados.valor_oferecido;
 
                     if (dados.id !== ultimoIdCorrida) {
-                        if (markerCliente) {
-                            map.removeLayer(markerCliente);
-                            markerCliente = null;
-                        }
+                        if (markerCliente) map.removeLayer(markerCliente);
+                        if (markerOrigem) map.removeLayer(markerOrigem);
+                        markerCliente = null;
+                        markerOrigem = null;
                         ultimoIdCorrida = dados.id;
                     }
 
+                    // Plota o ponto de coleta (Origem) no mapa
+                    if (dados.latOrigem && !markerOrigem) {
+                        markerOrigem = L.marker([dados.latOrigem, dados.lngOrigem], {
+                            icon: L.divIcon({html: '<i class="fas fa-street-view text-2xl text-green-500"></i>', className: 'dummy'})
+                        }).addTo(map).bindPopup("<b class='text-black'>BUSCAR CLIENTE AQUI</b>").openPopup();
+                    }
+
+                    // Plota o ponto de desembarque (Destino) no mapa
                     if (dados.latDestino && !markerCliente) {
                         markerCliente = L.marker([dados.latDestino, dados.lngDestino]).addTo(map)
-                            .bindPopup("<b class='text-black'>DESTINO DA CORRIDA</b>").openPopup();
-                        map.setView([dados.latDestino, dados.lngDestino], 16);
+                            .bindPopup("<b class='text-black'>DESTINO FINAL</b>");
+                    }
+                    
+                    // Centraliza o mapa na rota gerada no Tarumã
+                    if(dados.latOrigem) {
+                        map.setView([dados.latOrigem, dados.lngOrigem], 15);
                     }
                 } else if (dados.status === "aceito") {
                     card.classList.add('hidden');
@@ -230,6 +258,7 @@
                     document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
                 }
                 if (markerCliente) { map.removeLayer(markerCliente); markerCliente = null; }
+                if (markerOrigem) { map.removeLayer(markerOrigem); markerOrigem = null; }
             }
         });
 
@@ -271,7 +300,6 @@
                 if(watchId) navigator.geolocation.clearWatch(watchId);
                 emRota = false;
                 
-                // Atualiza o nó direto no Firebase ditando a conclusão da corrida
                 database.ref("corrida_teste").update({
                     status: "finalizado"
                 }).then(() => {
@@ -282,14 +310,10 @@
 
         function limparEstadoLocalVisual() {
             ultimoIdCorrida = ""; 
-            if (markerCliente) {
-                map.removeLayer(markerCliente);
-                markerCliente = null;
-            }
-            if (markerBololo) {
-                map.removeLayer(markerBololo);
-                markerBololo = null;
-            }
+            if (markerCliente) { map.removeLayer(markerCliente); markerCliente = null; }
+            if (markerOrigem) { map.removeLayer(markerOrigem); markerOrigem = null; }
+            if (markerBololo) { map.removeLayer(markerBololo); markerBololo = null; }
+            
             document.getElementById('btnRota').innerText = "INICIAR ROTA";
             document.getElementById('btnRota').className = "bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden";
             document.getElementById('statusGPS').innerText = "🔴 GPS OFFLINE";
@@ -305,3 +329,4 @@
     </script>
 </body>
 </html>
+
