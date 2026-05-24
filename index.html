@@ -1,201 +1,307 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JDP InDrive - Passageiro</title>
+    <title>JDP InDrive - Motorista</title>
+    <!-- Tailwind CSS para Interface Industrial -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- SCRIPTS CORE DO FIREBASE (WEB V8 COMPATÍVEL) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
     <style>
         .text-gold { color: #FFD700 !important; }
         .border-gold { border-color: #FFD700 !important; }
         .bg-gold { background-color: #FFD700 !important; }
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
     </style>
 </head>
-<body class="bg-[#0d0e12] h-screen flex flex-col justify-between p-6 text-gold font-mono">
+<body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden text-gold font-mono">
 
-    <header class="border-b border-zinc-800 pb-4 text-center">
-        <h1 class="text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-300">
-            JDP INDUSTRIAL - PASSAGEIRO
-        </h1>
-        <p class="text-xs text-gray-500 mt-1">Módulo de Solicitação Inteligente</p>
-    </header>
+    <!-- TELA 1: CADASTRO DO MOTORISTA -->
+    <div id="tela-cadastro" class="absolute inset-0 bg-[#0d0e12] z-50 flex flex-col justify-between p-6">
+        <header class="border-b border-cyan-600/30 pb-4 text-center">
+            <h1 class="text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-400">
+                REGISTRO DE OPERADOR
+            </h1>
+            <p class="text-xs text-gray-500 mt-1">Soberania Digital - Identidade Local</p>
+        </header>
 
-    <main class="flex-1 flex flex-col justify-center gap-4 max-w-md mx-auto w-full">
+        <main class="flex-1 flex flex-col justify-center gap-4 my-6 max-w-md mx-auto w-full">
+            <div class="bg-zinc-900/50 p-5 rounded-xl border border-zinc-800 flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs text-gold font-bold mb-2 uppercase">Nome Completo</label>
+                    <input id="cad-nome" type="text" placeholder="DIGITE SEU NOME..." class="w-full bg-black border border-zinc-700 rounded-lg p-3 text-sm focus:outline-none focus:border-gold text-white uppercase font-bold">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gold font-bold mb-2 uppercase">Foto do Rosto (Selfie)</label>
+                    <div class="flex items-center gap-3">
+                        <label class="flex-1 bg-zinc-800 border border-dashed border-zinc-600 rounded-lg p-3 text-center cursor-pointer hover:border-gold transition-all text-xs text-gray-400 font-bold uppercase">
+                            <i class="fas fa-camera mr-2 text-gold"></i> <span id="label-foto">Selecionar Imagem</span>
+                            <input id="cad-foto" type="file" accept="image/*" class="hidden" onchange="processarFoto(this)">
+                        </label>
+                        <div id="preview-container" class="w-12 h-12 rounded-full border border-gold bg-zinc-950 hidden overflow-hidden">
+                            <img id="img-preview" src="" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="salvarCadastro()" class="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black py-4 rounded-xl shadow-lg uppercase tracking-wider">
+                GRAVAR CREDENCIAIS
+            </button>
+        </main>
+
+        <footer class="text-center text-[10px] text-zinc-600 border-t border-zinc-900 pt-2">
+            JDP Industrial Hardware & Software Protocol
+        </footer>
+    </div>
+
+    <!-- TELA 2: MAPA E OPERAÇÕES EM TEMPO REAL -->
+    <div id="map" class="flex-1 z-0"></div>
+
+    <!-- Painel de Operações Inferior -->
+    <div class="absolute bottom-0 w-full bg-[#161820]/95 backdrop-blur-lg p-5 rounded-t-3xl border-t-2 border-gold z-10 max-h-[300px] flex flex-col justify-between">
         
-        <div class="bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/80 flex flex-col gap-4">
-            
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-green-400">🟢 Onde deseja embarcar?</label>
-                <div class="grid grid-cols-2 gap-2 mb-2">
-                    <button id="btn-local-atual" onclick="selecionarModoEmbarque('atual')" class="bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all">
-                        Meu Local Atual
-                    </button>
-                    <button id="btn-local-outro" onclick="selecionarModoEmbarque('outro')" class="bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all">
-                        Outro Endereço
-                    </button>
+        <!-- Radar de varredura -->
+        <div id="radar-status" class="text-center text-sm text-zinc-500 py-6 border border-dashed border-zinc-800 rounded-xl">
+            <i class="fas fa-radar animate-spin mr-2"></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...
+        </div>
+
+        <!-- Card de Pedido Ativo -->
+        <div id="card-pedido" class="hidden">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <span class="bg-cyan-950 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold border border-cyan-800 uppercase">NOVA SOLICITAÇÃO</span>
+                    <h2 id="view-destino" class="text-md font-bold mt-1 text-white uppercase">---</h2>
                 </div>
-                
-                <div id="wrapper-origem" class="hidden mt-2">
-                    <input id="origem" type="text" value="Banca da Merenda" placeholder="DIGITE O ENDEREÇO DE PARTIDA" class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-white font-bold uppercase">
+                <div class="text-right">
+                    <span class="text-[10px] text-zinc-400 block uppercase">OFERTA</span>
+                    <span id="view-valor" class="text-xl font-black text-gold">R$ 00</span>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-cyan-400">🔵 Para onde deseja ir? (Destino)</label>
-                <input id="destino" type="text" value="Centro de Manaus" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-400 text-white font-bold uppercase">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2">Sua Oferta (R$)</label>
-                <input id="valor" type="number" value="15" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-gold text-white font-bold text-lg">
+            <!-- Botões de Ação do Leilão -->
+            <div class="grid grid-cols-2 gap-3 mt-2">
+                <button onclick="aceitarDireto()" class="bg-gold text-black font-black py-3 rounded-lg text-xs uppercase tracking-wider">
+                    ACEITAR VALOR
+                </button>
+                <button onclick="contraproposta()" class="border border-gold/40 hover:bg-zinc-900 text-gold font-bold py-3 rounded-lg text-xs uppercase tracking-wider">
+                    PEDIR + R$ 5
+                </button>
             </div>
         </div>
 
-        <button onclick="solicitarCorrida()" class="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black py-4 rounded-xl shadow-lg uppercase tracking-wider text-sm transition-all active:scale-95">
-            SOLICITAR MOTORISTA
-        </button>
-
-        <div class="bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800 p-4 min-h-[110px] flex flex-col justify-between">
-            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Status do Leilão</span>
-            <div id="status-leilao" class="text-xs text-zinc-400 my-2 font-bold uppercase">
-                Aguardando envio de solicitação...
+        <!-- Perfil do Operador Ativo, Status do GPS e Ação de Rota -->
+        <div class="flex justify-between items-center border-t border-zinc-800 pt-3 mt-2">
+            <div class="flex items-center gap-3">
+                <img id="driver-avatar" src="" class="w-10 h-10 rounded-full border border-gold object-cover">
+                <div>
+                    <p id="entCliente" class="text-gold font-black text-xs uppercase">AGUARDANDO PROCESSO...</p>
+                    <div id="statusGPS" class="text-[9px] font-black text-red-500 uppercase mt-0.5">🔴 GPS OFFLINE</div>
+                </div>
             </div>
-            <div id="container-acao-passageiro" class="hidden pt-2 border-t border-zinc-900"></div>
+            <div class="flex gap-2">
+                <button id="btnRota" onclick="alternarRastreamento()" class="bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden">INICIAR ROTA</button>
+                <button onclick="limparOperador()" class="bg-zinc-900 border border-red-900 text-red-500 px-2 py-2 rounded-lg text-xs" title="Sair do Perfil"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
         </div>
-
-    </main>
-
-    <footer class="text-center text-[10px] text-zinc-600 border-t border-zinc-900 pt-3">
-        Manaus Perímetro Monitorado • Control System
-    </footer>
+    </div>
 
     <script>
-        // Coordenadas internas para simulação rápida no perímetro de Manaus
-        const coordenadasManaus = {
-            "BANCA DA MERENDA": { lat: -2.9903, lng: -60.0673 },
-            "CENTRO DE MANAUS": { lat: -3.1316, lng: -60.0242 },
-            "AVENIDA BOM PASTOR": { lat: -3.0982, lng: -59.9745 },
-            "AEROPORTO": { lat: -3.0356, lng: -60.0463 },
-            "PONTA NEGRA": { lat: -3.0632, lng: -60.1015 }
+        // Configuração de Credenciais do Firebase unificadas com o passageiro
+        const firebaseConfig = {
+            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"
         };
-
-        let modoEmbarque = "atual"; // Padrão inicial
-        let gpsLat = -2.9903;
-        let gpsLng = -60.0673;
-
-        // Captura a localização real do hardware em background
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                gpsLat = position.coords.latitude;
-                gpsLng = position.coords.longitude;
-            });
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        const database = firebase.database();
+        const map = L.map('map').setView([-2.9903, -60.0673], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        function selecionarModoEmbarque(modo) {
-            modoEmbarque = modo;
-            const btnAtual = document.getElementById("btn-local-atual");
-            const btnOutro = document.getElementById("btn-local-outro");
-            const wrapperOrigem = document.getElementById("wrapper-origem");
+        let markerCliente = null, markerBololo = null, watchId = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
+        let ultimoIdCorrida = ""; 
 
-            if (modo === "atual") {
-                btnAtual.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                btnOutro.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                wrapperOrigem.classList.add("hidden");
+        function checarCadastro() {
+            const perfil = localStorage.getItem("jdp_motorista_perfil");
+            if (perfil) {
+                const dados = JSON.parse(perfil);
+                document.getElementById("tela-cadastro").classList.add("hidden");
+                document.getElementById("driver-avatar").src = dados.foto;
+                document.getElementById("entCliente").innerText = `PILOTO: ${dados.nome}`;
             } else {
-                btnAtual.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                btnOutro.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                wrapperOrigem.classList.remove("hidden");
+                document.getElementById("tela-cadastro").classList.remove("hidden");
             }
         }
 
-        function obterCoordenada(texto) {
-            const limpo = texto.trim().toUpperCase();
-            for (let chave in coordenadasManaus) {
-                if (limpo.includes(chave) || chave.includes(limpo)) {
-                    return coordenadasManaus[chave];
+        function processarFoto(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fotoBase64 = e.target.result;
+                    document.getElementById("img-preview").src = fotoBase64;
+                    document.getElementById("preview-container").classList.remove("hidden");
+                    document.getElementById("label-foto").innerText = "FOTO CARREGADA";
                 }
+                reader.readAsDataURL(file);
             }
-            return {
-                lat: -3.1000 + (Math.random() - 0.5) * 0.06,
-                lng: -60.0500 + (Math.random() - 0.5) * 0.06
-            };
         }
 
-        function solicitarCorrida() {
-            let origTxt = "MEU LOCAL ATUAL";
-            let latOrig = gpsLat;
-            let lngOrig = gpsLng;
-
-            if (modoEmbarque === "outro") {
-                origTxt = document.getElementById("origem").value;
-                if (!origTxt) {
-                    alert("ERRO: DIGITE O ENDEREÇO DE EMBARQUE!");
-                    return;
-                }
-                const geoOrigem = obterCoordenada(origTxt);
-                latOrig = geoOrigem.lat;
-                lngOrig = geoOrigem.lng;
-            }
-
-            const destTxt = document.getElementById("destino").value;
-            const valorNum = parseFloat(document.getElementById("valor").value);
-
-            if (!destTxt || isNaN(valorNum)) {
-                alert("ERRO: PREENCHA O DESTINO E O VALOR!");
+        function salvarCadastro() {
+            const nome = document.getElementById("cad-nome").value.trim().toUpperCase();
+            if (!nome || !fotoBase64) {
+                alert("ERRO: INFORME O NOME E TIRE A FOTO DO ROSTO!");
                 return;
             }
-
-            const geoDestino = obterCoordenada(destTxt);
-
-            const novaCorrida = {
-                id: "RUN_" + Date.now(),
-                origem: origTxt.toUpperCase(),
-                destino: destTxt.toUpperCase(),
-                valor_oferecido: valorNum,
-                latOrigem: latOrig,
-                lngOrigem: lngOrig,
-                latDestino: geoDestino.lat,
-                lngDestino: geoDestino.lng,
-                status: "procurando",
-                contraproposta: 0
-            };
-
-            localStorage.setItem("corrida_teste", JSON.stringify(novaCorrida));
-            document.getElementById("status-leilao").innerHTML = "<i class='fas fa-spinner animate-spin mr-2 text-yellow-500'></i>TRANSMITINDO ROTA PARA O RADAR...";
+            const dadosPerfil = { nome: nome, foto: fotoBase64 };
+            localStorage.setItem("jdp_motorista_perfil", JSON.stringify(dadosPerfil));
+            checarCadastro();
         }
 
-        setInterval(() => {
-            const dadosJson = localStorage.getItem("corrida_teste");
-            const statusTxt = document.getElementById("status-leilao");
-            const containerAcao = document.getElementById("container-acao-passageiro");
-
-            if (dadosJson) {
-                const dados = JSON.parse(dadosJson);
-                if (dados.status === "procurando") {
-                    statusTxt.innerHTML = "<i class='fas fa-spinner animate-spin mr-2 text-yellow-500'></i>AGUARDANDO MOTORISTA...";
-                    containerAcao.classList.add("hidden");
-                } else if (dados.status === "aceito") {
-                    statusTxt.innerHTML = "<span class='text-green-500 font-bold'>🟢 MOTORISTA ACEITOU! EM ROTA DE EMBARQUE...</span>";
-                    containerAcao.classList.add("hidden");
-                } else if (dados.status === "contraproposta") {
-                    statusTxt.innerHTML = `MOTORISTA PEDIU R$ ${dados.contraproposta}`;
-                    containerAcao.classList.remove("hidden");
-                    containerAcao.innerHTML = `<button onclick="aceitarContraproposta(${dados.contraproposta})" class="w-full bg-green-600 text-white font-bold py-2 rounded-lg text-xs uppercase">ACEITAR R$ ${dados.contraproposta}</button>`;
-                } else if (dados.status === "finalizado") {
-                    statusTxt.innerHTML = "<span class='text-cyan-400 font-bold'>🏁 VIAGEM CONCLUÍDA!</span>";
-                    containerAcao.classList.add("hidden");
-                    setTimeout(() => { localStorage.removeItem("corrida_teste"); statusTxt.innerText = "Aguardando envio de solicitação..."; }, 2000);
-                }
+        function limparOperador() {
+            if(confirm("DESEJA REMOVER AS CREDENCIAIS DESTE DISPOSITIVO?")) {
+                localStorage.removeItem("jdp_motorista_perfil");
+                location.reload();
             }
-        }, 1000);
-
-        function aceitarContraproposta(novoValor) {
-            const dados = JSON.parse(localStorage.getItem("corrida_teste"));
-            dados.status = "aceito";
-            dados.valor_oferecido = novoValor;
-            localStorage.setItem("corrida_teste", JSON.stringify(dados));
         }
+
+        // DISPARADOR ESCUTADOR EM TEMPO REAL DIRECT DO FIREBASE
+        database.ref("corrida_teste").on("value", (snapshot) => {
+            const card = document.getElementById('card-pedido');
+            const radar = document.getElementById('radar-status');
+            const btnRota = document.getElementById('btnRota');
+            const dados = snapshot.val();
+            const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
+
+            if (dados) {
+                if (dados.status === "concluido" || dados.status === "finalizado") {
+                    limparEstadoLocalVisual();
+                    return;
+                }
+
+                if (dados.status === "procurando") {
+                    radar.classList.add('hidden');
+                    card.classList.remove('hidden');
+                    btnRota.classList.add('hidden');
+                    document.getElementById('view-destino').innerText = dados.destino;
+                    document.getElementById('view-valor').innerText = `R$ ${dados.valor_oferecido}`;
+                    valorAtualPassageiro = dados.valor_oferecido;
+
+                    if (dados.id !== ultimoIdCorrida) {
+                        if (markerCliente) {
+                            map.removeLayer(markerCliente);
+                            markerCliente = null;
+                        }
+                        ultimoIdCorrida = dados.id;
+                    }
+
+                    if (dados.latDestino && !markerCliente) {
+                        markerCliente = L.marker([dados.latDestino, dados.lngDestino]).addTo(map)
+                            .bindPopup("<b class='text-black'>DESTINO DA CORRIDA</b>").openPopup();
+                        map.setView([dados.latDestino, dados.lngDestino], 16);
+                    }
+                } else if (dados.status === "aceito") {
+                    card.classList.add('hidden');
+                    radar.classList.remove('hidden');
+                    radar.innerHTML = "<span class='text-green-500 font-bold'>CORRIDA ACEITA! INICIE A VIAGEM.</span>";
+                    btnRota.classList.remove('hidden');
+                } else if (dados.status === "contraproposta") {
+                    card.classList.add('hidden');
+                    radar.classList.remove('hidden');
+                    radar.innerHTML = `AGUARDANDO PASSAGEIRO ACEITAR R$ ${dados.contraproposta}`;
+                }
+            } else {
+                ultimoIdCorrida = ""; 
+                card.classList.add('hidden');
+                radar.classList.remove('hidden');
+                radar.innerHTML = "<i class='fas fa-radar animate-spin mr-2'></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...";
+                btnRota.classList.add('hidden');
+                if (perfil) {
+                    document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
+                }
+                if (markerCliente) { map.removeLayer(markerCliente); markerCliente = null; }
+            }
+        });
+
+        window.aceitarDireto = () => {
+            database.ref("corrida_teste").update({
+                status: "aceito"
+            });
+        };
+
+        window.contraproposta = () => {
+            database.ref("corrida_teste").update({
+                status: "contraproposta",
+                contraproposta: valorAtualPassageiro + 5
+            });
+        };
+
+        function alternarRastreamento() {
+            if(!emRota) {
+                watchId = navigator.geolocation.watchPosition(pos => {
+                    const {latitude, longitude} = pos.coords;
+                    
+                    if(markerBololo) {
+                        markerBololo.setLatLng([latitude, longitude]);
+                    } else {
+                        markerBololo = L.marker([latitude, longitude], {
+                            icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-yellow-500"></i>', className: 'dummy'})
+                        }).addTo(map);
+                    }
+                    map.setView([latitude, longitude], 16);
+                }, null, {enableHighAccuracy: true});
+                
+                emRota = true;
+                document.getElementById('btnRota').innerText = "CONCLUIR";
+                document.getElementById('btnRota').classList.replace('bg-gold', 'bg-red-600');
+                document.getElementById('btnRota').classList.add('text-white');
+                document.getElementById('statusGPS').innerText = "🟢 EM ROTA - TRANSMITINDO";
+                document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
+            } else {
+                if(watchId) navigator.geolocation.clearWatch(watchId);
+                emRota = false;
+                
+                // Atualiza o nó direto no Firebase ditando a conclusão da corrida
+                database.ref("corrida_teste").update({
+                    status: "finalizado"
+                }).then(() => {
+                    limparEstadoLocalVisual();
+                });
+            }
+        }
+
+        function limparEstadoLocalVisual() {
+            ultimoIdCorrida = ""; 
+            if (markerCliente) {
+                map.removeLayer(markerCliente);
+                markerCliente = null;
+            }
+            if (markerBololo) {
+                map.removeLayer(markerBololo);
+                markerBololo = null;
+            }
+            document.getElementById('btnRota').innerText = "INICIAR ROTA";
+            document.getElementById('btnRota').className = "bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden";
+            document.getElementById('statusGPS').innerText = "🔴 GPS OFFLINE";
+            document.getElementById('statusGPS').className = "text-[9px] font-black text-red-500 uppercase mt-0.5";
+            
+            const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
+            if (perfil) {
+                document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
+            }
+        }
+
+        checarCadastro();
     </script>
 </body>
 </html>
