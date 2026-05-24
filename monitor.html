@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -46,8 +45,8 @@
                     </button>
                 </div>
                 
-                <div id="wrapper-origem" class="hidden mt-2">
-                    <input id="origem" type="text" value="Banca da Merenda" placeholder="EX: BANCA DA MERENDA, PONTA NEGRA" class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-white font-bold uppercase">
+                <div id="wrapper-origem" class="mt-2">
+                    <input id="origem" type="text" value="MEU LOCAL ATUAL (GPS ATIVO)" readonly class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-yellow-400 font-bold uppercase">
                 </div>
             </div>
 
@@ -84,18 +83,22 @@
     </footer>
 
     <script>
-        // Configuração de Credenciais do Firebase - Ajuste com a URL do seu console
+        // Configuração do Firebase
         const firebaseConfig = {
-            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" // Insira a URL exata do seu Firebase aqui
+            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"
         };
         
-        // Inicializa o Firebase se ainda não foi inicializado
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+        // Inicialização Segura do App
+        let database = null;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+        } catch (e) {
+            console.error("Erro na inicialização do barramento:", e);
         }
-        const database = firebase.database();
 
-        // Módulo Geográfico Interno de Precisão Terrestre
         const MAPA_INTERNO_MANAUS = {
             "BANCA DA MERENDA": { lat: -2.990333, lng: -60.067333, nomeOficial: "BANCA DA MERENDA (COLÔNIA TERRA NOVA)" },
             "RUA NOVA VENEZA": { lat: -2.991500, lng: -60.065200, nomeOficial: "RUA NOVA VENEZA (TERRA NOVA)" },
@@ -120,54 +123,55 @@
         let gpsLat = -2.990333; 
         let gpsLng = -60.067333;
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                gpsLat = position.coords.latitude;
-                gpsLng = position.coords.longitude;
-            });
+        function capturarGps() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    gpsLat = position.coords.latitude;
+                    gpsLng = position.coords.longitude;
+                    if(modoEmbarque === "atual") {
+                        document.getElementById("origem").value = "MEU LOCAL ATUAL (GPS ATIVO)";
+                    }
+                }, (error) => {
+                    console.log("Aviso: GPS não respondeu, usando coordenada padrão.");
+                });
+            }
         }
+        capturarGps();
 
         function selecionarModoEmbarque(modo) {
-    modoEmbarque = modo;
-    const btnAtual = document.getElementById("btn-local-atual");
-    const btnOutro = document.getElementById("btn-local-outro");
-    const campoOrigem = document.getElementById("origem");
+            modoEmbarque = modo;
+            const btnAtual = document.getElementById("btn-local-atual");
+            const btnOutro = document.getElementById("btn-local-outro");
+            const campoOrigem = document.getElementById("origem");
 
-    if (modo === "atual") {
-        btnAtual.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-        btnOutro.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-        
-        campoOrigem.value = "SOLICITANDO GPS...";
-        campoOrigem.readOnly = true;
+            if (modo === "atual") {
+                btnAtual.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                btnOutro.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                
+                campoOrigem.value = "SOLICITANDO GPS...";
+                campoOrigem.readOnly = true;
+                campoOrigem.className = "w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-yellow-400 font-bold uppercase";
 
-        // FORÇA O PEDIDO DE PERMISSÃO AQUI
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                gpsLat = position.coords.latitude;
-                gpsLng = position.coords.longitude;
-                // Exibe uma mensagem de sucesso no campo após a permissão
-                campoOrigem.value = "LOCALIZADO: " + gpsLat.toFixed(4) + ", " + gpsLng.toFixed(4);
-            }, (error) => {
-                // Caso o usuário negue a permissão
-                campoOrigem.value = "PERMISSÃO NEGADA";
-                alert("Erro: O sistema precisa da sua localização para funcionar.");
-            }, {
-                enableHighAccuracy: true, // Solicita a máxima precisão
-                timeout: 5000,
-                maximumAge: 0
-            });
-        } else {
-            alert("Seu navegador não suporta geolocalização.");
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((position) => {
+                        gpsLat = position.coords.latitude;
+                        gpsLng = position.coords.longitude;
+                        campoOrigem.value = "LOCAL INTEGRADO VIA GPS";
+                    }, (error) => {
+                        campoOrigem.value = "MEU LOCAL ATUAL (PADRÃO)";
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 4000
+                    });
+                }
+            } else {
+                btnAtual.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                btnOutro.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+                campoOrigem.value = "Banca da Merenda";
+                campoOrigem.readOnly = false;
+                campoOrigem.className = "w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 text-white font-bold uppercase";
+            }
         }
-    } else {
-        // MODO MANUAL
-        btnAtual.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-        btnOutro.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-        campoOrigem.value = "";
-        campoOrigem.readOnly = false;
-        campoOrigem.placeholder = "DIGITE O ENDEREÇO MANUALMENTE";
-    }
-}
 
         function encontrarLocalizacaoExata(texto) {
             const digitado = texto.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -183,19 +187,24 @@
             };
         }
 
-        // FUNÇÃO DE TRANSMISSÃO EM TEMPO REAL VIA FIREBASE
+        // FUNÇÃO PROTEGIDA CONTRA COMPORTAMENTO DE ERRO DE CONEXÃO E GRAVAÇÃO
         function solicitarCorrida() {
+            if (!database) {
+                document.getElementById("status-leilao").innerText = "ERRO: INSTÂNCIA DO FIREBASE INDISPONÍVEL.";
+                return;
+            }
+
             let nomeOrigem = "MEU LOCAL ATUAL";
             let latOrig = gpsLat;
             let lngOrig = gpsLng;
 
             if (modoEmbarque === "outro") {
-                const campoOrigem = document.getElementById("origem").value;
-                if (!campoOrigem) {
+                const campoOrigemVal = document.getElementById("origem").value;
+                if (!campoOrigemVal || campoOrigemVal === "SOLICITANDO GPS...") {
                     alert("ERRO: DIGITE O ENDEREÇO DE EMBARQUE!");
                     return;
                 }
-                const localOrigem = encontrarLocalizacaoExata(campoOrigem);
+                const localOrigem = encontrarLocalizacaoExata(campoOrigemVal);
                 latOrig = localOrigem.lat;
                 lngOrig = localOrigem.lng;
                 nomeOrigem = localOrigem.nomeOficial;
@@ -228,52 +237,74 @@
                 contraproposta: 0
             };
 
-            // Injeta os dados diretamente na nuvem do Firebase no nó unificado de testes
-            database.ref("corrida_teste").set(novaCorrida)
-                .then(() => {
-                    document.getElementById("status-leilao").innerHTML = "<i class='fas fa-wifi text-green-400 mr-2 animate-pulse'></i>TRANSMITINDO COMPORTAMENTO EM REDE...";
-                })
-                .catch((error) => {
-                    document.getElementById("status-leilao").innerText = "FALHA NA REDE: " + error.message;
-                });
+            // Proteção síncrona com try/catch para interceptar falhas antes de subir a pilha do console
+            try {
+                database.ref("corrida_teste").set(novaCorrida)
+                    .then(() => {
+                        document.getElementById("status-leilao").innerHTML = "<i class='fas fa-wifi text-green-400 mr-2 animate-pulse'></i>TRANSMITINDO COMPORTAMENTO EM REDE...";
+                    })
+                    .catch((error) => {
+                        // Captura erro assíncrono (ex: Regras de segurança bloqueadas ou queda repentina)
+                        document.getElementById("status-leilao").innerHTML = "<span class='text-red-500 font-bold'>FALHA NO BARRAMENTO: REGRAS/ACESSO NEGADO</span>";
+                        console.warn("Transmissão contida:", error.message);
+                    });
+            } catch (err) {
+                // Captura falha crítica de execução síncrona
+                document.getElementById("status-leilao").innerText = "ERRO INTERNO DE TRANSMISSÃO SÍNCRONA.";
+            }
         }
 
-        // ESCUTADOR EM TEMPO REAL (EVENT LISTENER) DO FIREBASE
-        database.ref("corrida_teste").on("value", (snapshot) => {
-            const dados = snapshot.val();
-            const statusTxt = document.getElementById("status-leilao");
-            const containerAcao = document.getElementById("container-acao-passageiro");
+        // ESCUTADOR INDUSTRIAL SEGURO
+        if (database) {
+            try {
+                database.ref("corrida_teste").on("value", (snapshot) => {
+                    const dados = snapshot.val();
+                    const statusTxt = document.getElementById("status-leilao");
+                    const containerAcao = document.getElementById("container-acao-passageiro");
 
-            if (!dados) {
-                statusTxt.innerText = "Pronto para enviar nova solicitação.";
-                containerAcao.classList.add("hidden");
-                return;
-            }
+                    if (!dados) {
+                        statusTxt.innerText = "Pronto para enviar nova solicitação.";
+                        containerAcao.classList.add("hidden");
+                        return;
+                    }
 
-            if (dados.status === "procurando") {
-                statusTxt.innerHTML = "<i class='fas fa-spinner animate-spin mr-2 text-yellow-500'></i>AGUARDANDO MOTORISTA ACEITAR VIA SINAL...";
-                containerAcao.classList.add("hidden");
-            } else if (dados.status === "aceito") {
-                statusTxt.innerHTML = "<span class='text-green-500 font-bold'>🟢 MOTORISTA ACEITOU! ELE ESTÁ SE DESLOCANDO.</span>";
-                containerAcao.classList.add("hidden");
-            } else if (dados.status === "contraproposta") {
-                statusTxt.innerHTML = `O MOTORISTA ENVIOU UMA CONTRAPROPOSTA DE: <span class='text-white font-bold'>R$ ${dados.contraproposta}</span>`;
-                containerAcao.classList.remove("hidden");
-                containerAcao.innerHTML = `<button onclick="aceitarContraproposta(${dados.contraproposta})" class="w-full bg-green-600 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider">ACEITAR R$ ${dados.contraproposta}</button>`;
-            } else if (dados.status === "finalizado") {
-                statusTxt.innerHTML = "<span class='text-cyan-400 font-bold'>🏁 CORRIDA FINALIZADA PELO MOTORISTA!</span>";
-                containerAcao.classList.add("hidden");
-                setTimeout(() => { database.ref("corrida_teste").remove(); }, 3000);
+                    if (dados.status === "procurando") {
+                        statusTxt.innerHTML = "<i class='fas fa-spinner animate-spin mr-2 text-yellow-500'></i>AGUARDANDO MOTORISTA ACEITAR VIA SINAL...";
+                        containerAcao.classList.add("hidden");
+                    } else if (dados.status === "aceito") {
+                        statusTxt.innerHTML = "<span class='text-green-500 font-bold'>🟢 MOTORISTA ACEITOU! ELE ESTÁ SE DESLOCANDO.</span>";
+                        containerAcao.classList.add("hidden");
+                    } else if (dados.status === "contraproposta") {
+                        statusTxt.innerHTML = `O MOTORISTA ENVIOU UMA CONTRAPROPOSTA DE: <span class='text-white font-bold'>R$ ${dados.contraproposta}</span>`;
+                        containerAcao.classList.remove("hidden");
+                        containerAcao.innerHTML = `<button onclick="aceitarContraproposta(${dados.contraproposta})" class="w-full bg-green-600 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider">ACEITAR R$ ${dados.contraproposta}</button>`;
+                    } else if (dados.status === "finalizado") {
+                        statusTxt.innerHTML = "<span class='text-cyan-400 font-bold'>🏁 CORRIDA FINALIZADA PELO MOTORISTA!</span>";
+                        containerAcao.classList.add("hidden");
+                        setTimeout(() => { 
+                            try { database.ref("corrida_teste").remove(); } catch(e){}
+                        }, 3000);
+                    }
+                }, (error) => {
+                    document.getElementById("status-leilao").innerHTML = "<span class='text-red-500 font-bold'>ERRO DE SINCRONIZAÇÃO: CONEXÃO COMPROMETIDA</span>";
+                });
+            } catch (e) {
+                console.error("Falha ao registrar escutador do Firebase:", e);
             }
-        });
+        } else {
+            document.getElementById("status-leilao").innerText = "Barramento do Firebase desconectado de forma permanente.";
+        }
 
         function aceitarContraproposta(novoValor) {
-            database.ref("corrida_teste").update({
-                status: "aceito",
-                valor_oferecido: novoValor
-            });
+            if (database) {
+                try {
+                    database.ref("corrida_teste").update({
+                        status: "aceito",
+                        valor_oferecido: novoValor
+                    });
+                } catch(e) {}
+            }
         }
     </script>
 </body>
 </html>
-
