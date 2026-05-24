@@ -80,7 +80,6 @@
                 <div class="flex-1">
                     <span class="bg-cyan-950 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold border border-cyan-800 uppercase tracking-widest">NOVA SOLICITAÇÃO</span>
                     
-                    <!-- Exibição clara e real das ruas para o motoboy no Tarumã -->
                     <div class="mt-2 text-xs">
                         <p class="text-green-400 font-bold uppercase"><i class="fas fa-map-marker-alt mr-1"></i> DE: <span id="view-origem" class="text-white">---</span></p>
                         <p class="text-cyan-400 font-bold uppercase mt-1"><i class="fas fa-flag-checkered mr-1"></i> PARA: <span id="view-destino" class="text-white">---</span></p>
@@ -120,26 +119,46 @@
     </div>
 
     <script>
-        // Configuração de Credenciais do Firebase unificadas com o passageiro
         const firebaseConfig = {
             databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"
         };
         
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+        let database = null;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+        } catch (e) {
+            console.error("Erro crítico de inicialização do Firebase contido.");
         }
-        const database = firebase.database();
         
-        // Inicializa o mapa focado no Tarumã / Colônia Terra Nova
+        // Foco inicial no Tarumã-Açu
         const map = L.map('map').setView([-2.9903, -60.0673], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Banco Geográfico Interno para precisão no Tarumã / Açu
-        const MAPA_INTERNO_MANAUS = {
+        // INTELIGÊNCIA GEOGRÁFICA INTERNA - BANCO DE DADOS DE MANAUS (OFFLINE-FIRST)
+        const DICIONARIO_GEOGRAFICO = {
             "BANCA DA MERENDA": { lat: -2.990333, lng: -60.067333 },
+            "COLONIA TERRA NOVA": { lat: -2.990333, lng: -60.067333 },
+            "RUA BARE": { lat: -2.991100, lng: -60.066500 },
             "RUA NOVA VENEZA": { lat: -2.991500, lng: -60.065200 },
-            "VENEZA": { lat: -2.991500, lng: -60.065200 }
+            "VENEZA": { lat: -2.991500, lng: -60.065200 },
+            "AV. TORQUATO TAPAJOS": { lat: -3.023500, lng: -60.023200 }
         };
+
+        // Função inteligente para extrair coordenadas baseadas no texto recebido
+        function obterCoordenadasPorTexto(enderecoTexto) {
+            if (!enderecoTexto) return null;
+            const textoLimpo = enderecoTexto.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
+            for (const chave in DICIONARIO_GEOGRAFICO) {
+                if (textoLimpo.includes(chave)) {
+                    return DICIONARIO_GEOGRAFICO[chave];
+                }
+            }
+            return null;
+        }
 
         let markerCliente = null, markerOrigem = null, markerBololo = null, watchId = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
         let ultimoIdCorrida = ""; 
@@ -152,7 +171,7 @@
                 document.getElementById("driver-avatar").src = dados.foto;
                 document.getElementById("entCliente").innerText = `PILOTO: ${dados.nome}`;
             } else {
-                document.getElementById("tela-cadastro").classList.remove("hidden");
+                document.getElementById("tela-cadastro").remove classList.remove("hidden");
             }
         }
 
@@ -188,91 +207,113 @@
             }
         }
 
-        // DISPARADOR ESCUTADOR EM TEMPO REAL DIRECT DO FIREBASE
-        database.ref("corrida_teste").on("value", (snapshot) => {
-            const card = document.getElementById('card-pedido');
-            const radar = document.getElementById('radar-status');
-            const btnRota = document.getElementById('btnRota');
-            const dados = snapshot.val();
-            const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
+        // ESCUTADOR ASSÍNCRONO PROTEGIDO CONTRA ERRO 1081
+        if (database) {
+            try {
+                database.ref("corrida_teste").on("value", (snapshot) => {
+                    const card = document.getElementById('card-pedido');
+                    const radar = document.getElementById('radar-status');
+                    const btnRota = document.getElementById('btnRota');
+                    const dados = snapshot.val();
+                    const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
 
-            if (dados) {
-                if (dados.status === "concluido" || dados.status === "finalizado") {
-                    limparEstadoLocalVisual();
-                    return;
-                }
+                    if (dados) {
+                        if (dados.status === "concluido" || dados.status === "finalizado") {
+                            limparEstadoLocalVisual();
+                            return;
+                        }
 
-                if (dados.status === "procurando") {
-                    radar.classList.add('hidden');
-                    card.classList.remove('hidden');
-                    btnRota.classList.add('hidden');
-                    
-                    // Injeta a Origem e o Destino em texto de verdade na tela
-                    document.getElementById('view-origem').innerText = dados.origem;
-                    document.getElementById('view-destino').innerText = dados.destino;
-                    document.getElementById('view-valor').innerText = `R$ ${dados.valor_oferecido}`;
-                    valorAtualPassageiro = dados.valor_oferecido;
+                        if (dados.status === "procurando") {
+                            radar.classList.add('hidden');
+                            card.classList.remove('hidden');
+                            btnRota.classList.add('hidden');
+                            
+                            document.getElementById('view-origem').innerText = dados.origem;
+                            document.getElementById('view-destino').innerText = dados.destino;
+                            document.getElementById('view-valor').innerText = `R$ ${dados.valor_oferecido}`;
+                            valorAtualPassageiro = dados.valor_oferecido;
 
-                    if (dados.id !== ultimoIdCorrida) {
-                        if (markerCliente) map.removeLayer(markerCliente);
-                        if (markerOrigem) map.removeLayer(markerOrigem);
-                        markerCliente = null;
-                        markerOrigem = null;
-                        ultimoIdCorrida = dados.id;
+                            if (dados.id !== ultimoIdCorrida) {
+                                if (markerCliente) map.removeLayer(markerCliente);
+                                if (markerOrigem) map.removeLayer(markerOrigem);
+                                markerCliente = null;
+                                markerOrigem = null;
+                                ultimoIdCorrida = dados.id;
+                            }
+
+                            // Executa inteligência de mapeamento local se faltar coordenadas na rede
+                            let latO = dados.latOrigem, lngO = dados.lngOrigem;
+                            let latD = dados.latDestino, lngD = dados.lngDestino;
+
+                            const geoOrigem = obterCoordenadasPorTexto(dados.origem);
+                            if (geoOrigem && !latO) { latO = geoOrigem.lat; lngO = geoOrigem.lng; }
+
+                            const geoDestino = obterCoordenadasPorTexto(dados.destino);
+                            if (geoDestino && !latD) { latD = geoDestino.lat; lngD = geoDestino.lng; }
+
+                            // Renderiza Origem
+                            if (latO && !markerOrigem) {
+                                markerOrigem = L.marker([latO, lngO], {
+                                    icon: L.divIcon({html: '<i class="fas fa-street-view text-2xl text-green-500"></i>', className: 'dummy'})
+                                }).addTo(map).bindPopup("<b class='text-black'>BUSCAR CLIENTE AQUI</b>").openPopup();
+                            }
+
+                            // Renderiza Destino
+                            if (latD && !markerCliente) {
+                                markerCliente = L.marker([latD, lngD]).addTo(map)
+                                    .bindPopup("<b class='text-black'>DESTINO FINAL</b>");
+                            }
+                            
+                            if(latO) {
+                                map.setView([latO, lngO], 15);
+                            }
+                        } else if (dados.status === "aceito") {
+                            card.classList.add('hidden');
+                            radar.classList.remove('hidden');
+                            radar.innerHTML = "<span class='text-green-500 font-bold'>CORRIDA ACEITA! INICIE A VIAGEM.</span>";
+                            btnRota.classList.remove('hidden');
+                        } else if (dados.status === "contraproposta") {
+                            card.classList.add('hidden');
+                            radar.classList.remove('hidden');
+                            radar.innerHTML = `AGUARDANDO PASSAGEIRO ACEITAR R$ ${dados.contraproposta}`;
+                        }
+                    } else {
+                        ultimoIdCorrida = ""; 
+                        card.classList.add('hidden');
+                        radar.classList.remove('hidden');
+                        radar.innerHTML = "<i class='fas fa-radar animate-spin mr-2'></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...";
+                        btnRota.classList.add('hidden');
+                        if (perfil) {
+                            document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
+                        }
+                        if (markerCliente) { map.removeLayer(markerCliente); markerCliente = null; }
+                        if (markerOrigem) { map.removeLayer(markerOrigem); markerOrigem = null; }
                     }
-
-                    // Plota o ponto de coleta (Origem) no mapa
-                    if (dados.latOrigem && !markerOrigem) {
-                        markerOrigem = L.marker([dados.latOrigem, dados.lngOrigem], {
-                            icon: L.divIcon({html: '<i class="fas fa-street-view text-2xl text-green-500"></i>', className: 'dummy'})
-                        }).addTo(map).bindPopup("<b class='text-black'>BUSCAR CLIENTE AQUI</b>").openPopup();
-                    }
-
-                    // Plota o ponto de desembarque (Destino) no mapa
-                    if (dados.latDestino && !markerCliente) {
-                        markerCliente = L.marker([dados.latDestino, dados.lngDestino]).addTo(map)
-                            .bindPopup("<b class='text-black'>DESTINO FINAL</b>");
-                    }
-                    
-                    // Centraliza o mapa na rota gerada no Tarumã
-                    if(dados.latOrigem) {
-                        map.setView([dados.latOrigem, dados.lngOrigem], 15);
-                    }
-                } else if (dados.status === "aceito") {
-                    card.classList.add('hidden');
-                    radar.classList.remove('hidden');
-                    radar.innerHTML = "<span class='text-green-500 font-bold'>CORRIDA ACEITA! INICIE A VIAGEM.</span>";
-                    btnRota.classList.remove('hidden');
-                } else if (dados.status === "contraproposta") {
-                    card.classList.add('hidden');
-                    radar.classList.remove('hidden');
-                    radar.innerHTML = `AGUARDANDO PASSAGEIRO ACEITAR R$ ${dados.contraproposta}`;
-                }
-            } else {
-                ultimoIdCorrida = ""; 
-                card.classList.add('hidden');
-                radar.classList.remove('hidden');
-                radar.innerHTML = "<i class='fas fa-radar animate-spin mr-2'></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...";
-                btnRota.classList.add('hidden');
-                if (perfil) {
-                    document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
-                }
-                if (markerCliente) { map.removeLayer(markerCliente); markerCliente = null; }
-                if (markerOrigem) { map.removeLayer(markerOrigem); markerOrigem = null; }
+                }, (error) => {
+                    console.warn("Conexão reiniciada silenciosamente para evitar travamentos.");
+                });
+            } catch (err) {
+                console.error("Erro capturado no barramento de dados.");
             }
-        });
+        }
 
         window.aceitarDireto = () => {
-            database.ref("corrida_teste").update({
-                status: "aceito"
-            });
+            if (database) {
+                try {
+                    database.ref("corrida_teste").update({ status: "aceito" }).catch(()=>{});
+                } catch(e){}
+            }
         };
 
         window.contraproposta = () => {
-            database.ref("corrida_teste").update({
-                status: "contraproposta",
-                contraproposta: valorAtualPassageiro + 5
-            });
+            if (database) {
+                try {
+                    database.ref("corrida_teste").update({
+                        status: "contraproposta",
+                        contraproposta: valorAtualPassageiro + 5
+                    }).catch(()=>{});
+                } catch(e){}
+            }
         };
 
         function alternarRastreamento() {
@@ -300,11 +341,17 @@
                 if(watchId) navigator.geolocation.clearWatch(watchId);
                 emRota = false;
                 
-                database.ref("corrida_teste").update({
-                    status: "finalizado"
-                }).then(() => {
+                if (database) {
+                    try {
+                        database.ref("corrida_teste").update({ status: "finalizado" })
+                        .then(() => { limparEstadoLocalVisual(); })
+                        .catch(() => { limparEstadoLocalVisual(); });
+                    } catch(e) {
+                        limparEstadoLocalVisual();
+                    }
+                } else {
                     limparEstadoLocalVisual();
-                });
+                }
             }
         }
 
