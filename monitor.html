@@ -128,21 +128,46 @@
         }
 
         function selecionarModoEmbarque(modo) {
-            modoEmbarque = modo;
-            const btnAtual = document.getElementById("btn-local-atual");
-            const btnOutro = document.getElementById("btn-local-outro");
-            const wrapperOrigem = document.getElementById("wrapper-origem");
+    modoEmbarque = modo;
+    const btnAtual = document.getElementById("btn-local-atual");
+    const btnOutro = document.getElementById("btn-local-outro");
+    const campoOrigem = document.getElementById("origem");
 
-            if (modo === "atual") {
-                btnAtual.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                btnOutro.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                wrapperOrigem.classList.add("hidden");
-            } else {
-                btnAtual.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                btnOutro.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
-                wrapperOrigem.classList.remove("hidden");
-            }
+    if (modo === "atual") {
+        btnAtual.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+        btnOutro.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+        
+        campoOrigem.value = "SOLICITANDO GPS...";
+        campoOrigem.readOnly = true;
+
+        // FORÇA O PEDIDO DE PERMISSÃO AQUI
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                gpsLat = position.coords.latitude;
+                gpsLng = position.coords.longitude;
+                // Exibe uma mensagem de sucesso no campo após a permissão
+                campoOrigem.value = "LOCALIZADO: " + gpsLat.toFixed(4) + ", " + gpsLng.toFixed(4);
+            }, (error) => {
+                // Caso o usuário negue a permissão
+                campoOrigem.value = "PERMISSÃO NEGADA";
+                alert("Erro: O sistema precisa da sua localização para funcionar.");
+            }, {
+                enableHighAccuracy: true, // Solicita a máxima precisão
+                timeout: 5000,
+                maximumAge: 0
+            });
+        } else {
+            alert("Seu navegador não suporta geolocalização.");
         }
+    } else {
+        // MODO MANUAL
+        btnAtual.className = "bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+        btnOutro.className = "bg-green-950/60 border-2 border-green-500 text-green-400 font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition-all";
+        campoOrigem.value = "";
+        campoOrigem.readOnly = false;
+        campoOrigem.placeholder = "DIGITE O ENDEREÇO MANUALMENTE";
+    }
+}
 
         function encontrarLocalizacaoExata(texto) {
             const digitado = texto.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
