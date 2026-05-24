@@ -76,9 +76,9 @@
 
         <!-- Card de Pedido Ativo Otimizado -->
         <div id="card-pedido" class="hidden flex flex-col gap-2">
-            <!-- DISPLAY DE LONJURA (CÁLCULO HA VERSINE OFFLINE) -->
-            <div id="painel-lonjura" class="bg-amber-950/40 border border-amber-600/40 rounded-lg p-2 text-center text-xs font-black text-amber-400 tracking-wider hidden">
-                <i class="fas fa-route mr-1 animate-pulse"></i> DISTÂNCIA ATÉ O CLIENTE: <span id="view-lonjura" class="text-white">CALCULANDO...</span>
+            <!-- DISPLAY DE LONJURA REAL PELAS RUAS -->
+            <div id="painel-lonjura" class="bg-cyan-950/60 border border-cyan-500/40 rounded-lg p-2 text-center text-xs font-black text-cyan-400 tracking-wider hidden">
+                <i class="fas fa-route mr-1 animate-pulse"></i> DISTÂNCIA REAL POR RUA: <span id="view-lonjura" class="text-white">CALCULANDO...</span>
             </div>
 
             <div class="flex justify-between items-start">
@@ -135,54 +135,81 @@
             }
             database = firebase.database();
         } catch (e) {
-            console.error("Erro crítico de inicialização do Firebase contido.");
+            console.error("Erro Firebase contido.");
         }
         
-        // Foco inicial no Tarumã-Açu
-        const map = L.map('map').setView([-2.9903, -60.0673], 15);
+        const map = L.map('map').setView([-2.9903, -60.0673], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // INTELIGÊNCIA GEOGRÁFICA INTERNA - BANCO DE DADOS DE MANAUS (OFFLINE-FIRST)
-        const DICIONARIO_GEOGRAFICO = {
-            "BANCA DA MERENDA": { lat: -2.990333, lng: -60.067333 },
-            "COLONIA TERRA NOVA": { lat: -2.990333, lng: -60.067333 },
-            "RUA BARE": { lat: -2.991100, lng: -60.066500 },
-            "RUA NOVA VENEZA": { lat: -2.991500, lng: -60.065200 },
-            "VENEZA": { lat: -2.991500, lng: -60.065200 },
-            "AV. TORQUATO TAPAJOS": { lat: -3.023500, lng: -60.023200 }
+        const NOS_RUAS = {
+            "BANCA_MERENDA": { lat: -2.990333, lng: -60.067333 },
+            "COLONIA_TERRA_NOVA": { lat: -2.990333, lng: -60.067333 },
+            "CRUZAMENTO_BARE_VENEZA": { lat: -2.991200, lng: -60.065500 },
+            "RUA_BARE_FIM": { lat: -2.991100, lng: -60.066500 },
+            "VENEZA_CENTRO": { lat: -2.991500, lng: -60.065200 },
+            "ENTRADA_TURISMO": { lat: -2.999500, lng: -60.055000 },
+            "AV_TURISMO_X_TORQUATO": { lat: -3.012500, lng: -60.035500 },
+            "TORQUATO_TAPAJOS_GERAL": { lat: -3.023500, lng: -60.023200 }
         };
 
-        // Função inteligente para extrair coordenadas baseadas no texto recebido
-        function obterCoordenadasPorTexto(enderecoTexto) {
+        const DICIONARIO_GEOGRAFICO = {
+            "BANCA DA MERENDA": "BANCA_MERENDA",
+            "COLONIA TERRA NOVA": "COLONIA_TERRA_NOVA",
+            "RUA BARE": "RUA_BARE_FIM",
+            "RUA NOVA VENEZA": "VENEZA_CENTRO",
+            "VENEZA": "VENEZA_CENTRO",
+            "AV. TORQUATO TAPAJOS": "TORQUATO_TAPAJOS_GERAL"
+        };
+
+        const ROTAS_PRE_DEFINIDAS = {
+            "BANCA_MERENDA->TORQUATO_TAPAJOS_GERAL": [
+                NOS_RUAS["BANCA_MERENDA"], NOS_RUAS["CRUZAMENTO_BARE_VENEZA"], NOS_RUAS["ENTRADA_TURISMO"], NOS_RUAS["AV_TURISMO_X_TORQUATO"], NOS_RUAS["TORQUATO_TAPAJOS_GERAL"]
+            ],
+            "BANCA_MERENDA->VENEZA_CENTRO": [
+                NOS_RUAS["BANCA_MERENDA"], NOS_RUAS["RUA_BARE_FIM"], NOS_RUAS["CRUZAMENTO_BARE_VENEZA"], NOS_RUAS["VENEZA_CENTRO"]
+            ],
+            "RUA_BARE_FIM->TORQUATO_TAPAJOS_GERAL": [
+                NOS_RUAS["RUA_BARE_FIM"], NOS_RUAS["CRUZAMENTO_BARE_VENEZA"], NOS_RUAS["ENTRADA_TURISMO"], NOS_RUAS["AV_TURISMO_X_TORQUATO"], NOS_RUAS["TORQUATO_TAPAJOS_GERAL"]
+            ]
+        };
+
+        function obterChaveNo(enderecoTexto) {
             if (!enderecoTexto) return null;
             const textoLimpo = enderecoTexto.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            
             for (const chave in DICIONARIO_GEOGRAFICO) {
-                if (textoLimpo.includes(chave)) {
-                    return DICIONARIO_GEOGRAFICO[chave];
-                }
+                if (textoLimpo.includes(chave)) return DICIONARIO_GEOGRAFICO[chave];
             }
             return null;
         }
 
-        // ALGORITMO INDUSTRIAL DE HAVERSINE PARA PROVER SOBERANIA DIGITAL (CÁLCULO DE LONJURA OFFLINE)
-        function calcularDistanciaOffline(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Raio da Terra em KM
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; // Retorna em KM
+        function calcularDistanciaMatriz(caminhoPoints) {
+            let total = 0;
+            if(!caminhoPoints || caminhoPoints.length < 2) return total;
+            for(let i = 0; i < caminhoPoints.length - 1; i++) {
+                total += calcularDistanciaHaversine(
+                    caminhoPoints[i].lat, caminhoPoints[i].lng,
+                    caminhoPoints[i+1].lat, caminhoPoints[i+1].lng
+                );
+            }
+            return total;
         }
 
-        let markerCliente = null, markerOrigem = null, markerBololo = null, watchId = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
-        let ultimoIdCorrida = ""; 
-        let localizacaoAtualDispositivo = null; // Guarda posição do piloto em tempo real
+        function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+        }
 
-        // Deixa o GPS do aparelho ativo em segundo plano para saber a lonjura instantaneamente
+        let markerCliente = null, markerOrigem = null, markerBololo = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
+        let ultimoIdCorrida = ""; 
+        let localizacaoAtualDispositivo = null; 
+        let linhaAteOrigem = null;
+        let linhaDestinoFinal = null;
+
         function iniciarLeituraGpsDispositivo() {
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(pos => {
@@ -190,256 +217,209 @@
                         lat: pos.coords.latitude,
                         lng: pos.coords.longitude
                     };
-                    if (!emRota) {
-                        document.getElementById('statusGPS').innerText = "🟢 GPS ONLINE - AGUARDANDO";
-                        document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
+                    if(emRota && markerBololo) {
+                        markerBololo.setLatLng([localizacaoAtualDispositivo.lat, localizacaoAtualDispositivo.lng]);
                     }
-                }, () => {
-                    console.warn("Permissão de GPS negada ou indisponível localmente.");
-                }, { enableHighAccuracy: true });
+                    const statusGpsEl = document.getElementById('statusGPS');
+                    if (!emRota && statusGpsEl) {
+                        statusGpsEl.innerText = "🟢 GPS ONLINE - AGUARDANDO";
+                        statusGpsEl.className = "text-[9px] font-black text-green-500 uppercase mt-0.5";
+                    }
+                }, () => {}, { enableHighAccuracy: true });
             }
         }
 
         function checarCadastro() {
             const perfil = localStorage.getItem("jdp_motorista_perfil");
-            if (perfil) {
+            const telaCad = document.getElementById("tela-cadastro");
+            if (perfil && telaCad) {
                 const dados = JSON.parse(perfil);
-                document.getElementById("tela-cadastro").classList.add("hidden");
-                document.getElementById("driver-avatar").src = dados.foto;
-                document.getElementById("entCliente").innerText = `PILOTO: ${dados.nome}`;
+                telaCad.classList.add("hidden");
+                const avatar = document.getElementById("driver-avatar");
+                if(avatar) avatar.src = dados.foto;
+                const entCli = document.getElementById("entCliente");
+                if(entCli) entCli.innerText = `PILOTO: ${dados.nome}`;
                 iniciarLeituraGpsDispositivo();
-            } else {
-                document.getElementById("tela-cadastro").classList.remove("hidden");
+            } else if (telaCad) {
+                telaCad.classList.remove("hidden");
             }
         }
 
         function processarFoto(input) {
-            const file = input.files[0];
-            if (file) {
+            if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     fotoBase64 = e.target.result;
-                    document.getElementById("img-preview").src = fotoBase64;
-                    document.getElementById("preview-container").classList.remove("hidden");
-                    document.getElementById("label-foto").innerText = "FOTO CARREGADA";
+                    const preview = document.getElementById("img-preview");
+                    const container = document.getElementById("preview-container");
+                    if (preview) preview.src = fotoBase64;
+                    if (container) container.classList.remove("hidden");
                 }
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
         function salvarCadastro() {
-            const nome = document.getElementById("cad-nome").value.trim().toUpperCase();
-            if (!nome || !fotoBase64) {
-                alert("ERRO: INFORME O NOME E TIRE A FOTO DO ROSTO!");
-                return;
-            }
-            const dadosPerfil = { nome: nome, foto: fotoBase64 };
-            localStorage.setItem("jdp_motorista_perfil", JSON.stringify(dadosPerfil));
+            const nomeEl = document.getElementById("cad-nome");
+            const nome = nomeEl ? nomeEl.value.trim().toUpperCase() : "";
+            if (!nome || !fotoBase64) { return alert("ERRO: PREENCHA OS DADOS!"); }
+            localStorage.setItem("jdp_motorista_perfil", JSON.stringify({ nome: nome, foto: fotoBase64 }));
             checarCadastro();
         }
 
         function limparOperador() {
-            if(confirm("DESEJA REMOVER AS CREDENCIAIS DESTE DISPOSITIVO?")) {
-                localStorage.removeItem("jdp_motorista_perfil");
-                location.reload();
-            }
+            if(confirm("DESEJA SAIR?")) { localStorage.removeItem("jdp_motorista_perfil"); location.reload(); }
         }
 
-        // ESCUTADOR ASSÍNCRONO PROTEGIDO CONTRA ERRO 1081
         if (database) {
-            try {
-                database.ref("corrida_teste").on("value", (snapshot) => {
-                    const card = document.getElementById('card-pedido');
-                    const radar = document.getElementById('radar-status');
-                    const btnRota = document.getElementById('btnRota');
-                    const painelLonjura = document.getElementById('painel-lonjura');
-                    const viewLonjura = document.getElementById('view-lonjura');
-                    const dados = snapshot.val();
-                    const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
+            database.ref("corrida_teste").on("value", (snapshot) => {
+                // DEFESA TOTAL ERRO 1081: Garantir que elementos existem antes de manipular
+                const card = document.getElementById('card-pedido');
+                const radar = document.getElementById('radar-status');
+                const btnRota = document.getElementById('btnRota');
+                const painelLonjura = document.getElementById('painel-lonjura');
+                const viewLonjura = document.getElementById('view-lonjura');
+                
+                if (!card || !radar || !btnRota || !painelLonjura || !viewLonjura) return;
 
-                    if (dados) {
-                        if (dados.status === "concluido" || dados.status === "finalizado") {
-                            limparEstadoLocalVisual();
-                            return;
-                        }
+                const dados = snapshot.val();
 
-                        if (dados.status === "procurando") {
-                            radar.classList.add('hidden');
-                            card.classList.remove('hidden');
-                            btnRota.classList.add('hidden');
-                            
-                            document.getElementById('view-origem').innerText = dados.origem;
-                            document.getElementById('view-destino').innerText = dados.destino;
-                            document.getElementById('view-valor').innerText = `R$ ${dados.valor_oferecido}`;
-                            valorAtualPassageiro = dados.valor_oferecido;
+                // Se o nó foi deletado ou finalizado externamente, limpa e aborta com segurança
+                if (!dados || dados.status === "concluido" || dados.status === "finalizado") {
+                    limparEstadoLocalVisual();
+                    return;
+                }
 
-                            if (dados.id !== ultimoIdCorrida) {
-                                if (markerCliente) map.removeLayer(markerCliente);
-                                if (markerOrigem) map.removeLayer(markerOrigem);
-                                markerCliente = null;
-                                markerOrigem = null;
-                                ultimoIdCorrida = dados.id;
-                            }
+                if (dados.status === "procurando") {
+                    radar.classList.add('hidden');
+                    card.classList.remove('hidden');
+                    btnRota.classList.add('hidden');
+                    
+                    const vOrigem = document.getElementById('view-origem');
+                    const vDestino = document.getElementById('view-destino');
+                    const vValor = document.getElementById('view-valor');
+                    
+                    if(vOrigem) vOrigem.innerText = dados.origem || "---";
+                    if(vDestino) vDestino.innerText = dados.destino || "---";
+                    if(vValor) vValor.innerText = `R$ ${dados.valor_oferecido || '00'}`;
+                    
+                    valorAtualPassageiro = dados.valor_oferecido || 0;
 
-                            // Executa inteligência de mapeamento local se faltar coordenadas na rede
-                            let latO = dados.latOrigem, lngO = dados.lngOrigem;
-                            let latD = dados.latDestino, lngD = dados.lngDestino;
-
-                            const geoOrigem = obterCoordenadasPorTexto(dados.origem);
-                            if (geoOrigem && !latO) { latO = geoOrigem.lat; lngO = geoOrigem.lng; }
-
-                            const geoDestino = obterCoordenadasPorTexto(dados.destino);
-                            if (geoDestino && !latD) { latD = geoDestino.lat; lngD = geoDestino.lng; }
-
-                            // PROCESSAMENTO EM TEMPO REAL DA LONJURA
-                            if (latO && lngO && localizacaoAtualDispositivo) {
-                                const dist = calcularDistanciaOffline(
-                                    localizacaoAtualDispositivo.lat, 
-                                    localizacaoAtualDispositivo.lng, 
-                                    latO, 
-                                    lngO
-                                );
-                                viewLonjura.innerText = `${dist.toFixed(2)} KM`;
-                                painelLonjura.classList.remove('hidden');
-                            } else if (latO && lngO) {
-                                viewLonjura.innerText = "AGUARDANDO GPS FIX...";
-                                painelLonjura.classList.remove('hidden');
-                            } else {
-                                painelLonjura.classList.add('hidden');
-                            }
-
-                            // Renderiza Origem
-                            if (latO && !markerOrigem) {
-                                markerOrigem = L.marker([latO, lngO], {
-                                    icon: L.divIcon({html: '<i class="fas fa-street-view text-2xl text-green-500"></i>', className: 'dummy'})
-                                }).addTo(map).bindPopup("<b class='text-black'>BUSCAR CLIENTE AQUI</b>").openPopup();
-                            }
-
-                            // Renderiza Destino
-                            if (latD && !markerCliente) {
-                                markerCliente = L.marker([latD, lngD]).addTo(map)
-                                    .bindPopup("<b class='text-black'>DESTINO FINAL</b>");
-                            }
-                            
-                            if(latO) {
-                                map.setView([latO, lngO], 15);
-                            }
-                        } else if (dados.status === "aceito") {
-                            card.classList.add('hidden');
-                            radar.classList.remove('hidden');
-                            radar.innerHTML = "<span class='text-green-500 font-bold'>CORRIDA ACEITA! INICIE A VIAGEM.</span>";
-                            btnRota.classList.remove('hidden');
-                            painelLonjura.classList.add('hidden');
-                        } else if (dados.status === "contraproposta") {
-                            card.classList.add('hidden');
-                            radar.classList.remove('hidden');
-                            radar.innerHTML = `AGUARDANDO PASSAGEIRO ACEITAR R$ ${dados.contraproposta}`;
-                            painelLonjura.classList.add('hidden');
-                        }
-                    } else {
-                        ultimoIdCorrida = ""; 
-                        card.classList.add('hidden');
-                        radar.classList.remove('hidden');
-                        radar.innerHTML = "<i class='fas fa-radar animate-spin mr-2'></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...";
-                        btnRota.classList.add('hidden');
-                        painelLonjura.classList.add('hidden');
-                        if (perfil) {
-                            document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
-                        }
-                        if (markerCliente) { map.removeLayer(markerCliente); markerCliente = null; }
-                        if (markerOrigem) { map.removeLayer(markerOrigem); markerOrigem = null; }
+                    if (dados.id !== ultimoIdCorrida) {
+                        limparEstadoLocalVisual();
+                        ultimoIdCorrida = dados.id;
                     }
-                }, (error) => {
-                    console.warn("Conexão reiniciada silenciosamente para evitar travamentos.");
-                });
-            } catch (err) {
-                console.error("Erro capturado no barramento de dados.");
-            }
+
+                    const noOrigemKey = obterChaveNo(dados.origem);
+                    const noDestinoKey = obterChaveNo(dados.destino);
+
+                    let coordenadasOrigem = noOrigemKey ? NOS_RUAS[noOrigemKey] : (dados.latOrigem ? { lat: dados.latOrigem, lng: dados.lngOrigem } : null);
+                    let coordenadasDestino = noDestinoKey ? NOS_RUAS[noDestinoKey] : (dados.latDestino ? { lat: dados.latDestino, lng: dados.lngDestino } : null);
+
+                    if (coordenadasOrigem && coordenadasOrigem.lat) {
+                        if (!markerOrigem) {
+                            markerOrigem = L.marker([coordenadasOrigem.lat, coordenadasOrigem.lng], {
+                                icon: L.divIcon({html: '<i class="fas fa-map-marker-alt text-2xl text-green-500"></i>', className: 'dummy'})
+                            }).addTo(map).bindPopup("<b class='text-black'>BUSCA NAS RUAS</b>").openPopup();
+                        }
+
+                        if (localizacaoAtualDispositivo && !linhaAteOrigem) {
+                            const chavePilotoAteOrigem = `BANCA_MERENDA->${noOrigemKey}`;
+                            let arrCaminhoPiloto = [ [localizacaoAtualDispositivo.lat, localizacaoAtualDispositivo.lng], [coordenadasOrigem.lat, coordenadasOrigem.lng] ];
+                            
+                            if(ROTAS_PRE_DEFINIDAS[chavePilotoAteOrigem]) {
+                                arrCaminhoPiloto = ROTAS_PRE_DEFINIDAS[chavePilotoAteOrigem].map(pt => [pt.lat, pt.lng]);
+                            }
+                            linhaAteOrigem = L.polyline(arrCaminhoPiloto, {color: '#FFD700', weight: 4, dashArray: '8, 8', opacity: 0.85}).addTo(map);
+                        }
+                    }
+
+                    if (coordenadasDestino && coordenadasDestino.lat) {
+                        if (!markerCliente) {
+                            markerCliente = L.marker([coordenadasDestino.lat, coordenadasDestino.lng], {
+                                icon: L.divIcon({html: '<i class="fas fa-flag-checkered text-2xl text-red-500"></i>', className: 'dummy'})
+                            }).addTo(map);
+                        }
+
+                        if (coordenadasOrigem && coordenadasOrigem.lat && !linhaDestinoFinal) {
+                            const combinacaoChaveRota = `${noOrigemKey}->${noDestinoKey}`;
+                            let arrayCoordenadasFinaisDoTrajeto = [ [coordenadasOrigem.lat, coordenadasOrigem.lng], [coordenadasDestino.lat, coordenadasDestino.lng] ];
+
+                            if (ROTAS_PRE_DEFINIDAS[combinacaoChaveRota]) {
+                                arrayCoordenadasFinaisDoTrajeto = ROTAS_PRE_DEFINIDAS[combinacaoChaveRota].map(pt => [pt.lat, pt.lng]);
+                                const distRealRuas = calcularDistanciaMatriz(ROTAS_PRE_DEFINIDAS[combinacaoChaveRota]);
+                                viewLonjura.innerText = `${distRealRuas.toFixed(2)} KM (VIA ASFLATO)`;
+                            } else {
+                                const distDireta = calcularDistanciaHaversine(coordenadasOrigem.lat, coordenadasOrigem.lng, coordenadasDestino.lat, coordenadasDestino.lng);
+                                viewLonjura.innerText = `${distDireta.toFixed(2)} KM`;
+                            }
+                            painelLonjura.classList.remove('hidden');
+                            linhaDestinoFinal = L.polyline(arrayCoordenadasFinaisDoTrajeto, {color: '#00e5ff', weight: 6, opacity: 0.95}).addTo(map);
+                        }
+                    }
+                    
+                    if (markerOrigem && markerCliente) {
+                        const grupoBordas = L.featureGroup([markerOrigem, markerCliente]);
+                        map.fitBounds(grupoBordas.getBounds().pad(0.25));
+                    }
+                } else if (dados.status === "aceito") {
+                    card.classList.add('hidden');
+                    radar.classList.remove('hidden');
+                    radar.innerHTML = "<span class='text-green-500 font-bold'>CORRIDA ACEITA! EM DIREÇÃO AO CLIENTE.</span>";
+                    btnRota.classList.remove('hidden');
+                }
+            });
         }
 
-        window.aceitarDireto = () => {
-            if (database) {
-                try {
-                    database.ref("corrida_teste").update({ status: "aceito" }).catch(()=>{});
-                } catch(e){}
-            }
-        };
-
-        window.contraproposta = () => {
-            if (database) {
-                try {
-                    database.ref("corrida_teste").update({
-                        status: "contraproposta",
-                        contraproposta: valorAtualPassageiro + 5
-                    }).catch(()=>{});
-                } catch(e){}
-            }
-        };
+        window.aceitarDireto = () => { if(database) database.ref("corrida_teste").update({ status: "aceito" }); };
+        window.contraproposta = () => { if(database) database.ref("corrida_teste").update({ status: "contraproposta", contraproposta: valorAtualPassageiro + 5 }); };
 
         function alternarRastreamento() {
+            const btn = document.getElementById('btnRota');
+            const gps = document.getElementById('statusGPS');
             if(!emRota) {
-                watchId = navigator.geolocation.watchPosition(pos => {
-                    const {latitude, longitude} = pos.coords;
-                    localizacaoAtualDispositivo = {lat: latitude, lng: longitude};
-                    
-                    if(markerBololo) {
-                        markerBololo.setLatLng([latitude, longitude]);
-                    } else {
-                        markerBololo = L.marker([latitude, longitude], {
-                            icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-yellow-500"></i>', className: 'dummy'})
-                        }).addTo(map);
-                    }
-                    map.setView([latitude, longitude], 16);
-                }, null, {enableHighAccuracy: true});
-                
-                emRota = true;
-                document.getElementById('btnRota').innerText = "CONCLUIR";
-                document.getElementById('btnRota').classList.replace('bg-gold', 'bg-red-600');
-                document.getElementById('btnRota').classList.add('text-white');
-                document.getElementById('statusGPS').innerText = "🟢 EM ROTA - TRANSMITINDO";
-                document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
-            } else {
-                if(watchId) navigator.geolocation.clearWatch(watchId);
-                emRota = false;
-                
-                if (database) {
-                    try {
-                        database.ref("corrida_teste").update({ status: "finalizado" })
-                        .then(() => { limparEstadoLocalVisual(); })
-                        .catch(() => { limparEstadoLocalVisual(); });
-                    } catch(e) {
-                        limparEstadoLocalVisual();
-                    }
-                } else {
-                    limparEstadoLocalVisual();
+                if (localizacaoAtualDispositivo) {
+                    markerBololo = L.marker([localizacaoAtualDispositivo.lat, localizacaoAtualDispositivo.lng], {
+                        icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-yellow-500"></i>', className: 'dummy'})
+                    }).addTo(map);
                 }
+                emRota = true;
+                if(btn) {
+                    btn.innerText = "CONCLUIR";
+                    btn.classList.replace('bg-gold', 'bg-red-600');
+                }
+                if(gps) gps.innerText = "🟢 EM ROTA - TRANSMITINDO";
+            } else {
+                emRota = false;
+                if(database) database.ref("corrida_teste").update({ status: "finalizado" });
+                limparEstadoLocalVisual();
             }
         }
 
         function limparEstadoLocalVisual() {
             ultimoIdCorrida = ""; 
-            if (markerCliente) { map.removeLayer(markerCliente); markerCliente = null; }
-            if (markerOrigem) { map.removeLayer(markerOrigem); markerOrigem = null; }
-            if (markerBololo) { map.removeLayer(markerBololo); markerBololo = null; }
+            if (markerCliente && map) { map.removeLayer(markerCliente); markerCliente = null; }
+            if (markerOrigem && map) { map.removeLayer(markerOrigem); markerOrigem = null; }
+            if (markerBololo && map) { map.removeLayer(markerBololo); markerBololo = null; }
+            if (linhaAteOrigem && map) { map.removeLayer(linhaAteOrigem); linhaAteOrigem = null; }
+            if (linhaDestinoFinal && map) { map.removeLayer(linhaDestinoFinal); linhaDestinoFinal = null; }
             
-            document.getElementById('btnRota').innerText = "INICIAR ROTA";
-            document.getElementById('btnRota').className = "bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden";
+            const card = document.getElementById('card-pedido');
+            const radar = document.getElementById('radar-status');
+            const btn = document.getElementById('btnRota');
+            const painel = document.getElementById('painel-lonjura');
             
-            if (localizacaoAtualDispositivo) {
-                document.getElementById('statusGPS').innerText = "🟢 GPS ONLINE - AGUARDANDO";
-                document.getElementById('statusGPS').className = "text-[9px] font-black text-green-500 uppercase mt-0.5";
-            } else {
-                document.getElementById('statusGPS').innerText = "🔴 GPS OFFLINE";
-                document.getElementById('statusGPS').className = "text-[9px] font-black text-red-500 uppercase mt-0.5";
+            if(card) card.classList.add('hidden');
+            if(radar) {
+                radar.classList.remove('hidden');
+                radar.innerHTML = "<i class='fas fa-radar animate-spin mr-2'></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...";
             }
-            
-            const perfil = JSON.parse(localStorage.getItem("jdp_motorista_perfil"));
-            if (perfil) {
-                document.getElementById('entCliente').innerText = `PILOTO: ${perfil.nome}`;
-            }
+            if(btn) btn.className = "bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden";
+            if(painel) painel.classList.add('hidden');
         }
 
         checarCadastro();
     </script>
 </body>
 </html>
+
