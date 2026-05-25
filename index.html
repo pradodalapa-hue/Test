@@ -2,278 +2,251 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COZINHA SUPREME - JDP INDUSTRIAL</title>
+    <title>DONY BURGUER'S - SISTEMA SOBERANO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { 
-            --gold: #f59e0b; 
-            --dark: #0d0e12; 
-            --card-bg: #161820; 
-            --blue-tech: #00f2ff;
-            --green: #10b981;
-        }
-        body { 
-            background: var(--dark); 
-            color: #e2e8f0; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-        }
-        header { 
-            border-bottom: 2px solid var(--blue-tech); 
-            padding: 15px; 
-            margin-bottom: 30px; 
-            text-align: center; 
-            background: var(--card-bg);
-            border-radius: 8px;
-        }
-        header h1 { 
-            color: var(--blue-tech);
-            margin: 0; 
-            font-size: 1.8rem; 
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-        .grid-pedidos { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-            gap: 25px; 
-        }
-        .pedido-card { 
-            background: var(--card-bg); 
-            border: 1px solid #2d3142; 
-            border-top: 6px solid var(--gold); 
-            padding: 20px; 
-            border-radius: 8px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4); 
-        }
-        .pedido-header { 
-            display: flex; 
-            justify-content: space-between; 
-            border-bottom: 1px solid #2d3142; 
-            padding-bottom: 10px; 
-            margin-bottom: 15px; 
-        }
-        .pedido-header strong {
-            font-size: 1.3rem;
-            color: var(--gold);
-        }
-        .item-linha { 
-            padding: 8px 0; 
-            border-bottom: 1px solid #1e293b; 
-            font-size: 1.1rem; 
-            color: #cbd5e1; 
-        }
-        .total { 
-            margin-top: 20px; 
-            font-size: 1.3rem; 
-            color: var(--green); 
-            text-align: right; 
-            font-weight: bold;
-        }
-        .btn-concluir { 
-            background: var(--blue-tech); 
-            color: #000; 
-            border: none; 
-            width: 100%; 
-            padding: 15px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            margin-top: 20px; 
-            border-radius: 6px; 
-            font-size: 1.1rem; 
-            transition: 0.2s;
-        }
-        .btn-concluir:active {
-            filter: brightness(0.8);
-        }
-        .aviso-vazio { 
-            grid-column: 1 / -1; 
-            text-align: center; 
-            color: #64748b; 
-            margin-top: 100px; 
-            font-size: 1.5rem; 
-            font-weight: bold;
-            text-transform: uppercase; 
-        }
+        .text-gold { color: #FFD700 !important; }
+        .border-gold { border-color: #FFD700 !important; }
+        .bg-gold { background-color: #FFD700 !important; }
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
     </style>
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" sizes="192x192" href="icon-192.png">
-    <link rel="icon" sizes="512x512" href="icon-512.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-<body>
+<body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden text-gold">
 
-<header>
-    <h1>LEOCARDIOS BURGUER'S - ESTEIRA DE COZINHA</h1>
-    <p style="color: var(--green); font-size: 12px; margin-top: 5px; font-weight: bold;">SISTEMA COZINHA ATIVO</p>
-</header>
+    <div id="map" class="flex-1 z-0"></div>
 
-<div id="container-pedidos" class="grid-pedidos">
-    <div class="aviso-vazio">Aguardando Pedidos...</div>
-</div>
+    <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-gold z-10">
+        <div class="flex gap-2 mb-4">
+            <input type="text" id="inputEndereco" class="flex-1 p-3 bg-[#0d0e12] border border-gold rounded-lg text-gold font-bold uppercase" placeholder="DIGITE O ENDEREÇO DO CLIENTE...">
+            <button onclick="buscarEndereco()" class="bg-gold text-black px-4 py-2 rounded-lg font-black uppercase"><i class="fas fa-search"></i></button>
+        </div>
 
-<script>
-    const LOJA_ID = 'LEOVARDIOS_burguer_2026';
-    
-    firebase.initializeApp({ databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" });
-    const db = firebase.database();
-    
-    let cacheChavesExistentes = new Set();
-    let carregamentoInicialCompleto = false;
-    
-    // BLINDAGEM INDUSTRIAL: Guarda os IDs concluídos para impedir reaparecimento por delay de rede
-    const idsConcluidosNaSessao = new Set();
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <p id="entCliente" class="text-gold font-black text-lg uppercase">AGUARDANDO PEDIDO...</p>
+                <p id="entEndereco" class="text-zinc-400 text-xs uppercase">---</p>
+            </div>
+            <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
+        </div>
 
-    // SINAL SONORO AUTOMÁTICO: NOVO PEDIDO CHEGOU DO PDV
-    function tocarSomNovoPedido() {
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            let osc1 = audioCtx.createOscillator();
-            let gain1 = audioCtx.createGain();
-            osc1.type = "sine";
-            osc1.frequency.setValueAtTime(880, audioCtx.currentTime); 
-            gain1.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            osc1.connect(gain1);
-            gain1.connect(audioCtx.destination);
-            osc1.start();
-            osc1.stop(audioCtx.currentTime + 0.15);
+        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] uppercase">INICIAR ROTA</button>
+    </div>
+<button onclick="colarEndereco()" class="bg-zinc-800 text-gold p-3 rounded-lg border border-gold">
+    <i class="fas fa-paste"></i> COLAR ENDEREÇO
+</button>
 
-            setTimeout(() => {
-                let osc2 = audioCtx.createOscillator();
-                let gain2 = audioCtx.createGain();
-                osc2.type = "sine";
-                osc2.frequency.setValueAtTime(1200, audioCtx.currentTime); 
-                gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                osc2.connect(gain2);
-                gain2.connect(audioCtx.destination);
-                osc2.start();
-                osc2.stop(audioCtx.currentTime + 0.15);
-            }, 200);
-        } catch (e) {
-            console.log("Interação necessária para liberar som.");
+    <script>
+        firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
+        const db = firebase.database();
+        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+        const map = L.map('map').setView([-2.9903, -60.0673], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        let markerCliente, markerBololo, watchId, emRota = false;
+// ESCUTA ATIVA: Adicione isso logo abaixo da declaração da constante 'db'
+db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', (snapshot) => {
+    const pedido = snapshot.val();
+    if (pedido) {
+        // Atualiza a interface quando um novo pedido é detectado
+        document.getElementById('entCliente').innerText = pedido.cliente.toUpperCase();
+        document.getElementById('entEndereco').innerText = pedido.endereco.toUpperCase();
+        
+        // Centraliza o mapa no novo destino automaticamente
+        if (pedido.latDestino && pedido.lngDestino) {
+            map.setView([pedido.latDestino, pedido.lngDestino], 17);
+            if(markerCliente) map.removeLayer(markerCliente);
+            markerCliente = L.marker([pedido.latDestino, pedido.lngDestino]).addTo(map).bindPopup("DESTINO ATUAL").openPopup();
         }
     }
+});
 
-    // Escuta ativa travada unicamente no nó de produção alimentado pelo PDV
-    db.ref(`lojas/${LOJA_ID}/producao_pendente`).on('value', (snapshot) => {
-        const container = document.getElementById('container-pedidos');
-        const pedidos = snapshot.val();
-        
-        if (!pedidos) {
-            container.innerHTML = '<div class="aviso-vazio">Cozinha Limpa!</div>';
-            cacheChavesExistentes.clear();
-            carregamentoInicialCompleto = true;
-            return;
-        }
+async function colarEndereco() {
+    try {
+        const texto = await navigator.clipboard.readText();
+        document.getElementById('inputEndereco').value = texto;
+        buscarEndereco(); // Dispara a busca automaticamente ao colar
+    } catch (err) {
+        alert("PERMISSÃO DE ÁREA DE TRANSFERÊNCIA NEGADA.");
+    }
+}
 
-        // Monitora e dispara o som apenas se for um pedido novo válido e que não foi concluído aqui
-        if (carregamentoInicialCompleto) {
-            Object.keys(pedidos).forEach(chave => {
-                const p = pedidos[chave];
-                if (!cacheChavesExistentes.has(chave) && !idsConcluidosNaSessao.has(chave) && p.itens && (p.status === "Pendente" || p.status === "Espera" || p.status === "PREPARANDO")) {
-                    tocarSomNovoPedido();
-                }
-            });
-        }
+        async function buscarEndereco() {
+            const end = document.getElementById('inputEndereco').value;
+            if(!end) return alert("DIGITE UM ENDEREÇO!");
 
-        cacheChavesExistentes = new Set(Object.keys(pedidos));
-        carregamentoInicialCompleto = true;
-        container.innerHTML = '';
-        
-        let temPedidoNaTela = false;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(end)}, Manaus`);
+            const data = await res.json();
 
-        snapshot.forEach((filho) => {
-            const pedido = filho.val();
-            const idPedido = filho.key;
-            
-            // SEGURANÇA MÁXIMA: Ignora se for inválido ou se já foi concluído nesta sessão
-            if (!pedido || !pedido.itens || !pedido.mesa || idsConcluidosNaSessao.has(idPedido)) {
-                return; 
-            }
-            
-            const statusAtual = (pedido.status || "").toUpperCase();
+            if(data.length > 0) {
+                const {lat, lon, display_name} = data[0];
+                if(markerCliente) map.removeLayer(markerCliente);
+                markerCliente = L.marker([lat, lon]).addTo(map).bindPopup("DESTINO: " + end).openPopup();
+                map.setView([lat, lon], 17);
 
-            // Exibe na tela apenas se o status do fluxo do PDV estiver correto
-            if (statusAtual === "PENDENTE" || statusAtual === "ESPERA" || statusAtual === "PREPARANDO") {
-                temPedidoNaTela = true;
-                
-                let itensHtml = '';
-                const arrItens = Array.isArray(pedido.itens) ? pedido.itens : Object.values(pedido.itens);
-                const mapaContagem = {};
-                
-                arrItens.forEach(i => {
-                    if (i && i.nome) mapaContagem[i.nome] = (mapaContagem[i.nome] || 0) + 1;
+                db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
+                    cliente: end,
+                    endereco: display_name,
+                    latDestino: lat,
+                    lngDestino: lon
                 });
-                
-                itensHtml = Object.entries(mapaContagem).map(([nome, qtd]) => 
-                    `<div class="item-linha">● ${qtd}x ${nome}</div>`
-                ).join('');
-                
-                const div = document.createElement('div');
-                div.className = 'pedido-card';
-                div.id = `card-${idPedido}`;
-                div.innerHTML = `
-                    <div class="pedido-header">
-                        <strong>${pedido.mesa}</strong>
-                        <span style="font-size: 13px; color: #64748b; font-weight: bold;">${pedido.hora || ''}</span>
-                    </div>
-                    <div>${itensHtml}</div>
-                    <div class="total">R$ ${parseFloat(pedido.total || 0).toFixed(2)}</div>
-                    <button class="btn-concluir" onclick="finalizarPedido('${idPedido}')">CONCLUÍDO / LANCHE PRONTO</button>
-                `;
-                container.appendChild(div);
+                document.getElementById('entCliente').innerText = end;
+                document.getElementById('entEndereco').innerText = "DESTINO ENCONTRADO";
+            } else {
+                alert("ENDEREÇO NÃO ENCONTRADO.");
             }
-        });
-
-        if (!temPedidoNaTela) {
-            container.innerHTML = '<div class="aviso-vazio">Cozinha Limpa!</div>';
         }
+// --- MÓDULO DE CAPTURA AUTOMÁTICA ---
+// Este código monitora constantemente a entrada de novos pedidos na fila
+db.ref(`lojas/${LOJA_ID}/fila_pedidos`).limitToLast(1).on('child_added', (snapshot) => {
+    const pedido = snapshot.val();
+    const pedidoId = snapshot.key;
+
+    // Confirmação sonora ou visual para o entregador
+    console.log("Novo pedido detectado:", pedidoId);
+    
+    // Atualiza o painel com os dados do pedido vindo do sistema original
+    document.getElementById('entCliente').innerText = pedido.nome_cliente || "CLIENTE SEM NOME";
+    document.getElementById('entEndereco').innerText = pedido.endereco_completo || "ENDEREÇO NÃO DEFINIDO";
+    
+    // Armazena no painel de entrega ativa automaticamente
+    db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
+        id: pedidoId,
+        cliente: pedido.nome_cliente,
+        endereco: pedido.endereco_completo,
+        latDestino: pedido.lat,
+        lngDestino: pedido.lng,
+        timestamp: Date.now()
     });
 
-    // Função que altera o status para PRONTO e remove imediatamente da UI usando o ID absoluto
-    function finalizarPedido(id) {
-        // Bloqueia localmente na hora: impede repetição por instabilidade da rede
-        idsConcluidosNaSessao.add(id);
-        
-        // Remove visualmente de imediato da tela sem esperar a resposta do Firebase
-        const card = document.getElementById(`card-${id}`);
-        if (card) {
-            card.remove();
-        }
-        
-        // Verifica se a tela ficou vazia após a remoção local
-        const container = document.getElementById('container-pedidos');
-        if (container.children.length === 0) {
-            container.innerHTML = '<div class="aviso-vazio">Cozinha Limpa!</div>';
-        }
-
-        // Atualiza a base de dados em nuvem
-        db.ref(`lojas/${LOJA_ID}/producao_pendente/${id}`).update({
-            status: "PRONTO",
-            finalizadoEm: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
-        }).catch(err => {
-            console.error("Erro industrial ao atualizar status:", err);
-            // Se falhar de verdade, devolve ao fluxo do sistema
-            idsConcluidosNaSessao.delete(id);
-        });
+    // Centraliza o mapa automaticamente
+    if (pedido.lat && pedido.lng) {
+        map.setView([pedido.lat, pedido.lng], 17);
+        if (markerCliente) map.removeLayer(markerCliente);
+        markerCliente = L.marker([pedido.lat, pedido.lng]).addTo(map).bindPopup("NOVO DESTINO: " + pedido.nome_cliente).openPopup();
     }
-</script>
+});
 
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').then(reg => console.log('SISTEMA JDP: MOTOR ATIVO'));
-        });
+        function alternarRastreamento() {
+            if(!emRota) {
+                watchId = navigator.geolocation.watchPosition(pos => {
+                    const {latitude, longitude} = pos.coords;
+                    if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
+                    else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
+                    db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome: "PILOTO"});
+                }, null, {enableHighAccuracy: true});
+                emRota = true;
+                document.getElementById('btnRota').innerText = "FINALIZAR ROTA";
+                document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
+            } else {
+                navigator.geolocation.clearWatch(watchId);
+                db.ref(`lojas/${LOJA_ID}/motoboy_status`).update({online: false});
+                location.reload();
+            }
+        }
+async function verificarPedido(novoPedidoId) {
+    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${novoPedidoId}`).once('value');
+    if (snapshot.exists()) {
+        console.warn("TRAVA ATIVADA: Pedido já entregue. Bloqueando duplicidade.");
+        return false; // Bloqueia o processamento
     }
-<script src="caminho/para/seu/jdp-core.js"></script>
+    return true; // Pedido legítimo
+}
+// --- MÓDULO DE SEGURANÇA E TRAVA ANTI-LOOP ---
+
+async function registrarEntregaSegura(pedidoData, pedidoId) {
+    // 1. Verifica se já existe nos concluídos
+    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).once('value');
+    
+    if (snapshot.exists()) {
+        console.error("ALERTA: Tentativa de reprocessamento bloqueada!");
+        return false;
+    }
+
+    // 2. Grava permanentemente como concluído
+    await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).set({
+        ...pedidoData,
+        status: "CONCLUIDO",
+        finalizado_em: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    // 3. Remove do painel ativo para evitar loop visual
+    await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
+    return true;
+}
+
+// Quando for iniciar uma nova entrega pelo seu input, crie o ID assim:
+function gerarIdUnico() {
+    return 'ID-' + Date.now().toString(36);
+}
+async function finalizarEntregaAtual() {
+    const refAtivo = db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`);
+    
+    // Pega o snapshot atual antes de remover
+    const snapshot = await refAtivo.once('value');
+    const pedidoData = snapshot.val();
+    
+    if (pedidoData) {
+        const pedidoId = pedidoData.id || Date.now();
+        
+        // Grava em pedidos_concluidos
+        await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).set({
+            ...pedidoData,
+            status: "ENTREGUE",
+            finalizado_em: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        // Remove de pedido_em_entrega (Isso para o loop do sistema)
+        await refAtivo.remove();
+        
+        // Reset da interface
+        document.getElementById('entCliente').innerText = "AGUARDANDO PEDIDO...";
+        document.getElementById('entEndereco').innerText = "---";
+        if(markerCliente) map.removeLayer(markerCliente);
+        
+        alert("ENTREGA FINALIZADA COM SUCESSO!");
+    } else {
+        alert("NENHUM PEDIDO ATIVO PARA FINALIZAR.");
+    }
+}
+// Função definitiva para matar o processo no servidor e na tela
+async function travarEFinalizarEntrega() {
+    // 1. Desliga o monitoramento do pedido atual para evitar reações do sistema
+    db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).off();
+
+    // 2. Remove o pedido do servidor (Isso é a trava real)
+    try {
+        await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
+        console.log("TRAVA ATIVADA: Processo removido do servidor.");
+    } catch (error) {
+        console.error("Erro na trava:", error);
+    }
+
+    // 3. Limpeza visual imediata
+    document.getElementById('entCliente').innerText = "AGUARDANDO PEDIDO...";
+    document.getElementById('entEndereco').innerText = "---";
+    document.getElementById('btnRota').innerText = "INICIAR ROTA";
+    document.getElementById('btnRota').classList.remove('bg-red-600');
+    document.getElementById('btnRota').classList.add('bg-gold');
+    
+    // 4. Remove marcações do mapa
+    if(markerCliente) map.removeLayer(markerCliente);
+    if(markerBololo) markerBololo.remove();
+    
+    // 5. Para o rastreamento GPS
+    if(watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        emRota = false;
+    }
+    
+    // Força o reset para garantir que nada ficou pendurado na memória
+    location.reload(); 
+}
+
+    </script>
 </body>
-</html>
+    </html>
