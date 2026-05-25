@@ -3,423 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JDP InDrive - Motorista</title>
-    <!-- Tailwind CSS para Interface Industrial -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- SCRIPTS CORE DO FIREBASE (WEB V8 COMPATÍVEL) -->
+    <title>COZINHA SUPREME - JDP INDUSTRIAL</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
     <style>
-        .text-gold { color: #FFD700 !important; }
-        .border-gold { border-color: #FFD700 !important; }
-        .bg-gold { background-color: #FFD700 !important; }
-        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
+        :root { 
+            --gold: #f59e0b; 
+            --dark: #0d0e12; 
+            --card-bg: #161820; 
+            --blue-tech: #00f2ff;
+            --green: #10b981;
+        }
+        body { 
+            background: var(--dark); 
+            color: #e2e8f0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        header { 
+            border-bottom: 2px solid var(--blue-tech); 
+            padding: 15px; 
+            margin-bottom: 30px; 
+            text-align: center; 
+            background: var(--card-bg);
+            border-radius: 8px;
+        }
+        header h1 { 
+            color: var(--blue-tech);
+            margin: 0; 
+            font-size: 1.8rem; 
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .grid-pedidos { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+            gap: 25px; 
+        }
+        .pedido-card { 
+            background: var(--card-bg); 
+            border: 1px solid #2d3142; 
+            border-top: 6px solid var(--gold); 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4); 
+        }
+        .pedido-header { 
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 1px solid #2d3142; 
+            padding-bottom: 10px; 
+            margin-bottom: 15px; 
+        }
+        .pedido-header strong {
+            font-size: 1.3rem;
+            color: var(--gold);
+        }
+        .item-linha { 
+            padding: 8px 0; 
+            border-bottom: 1px solid #1e293b; 
+            font-size: 1.1rem; 
+            color: #cbd5e1; 
+        }
+        .total { 
+            margin-top: 20px; 
+            font-size: 1.3rem; 
+            color: var(--green); 
+            text-align: right; 
+            font-weight: bold;
+        }
+        .btn-concluir { 
+            background: var(--blue-tech); 
+            color: #000; 
+            border: none; 
+            width: 100%; 
+            padding: 15px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 20px; 
+            border-radius: 6px; 
+            font-size: 1.1rem; 
+            transition: 0.2s;
+        }
+        .btn-concluir:active {
+            filter: brightness(0.8);
+        }
+        .aviso-vazio { 
+            grid-column: 1 / -1; 
+            text-align: center; 
+            color: #64748b; 
+            margin-top: 100px; 
+            font-size: 1.5rem; 
+            font-weight: bold;
+            text-transform: uppercase; 
+        }
     </style>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" sizes="192x192" href="icon-192.png">
+    <link rel="icon" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-<body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden text-gold font-mono">
+<body>
 
-    <!-- TELA 1: CADASTRO DO MOTORISTA -->
-    <div id="tela-cadastro" class="absolute inset-0 bg-[#0d0e12] z-50 flex flex-col justify-between p-6">
-        <header class="border-b border-cyan-600/30 pb-4 text-center">
-            <h1 class="text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-400">
-                REGISTRO DE OPERADOR
-            </h1>
-            <p class="text-xs text-gray-500 mt-1">Soberania Digital - Identidade Local</p>
-        </header>
+<header>
+    <h1>LEOCARDIOS BURGUER'S - ESTEIRA DE COZINHA</h1>
+    <p style="color: var(--green); font-size: 12px; margin-top: 5px; font-weight: bold;">SISTEMA COZINHA ATIVO</p>
+</header>
 
-        <main class="flex-1 flex flex-col justify-center gap-4 my-6 max-w-md mx-auto w-full">
-            <div class="bg-zinc-900/50 p-5 rounded-xl border border-zinc-800 flex flex-col gap-4">
-                <div>
-                    <label class="block text-xs text-gold font-bold mb-2 uppercase">Nome Completo</label>
-                    <input id="cad-nome" type="text" placeholder="DIGITE SEU NOME..." class="w-full bg-black border border-zinc-700 rounded-lg p-3 text-sm focus:outline-none focus:border-gold text-white uppercase font-bold">
-                </div>
+<div id="container-pedidos" class="grid-pedidos">
+    <div class="aviso-vazio">Aguardando Pedidos...</div>
+</div>
 
-                <div>
-                    <label class="block text-xs text-gold font-bold mb-2 uppercase">Foto do Rosto (Selfie)</label>
-                    <div class="flex items-center gap-3">
-                        <label class="flex-1 bg-zinc-800 border border-dashed border-zinc-600 rounded-lg p-3 text-center cursor-pointer hover:border-gold transition-all text-xs text-gray-400 font-bold uppercase">
-                            <i class="fas fa-camera mr-2 text-gold"></i> <span id="label-foto">Selecionar Imagem</span>
-                            <input id="cad-foto" type="file" accept="image/*" class="hidden" onchange="processarFoto(this)">
-                        </label>
-                        <div id="preview-container" class="w-12 h-12 rounded-full border border-gold bg-zinc-950 hidden overflow-hidden">
-                            <img id="img-preview" src="" class="w-full h-full object-cover">
-                        </div>
-                    </div>
-                </div>
-            </div>
+<script>
+    const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+    
+    firebase.initializeApp({ databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" });
+    const db = firebase.database();
+    
+    let cacheChavesExistentes = new Set();
+    let carregamentoInicialCompleto = false;
+    
+    // BLINDAGEM INDUSTRIAL: Guarda os IDs concluídos para impedir reaparecimento por delay de rede
+    const idsConcluidosNaSessao = new Set();
 
-            <button onclick="salvarCadastro()" class="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black py-4 rounded-xl shadow-lg uppercase tracking-wider">
-                GRAVAR CREDENCIAIS
-            </button>
-        </main>
-
-        <footer class="text-center text-[10px] text-zinc-600 border-t border-zinc-900 pt-2">
-            JDP Industrial Hardware & Software Protocol
-        </footer>
-    </div>
-
-    <!-- TELA 2: MAPA E OPERAÇÕES EM TEMPO REAL -->
-    <div id="map" class="flex-1 z-0"></div>
-
-    <!-- Painel de Operações Inferior -->
-    <div class="absolute bottom-0 w-full bg-[#161820]/95 backdrop-blur-lg p-5 rounded-t-3xl border-t-2 border-gold z-10 max-h-[380px] flex flex-col justify-between">
-        
-        <!-- Radar de varredura -->
-        <div id="radar-status" class="text-center text-sm text-zinc-500 py-6 border border-dashed border-zinc-800 rounded-xl">
-            <i class="fas fa-radar animate-spin mr-2"></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...
-        </div>
-
-        <!-- Card de Pedido Ativo Otimizado -->
-        <div id="card-pedido" class="hidden flex flex-col gap-2">
-            <!-- DISPLAY DE LONJURA REAL PELAS RUAS -->
-            <div id="painel-lonjura" class="bg-cyan-950/60 border border-cyan-500/40 rounded-lg p-2 text-center text-xs font-black text-cyan-400 tracking-wider hidden">
-                <i class="fas fa-route mr-1 animate-pulse"></i> DISTÂNCIA REAL POR RUA: <span id="view-lonjura" class="text-white">CALCULANDO...</span>
-            </div>
-
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <span class="bg-cyan-950 text-cyan-400 text-[10px] px-2 py-0.5 rounded font-bold border border-cyan-800 uppercase tracking-widest">NOVA SOLICITAÇÃO</span>
-                    
-                    <div class="mt-2 text-xs">
-                        <p class="text-green-400 font-bold uppercase"><i class="fas fa-map-marker-alt mr-1"></i> DE: <span id="view-origem" class="text-white">---</span></p>
-                        <p class="text-cyan-400 font-bold uppercase mt-1"><i class="fas fa-flag-checkered mr-1"></i> PARA: <span id="view-destino" class="text-white">---</span></p>
-                    </div>
-                </div>
-                <div class="text-right pl-2">
-                    <span class="text-[10px] text-zinc-400 block uppercase">OFERTA</span>
-                    <span id="view-valor" class="text-xl font-black text-gold">R$ 00</span>
-                </div>
-            </div>
-
-            <!-- Botões de Ação do Leilão -->
-            <div class="grid grid-cols-2 gap-3 mt-1">
-                <button onclick="aceitarDireto()" class="bg-gold text-black font-black py-3 rounded-lg text-xs uppercase tracking-wider transition-all active:scale-95">
-                    ACEITAR VALOR
-                </button>
-                <button onclick="contraproposta()" class="border border-gold/40 hover:bg-zinc-900 text-gold font-bold py-3 rounded-lg text-xs uppercase tracking-wider transition-all active:scale-95">
-                    PEDIR + R$ 5
-                </button>
-            </div>
-        </div>
-
-        <!-- Perfil do Operador Ativo, Status do GPS e Ação de Rota -->
-        <div class="flex justify-between items-center border-t border-zinc-800 pt-3 mt-2">
-            <div class="flex items-center gap-3">
-                <img id="driver-avatar" src="" class="w-10 h-10 rounded-full border border-gold object-cover">
-                <div>
-                    <p id="entCliente" class="text-gold font-black text-xs uppercase">AGUARDANDO PROCESSO...</p>
-                    <div id="statusGPS" class="text-[9px] font-black text-red-500 uppercase mt-0.5">🔴 GPS OFFLINE</div>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button id="btnRota" onclick="alternarRastreamento()" class="bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden">INICIAR ROTA</button>
-                <button onclick="limparOperador()" class="bg-zinc-900 border border-red-900 text-red-500 px-2 py-2 rounded-lg text-xs" title="Sair do Perfil"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const firebaseConfig = {
-            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"
-        };
-        
-        let database = null;
+    // SINAL SONORO AUTOMÁTICO: NOVO PEDIDO CHEGOU DO PDV
+    function tocarSomNovoPedido() {
         try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            database = firebase.database();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            let osc1 = audioCtx.createOscillator();
+            let gain1 = audioCtx.createGain();
+            osc1.type = "sine";
+            osc1.frequency.setValueAtTime(880, audioCtx.currentTime); 
+            gain1.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.start();
+            osc1.stop(audioCtx.currentTime + 0.15);
+
+            setTimeout(() => {
+                let osc2 = audioCtx.createOscillator();
+                let gain2 = audioCtx.createGain();
+                osc2.type = "sine";
+                osc2.frequency.setValueAtTime(1200, audioCtx.currentTime); 
+                gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.start();
+                osc2.stop(audioCtx.currentTime + 0.15);
+            }, 200);
         } catch (e) {
-            console.error("Erro Firebase contido.");
+            console.log("Interação necessária para liberar som.");
         }
+    }
+
+    // Escuta ativa travada unicamente no nó de produção alimentado pelo PDV
+    db.ref(`lojas/${LOJA_ID}/producao_pendente`).on('value', (snapshot) => {
+        const container = document.getElementById('container-pedidos');
+        const pedidos = snapshot.val();
         
-        const map = L.map('map').setView([-2.9903, -60.0673], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-        const NOS_RUAS = {
-            "BANCA_MERENDA": { lat: -2.990333, lng: -60.067333 },
-            "COLONIA_TERRA_NOVA": { lat: -2.990333, lng: -60.067333 },
-            "CRUZAMENTO_BARE_VENEZA": { lat: -2.991200, lng: -60.065500 },
-            "RUA_BARE_FIM": { lat: -2.991100, lng: -60.066500 },
-            "VENEZA_CENTRO": { lat: -2.991500, lng: -60.065200 },
-            "ENTRADA_TURISMO": { lat: -2.999500, lng: -60.055000 },
-            "AV_TURISMO_X_TORQUATO": { lat: -3.012500, lng: -60.035500 },
-            "TORQUATO_TAPAJOS_GERAL": { lat: -3.023500, lng: -60.023200 }
-        };
-
-        const DICIONARIO_GEOGRAFICO = {
-            "BANCA DA MERENDA": "BANCA_MERENDA",
-            "COLONIA TERRA NOVA": "COLONIA_TERRA_NOVA",
-            "RUA BARE": "RUA_BARE_FIM",
-            "RUA NOVA VENEZA": "VENEZA_CENTRO",
-            "VENEZA": "VENEZA_CENTRO",
-            "AV. TORQUATO TAPAJOS": "TORQUATO_TAPAJOS_GERAL"
-        };
-
-        const ROTAS_PRE_DEFINIDAS = {
-            "BANCA_MERENDA->TORQUATO_TAPAJOS_GERAL": [
-                NOS_RUAS["BANCA_MERENDA"], NOS_RUAS["CRUZAMENTO_BARE_VENEZA"], NOS_RUAS["ENTRADA_TURISMO"], NOS_RUAS["AV_TURISMO_X_TORQUATO"], NOS_RUAS["TORQUATO_TAPAJOS_GERAL"]
-            ],
-            "BANCA_MERENDA->VENEZA_CENTRO": [
-                NOS_RUAS["BANCA_MERENDA"], NOS_RUAS["RUA_BARE_FIM"], NOS_RUAS["CRUZAMENTO_BARE_VENEZA"], NOS_RUAS["VENEZA_CENTRO"]
-            ],
-            "RUA_BARE_FIM->TORQUATO_TAPAJOS_GERAL": [
-                NOS_RUAS["RUA_BARE_FIM"], NOS_RUAS["CRUZAMENTO_BARE_VENEZA"], NOS_RUAS["ENTRADA_TURISMO"], NOS_RUAS["AV_TURISMO_X_TORQUATO"], NOS_RUAS["TORQUATO_TAPAJOS_GERAL"]
-            ]
-        };
-
-        function obterChaveNo(enderecoTexto) {
-            if (!enderecoTexto) return null;
-            const textoLimpo = enderecoTexto.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            for (const chave in DICIONARIO_GEOGRAFICO) {
-                if (textoLimpo.includes(chave)) return DICIONARIO_GEOGRAFICO[chave];
-            }
-            return null;
+        if (!pedidos) {
+            container.innerHTML = '<div class="aviso-vazio">Cozinha Limpa!</div>';
+            cacheChavesExistentes.clear();
+            carregamentoInicialCompleto = true;
+            return;
         }
 
-        function calcularDistanciaMatriz(caminhoPoints) {
-            let total = 0;
-            if(!caminhoPoints || caminhoPoints.length < 2) return total;
-            for(let i = 0; i < caminhoPoints.length - 1; i++) {
-                total += calcularDistanciaHaversine(
-                    caminhoPoints[i].lat, caminhoPoints[i].lng,
-                    caminhoPoints[i+1].lat, caminhoPoints[i+1].lng
-                );
-            }
-            return total;
-        }
-
-        function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-        }
-
-        let markerCliente = null, markerOrigem = null, markerBololo = null, emRota = false, valorAtualPassageiro = 0, fotoBase64 = "";
-        let ultimoIdCorrida = ""; 
-        let localizacaoAtualDispositivo = null; 
-        let linhaAteOrigem = null;
-        let linhaDestinoFinal = null;
-
-        function iniciarLeituraGpsDispositivo() {
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(pos => {
-                    localizacaoAtualDispositivo = {
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude
-                    };
-                    if(emRota && markerBololo) {
-                        markerBololo.setLatLng([localizacaoAtualDispositivo.lat, localizacaoAtualDispositivo.lng]);
-                    }
-                    const statusGpsEl = document.getElementById('statusGPS');
-                    if (!emRota && statusGpsEl) {
-                        statusGpsEl.innerText = "🟢 GPS ONLINE - AGUARDANDO";
-                        statusGpsEl.className = "text-[9px] font-black text-green-500 uppercase mt-0.5";
-                    }
-                }, () => {}, { enableHighAccuracy: true });
-            }
-        }
-
-        function checarCadastro() {
-            const perfil = localStorage.getItem("jdp_motorista_perfil");
-            const telaCad = document.getElementById("tela-cadastro");
-            if (perfil && telaCad) {
-                const dados = JSON.parse(perfil);
-                telaCad.classList.add("hidden");
-                const avatar = document.getElementById("driver-avatar");
-                if(avatar) avatar.src = dados.foto;
-                const entCli = document.getElementById("entCliente");
-                if(entCli) entCli.innerText = `PILOTO: ${dados.nome}`;
-                iniciarLeituraGpsDispositivo();
-            } else if (telaCad) {
-                telaCad.classList.remove("hidden");
-            }
-        }
-
-        function processarFoto(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    fotoBase64 = e.target.result;
-                    const preview = document.getElementById("img-preview");
-                    const container = document.getElementById("preview-container");
-                    if (preview) preview.src = fotoBase64;
-                    if (container) container.classList.remove("hidden");
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        function salvarCadastro() {
-            const nomeEl = document.getElementById("cad-nome");
-            const nome = nomeEl ? nomeEl.value.trim().toUpperCase() : "";
-            if (!nome || !fotoBase64) { return alert("ERRO: PREENCHA OS DADOS!"); }
-            localStorage.setItem("jdp_motorista_perfil", JSON.stringify({ nome: nome, foto: fotoBase64 }));
-            checarCadastro();
-        }
-
-        function limparOperador() {
-            if(confirm("DESEJA SAIR?")) { localStorage.removeItem("jdp_motorista_perfil"); location.reload(); }
-        }
-
-        if (database) {
-            database.ref("corrida_teste").on("value", (snapshot) => {
-                // DEFESA TOTAL ERRO 1081: Garantir que elementos existem antes de manipular
-                const card = document.getElementById('card-pedido');
-                const radar = document.getElementById('radar-status');
-                const btnRota = document.getElementById('btnRota');
-                const painelLonjura = document.getElementById('painel-lonjura');
-                const viewLonjura = document.getElementById('view-lonjura');
-                
-                if (!card || !radar || !btnRota || !painelLonjura || !viewLonjura) return;
-
-                const dados = snapshot.val();
-
-                // Se o nó foi deletado ou finalizado externamente, limpa e aborta com segurança
-                if (!dados || dados.status === "concluido" || dados.status === "finalizado") {
-                    limparEstadoLocalVisual();
-                    return;
-                }
-
-                if (dados.status === "procurando") {
-                    radar.classList.add('hidden');
-                    card.classList.remove('hidden');
-                    btnRota.classList.add('hidden');
-                    
-                    const vOrigem = document.getElementById('view-origem');
-                    const vDestino = document.getElementById('view-destino');
-                    const vValor = document.getElementById('view-valor');
-                    
-                    if(vOrigem) vOrigem.innerText = dados.origem || "---";
-                    if(vDestino) vDestino.innerText = dados.destino || "---";
-                    if(vValor) vValor.innerText = `R$ ${dados.valor_oferecido || '00'}`;
-                    
-                    valorAtualPassageiro = dados.valor_oferecido || 0;
-
-                    if (dados.id !== ultimoIdCorrida) {
-                        limparEstadoLocalVisual();
-                        ultimoIdCorrida = dados.id;
-                    }
-
-                    const noOrigemKey = obterChaveNo(dados.origem);
-                    const noDestinoKey = obterChaveNo(dados.destino);
-
-                    let coordenadasOrigem = noOrigemKey ? NOS_RUAS[noOrigemKey] : (dados.latOrigem ? { lat: dados.latOrigem, lng: dados.lngOrigem } : null);
-                    let coordenadasDestino = noDestinoKey ? NOS_RUAS[noDestinoKey] : (dados.latDestino ? { lat: dados.latDestino, lng: dados.lngDestino } : null);
-
-                    if (coordenadasOrigem && coordenadasOrigem.lat) {
-                        if (!markerOrigem) {
-                            markerOrigem = L.marker([coordenadasOrigem.lat, coordenadasOrigem.lng], {
-                                icon: L.divIcon({html: '<i class="fas fa-map-marker-alt text-2xl text-green-500"></i>', className: 'dummy'})
-                            }).addTo(map).bindPopup("<b class='text-black'>BUSCA NAS RUAS</b>").openPopup();
-                        }
-
-                        if (localizacaoAtualDispositivo && !linhaAteOrigem) {
-                            const chavePilotoAteOrigem = `BANCA_MERENDA->${noOrigemKey}`;
-                            let arrCaminhoPiloto = [ [localizacaoAtualDispositivo.lat, localizacaoAtualDispositivo.lng], [coordenadasOrigem.lat, coordenadasOrigem.lng] ];
-                            
-                            if(ROTAS_PRE_DEFINIDAS[chavePilotoAteOrigem]) {
-                                arrCaminhoPiloto = ROTAS_PRE_DEFINIDAS[chavePilotoAteOrigem].map(pt => [pt.lat, pt.lng]);
-                            }
-                            linhaAteOrigem = L.polyline(arrCaminhoPiloto, {color: '#FFD700', weight: 4, dashArray: '8, 8', opacity: 0.85}).addTo(map);
-                        }
-                    }
-
-                    if (coordenadasDestino && coordenadasDestino.lat) {
-                        if (!markerCliente) {
-                            markerCliente = L.marker([coordenadasDestino.lat, coordenadasDestino.lng], {
-                                icon: L.divIcon({html: '<i class="fas fa-flag-checkered text-2xl text-red-500"></i>', className: 'dummy'})
-                            }).addTo(map);
-                        }
-
-                        if (coordenadasOrigem && coordenadasOrigem.lat && !linhaDestinoFinal) {
-                            const combinacaoChaveRota = `${noOrigemKey}->${noDestinoKey}`;
-                            let arrayCoordenadasFinaisDoTrajeto = [ [coordenadasOrigem.lat, coordenadasOrigem.lng], [coordenadasDestino.lat, coordenadasDestino.lng] ];
-
-                            if (ROTAS_PRE_DEFINIDAS[combinacaoChaveRota]) {
-                                arrayCoordenadasFinaisDoTrajeto = ROTAS_PRE_DEFINIDAS[combinacaoChaveRota].map(pt => [pt.lat, pt.lng]);
-                                const distRealRuas = calcularDistanciaMatriz(ROTAS_PRE_DEFINIDAS[combinacaoChaveRota]);
-                                viewLonjura.innerText = `${distRealRuas.toFixed(2)} KM (VIA ASFLATO)`;
-                            } else {
-                                const distDireta = calcularDistanciaHaversine(coordenadasOrigem.lat, coordenadasOrigem.lng, coordenadasDestino.lat, coordenadasDestino.lng);
-                                viewLonjura.innerText = `${distDireta.toFixed(2)} KM`;
-                            }
-                            painelLonjura.classList.remove('hidden');
-                            linhaDestinoFinal = L.polyline(arrayCoordenadasFinaisDoTrajeto, {color: '#00e5ff', weight: 6, opacity: 0.95}).addTo(map);
-                        }
-                    }
-                    
-                    if (markerOrigem && markerCliente) {
-                        const grupoBordas = L.featureGroup([markerOrigem, markerCliente]);
-                        map.fitBounds(grupoBordas.getBounds().pad(0.25));
-                    }
-                } else if (dados.status === "aceito") {
-                    card.classList.add('hidden');
-                    radar.classList.remove('hidden');
-                    radar.innerHTML = "<span class='text-green-500 font-bold'>CORRIDA ACEITA! EM DIREÇÃO AO CLIENTE.</span>";
-                    btnRota.classList.remove('hidden');
+        // Monitora e dispara o som apenas se for um pedido novo válido e que não foi concluído aqui
+        if (carregamentoInicialCompleto) {
+            Object.keys(pedidos).forEach(chave => {
+                const p = pedidos[chave];
+                if (!cacheChavesExistentes.has(chave) && !idsConcluidosNaSessao.has(chave) && p.itens && (p.status === "Pendente" || p.status === "Espera" || p.status === "PREPARANDO")) {
+                    tocarSomNovoPedido();
                 }
             });
         }
 
-        window.aceitarDireto = () => { if(database) database.ref("corrida_teste").update({ status: "aceito" }); };
-        window.contraproposta = () => { if(database) database.ref("corrida_teste").update({ status: "contraproposta", contraproposta: valorAtualPassageiro + 5 }); };
+        cacheChavesExistentes = new Set(Object.keys(pedidos));
+        carregamentoInicialCompleto = true;
+        container.innerHTML = '';
+        
+        let temPedidoNaTela = false;
 
-        function alternarRastreamento() {
-            const btn = document.getElementById('btnRota');
-            const gps = document.getElementById('statusGPS');
-            if(!emRota) {
-                if (localizacaoAtualDispositivo) {
-                    markerBololo = L.marker([localizacaoAtualDispositivo.lat, localizacaoAtualDispositivo.lng], {
-                        icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-yellow-500"></i>', className: 'dummy'})
-                    }).addTo(map);
-                }
-                emRota = true;
-                if(btn) {
-                    btn.innerText = "CONCLUIR";
-                    btn.classList.replace('bg-gold', 'bg-red-600');
-                }
-                if(gps) gps.innerText = "🟢 EM ROTA - TRANSMITINDO";
-            } else {
-                emRota = false;
-                if(database) database.ref("corrida_teste").update({ status: "finalizado" });
-                limparEstadoLocalVisual();
+        snapshot.forEach((filho) => {
+            const pedido = filho.val();
+            const idPedido = filho.key;
+            
+            // SEGURANÇA MÁXIMA: Ignora se for inválido ou se já foi concluído nesta sessão
+            if (!pedido || !pedido.itens || !pedido.mesa || idsConcluidosNaSessao.has(idPedido)) {
+                return; 
             }
+            
+            const statusAtual = (pedido.status || "").toUpperCase();
+
+            // Exibe na tela apenas se o status do fluxo do PDV estiver correto
+            if (statusAtual === "PENDENTE" || statusAtual === "ESPERA" || statusAtual === "PREPARANDO") {
+                temPedidoNaTela = true;
+                
+                let itensHtml = '';
+                const arrItens = Array.isArray(pedido.itens) ? pedido.itens : Object.values(pedido.itens);
+                const mapaContagem = {};
+                
+                arrItens.forEach(i => {
+                    if (i && i.nome) mapaContagem[i.nome] = (mapaContagem[i.nome] || 0) + 1;
+                });
+                
+                itensHtml = Object.entries(mapaContagem).map(([nome, qtd]) => 
+                    `<div class="item-linha">● ${qtd}x ${nome}</div>`
+                ).join('');
+                
+                const div = document.createElement('div');
+                div.className = 'pedido-card';
+                div.id = `card-${idPedido}`;
+                div.innerHTML = `
+                    <div class="pedido-header">
+                        <strong>${pedido.mesa}</strong>
+                        <span style="font-size: 13px; color: #64748b; font-weight: bold;">${pedido.hora || ''}</span>
+                    </div>
+                    <div>${itensHtml}</div>
+                    <div class="total">R$ ${parseFloat(pedido.total || 0).toFixed(2)}</div>
+                    <button class="btn-concluir" onclick="finalizarPedido('${idPedido}')">CONCLUÍDO / LANCHE PRONTO</button>
+                `;
+                container.appendChild(div);
+            }
+        });
+
+        if (!temPedidoNaTela) {
+            container.innerHTML = '<div class="aviso-vazio">Cozinha Limpa!</div>';
+        }
+    });
+
+    // Função que altera o status para PRONTO e remove imediatamente da UI usando o ID absoluto
+    function finalizarPedido(id) {
+        // Bloqueia localmente na hora: impede repetição por instabilidade da rede
+        idsConcluidosNaSessao.add(id);
+        
+        // Remove visualmente de imediato da tela sem esperar a resposta do Firebase
+        const card = document.getElementById(`card-${id}`);
+        if (card) {
+            card.remove();
+        }
+        
+        // Verifica se a tela ficou vazia após a remoção local
+        const container = document.getElementById('container-pedidos');
+        if (container.children.length === 0) {
+            container.innerHTML = '<div class="aviso-vazio">Cozinha Limpa!</div>';
         }
 
-        function limparEstadoLocalVisual() {
-            ultimoIdCorrida = ""; 
-            if (markerCliente && map) { map.removeLayer(markerCliente); markerCliente = null; }
-            if (markerOrigem && map) { map.removeLayer(markerOrigem); markerOrigem = null; }
-            if (markerBololo && map) { map.removeLayer(markerBololo); markerBololo = null; }
-            if (linhaAteOrigem && map) { map.removeLayer(linhaAteOrigem); linhaAteOrigem = null; }
-            if (linhaDestinoFinal && map) { map.removeLayer(linhaDestinoFinal); linhaDestinoFinal = null; }
-            
-            const card = document.getElementById('card-pedido');
-            const radar = document.getElementById('radar-status');
-            const btn = document.getElementById('btnRota');
-            const painel = document.getElementById('painel-lonjura');
-            
-            if(card) card.classList.add('hidden');
-            if(radar) {
-                radar.classList.remove('hidden');
-                radar.innerHTML = "<i class='fas fa-radar animate-spin mr-2'></i>VARRENDO PERÍMETRO EM BUSCA DE CORRIDAS...";
-            }
-            if(btn) btn.className = "bg-gold text-black font-black px-4 py-2 rounded-lg text-xs uppercase hidden";
-            if(painel) painel.classList.add('hidden');
-        }
+        // Atualiza a base de dados em nuvem
+        db.ref(`lojas/${LOJA_ID}/producao_pendente/${id}`).update({
+            status: "PRONTO",
+            finalizadoEm: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+        }).catch(err => {
+            console.error("Erro industrial ao atualizar status:", err);
+            // Se falhar de verdade, devolve ao fluxo do sistema
+            idsConcluidosNaSessao.delete(id);
+        });
+    }
+</script>
 
-        checarCadastro();
-    </script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(reg => console.log('SISTEMA JDP: MOTOR ATIVO'));
+        });
+    }
+<script src="caminho/para/seu/jdp-core.js"></script>
 </body>
 </html>
-
