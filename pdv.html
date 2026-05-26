@@ -1,88 +1,207 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DONY BURGUER'S - SISTEMA SOBERANO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <title>HELENA Core - Roleta de Elite JDP</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
-        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
+        :root {
+            --blue-tech: #06b6d4;
+            --gold: #fde047;
+            --slate-dark: #020617;
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; background: #000; }
+
+        .container {
+            background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779792501564_1778967155044.png');
+            background-position: center;
+            background-size: cover;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .wheel-logo-bonus__logo { width: 150px; margin-top: 20px; z-index: 5; }
+        
+        .wheel {
+            position: relative;
+            margin-top: 50px;
+            width: 332px;
+            height: 332px;
+            background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779788027075_Engenheiro_Transparente__4_.png');
+            background-size: contain;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 50px rgba(241, 255, 51, 0.4);
+            border-radius: 50%;
+        }
+
+        .wheel__spinner {
+            width: 275px;
+            height: 275px;
+            position: relative;
+            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+        }
+
+        .wheel__inside {
+            width: 100%;
+            height: 100%;
+            background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779787837676_1001186385.png');
+            background-size: cover;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .wheel__pointer {
+            position: absolute;
+            top: -20px;
+            width: 60px;
+            z-index: 10;
+        }
+
+        .wheel__button {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-color: #000;
+            border: 4px solid var(--gold);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 11;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--gold);
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 0 5px #000;
+        }
+
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .popup-content {
+            width: 320px;
+            height: 400px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 40px;
+            text-align: center;
+        }
+
+        .popup-failure { background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779787318103_Engenheiro_Transparente.png'); }
+        .popup-success { background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779787455499_Engenheiro_Transparente__1_.png'); }
+
+        .btn-popup {
+            background: linear-gradient(180deg, #ffe600, #ffb800);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            color: #000;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #cc8e00;
+            text-transform: uppercase;
+        }
+
+        .text-prize { color: var(--gold); font-size: 24px; font-weight: 900; margin-bottom: 10px; }
     </style>
 </head>
-<body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden">
+<body>
 
-    <div id="map" class="flex-1 z-0"></div>
-
-    <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-[#00f2ff] shadow-2xl z-10">
-        <div id="areaIdentificacao" class="mb-4">
-            <input type="text" id="nomeMotoboy" class="w-full p-2 bg-[#0d0e12] border border-zinc-700 rounded-lg text-[#00f2ff] font-bold text-center uppercase" placeholder="NOME DO PILOTO">
-        </div>
-
-        <div class="flex justify-between items-center mb-4">
-            <div>
-                <p id="entCliente" class="text-white font-bold text-lg">AGUARDANDO PEDIDO...</p>
-                <p id="entEndereco" class="text-zinc-400 text-xs">---</p>
+    <div class="container">
+        <img src="https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779789267039_1001186393.png" class="wheel-logo-bonus__logo">
+        
+        <div class="wheel">
+            <img src="https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779789433798_Engenheiro_Transparente__6_.png" class="wheel__pointer">
+            
+            <div class="wheel__spinner" id="roleta">
+                <div class="wheel__inside"></div>
             </div>
-            <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
-        </div>
 
-        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-[#00f2ff] hover:bg-cyan-400 text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(0,242,255,0.4)] transition-all uppercase">
-            <i class="fas fa-motorcycle"></i> Iniciar Rota
-        </button>
+            <button class="wheel__button" onclick="girar()">GIRAR</button>
+        </div>
+    </div>
+
+    <div class="popup" id="modal-erro">
+        <div class="popup-content popup-failure">
+            <h2 style="color:#fff; margin-bottom: 10px;">QUASE LÁ!</h2>
+            <p style="color:#fff; font-size: 14px; margin-bottom: 20px;">Você ganhou 1 giro extra!<br>Tente novamente.</p>
+            <button class="btn-popup" onclick="fecharModais()">GIRAR DE NOVO</button>
+        </div>
+    </div>
+
+    <div class="popup" id="modal-sucesso">
+        <div class="popup-content popup-success">
+            <div class="text-prize">R$ 1.000,00</div>
+            <p style="color:#333; font-weight: bold; margin-bottom: 20px;">PARABÉNS!<br>Seu PIX está disponível.</p>
+            <button class="btn-popup" onclick="resgatarPremio()">RESGATAR PIX</button>
+        </div>
     </div>
 
     <script>
-        firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
-        const db = firebase.database();
-        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
-        
-        const map = L.map('map').setView([-2.9903, -60.0673], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let giros = 0;
+        const roleta = document.getElementById('roleta');
 
-        let markerBololo, markerCliente, watchId, emRota = false;
-
-        // Escuta Pedidos
-        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', snap => {
-            const p = snap.val();
-            if(p) {
-                document.getElementById('entCliente').innerText = p.cliente;
-                document.getElementById('entEndereco').innerText = p.endereco;
-                if(p.latDestino) {
-                    if(markerCliente) map.removeLayer(markerCliente);
-                    markerCliente = L.marker([p.latDestino, p.lngDestino]).addTo(map).bindPopup("DESTINO CLIENTE").openPopup();
-                }
+        function girar() {
+            if(giros === 0) {
+                roleta.style.transform = "rotate(1845deg)";
+                giros++;
+                setTimeout(() => {
+                    document.getElementById('modal-erro').style.display = 'flex';
+                    falar("Quase lá, Sr. José! Tente mais uma vez.");
+                }, 4500);
+            } else if(giros === 1) {
+                roleta.style.transform = "rotate(3780deg)";
+                giros++;
+                setTimeout(() => {
+                    document.getElementById('modal-sucesso').style.display = 'flex';
+                    falar("Parabéns! O prêmio industrial é seu!");
+                    dispararConfetes();
+                }, 4500);
             }
-        });
+        }
 
-        function alternarRastreamento() {
-            const nome = document.getElementById('nomeMotoboy').value;
-            if(!nome) return alert("INSIRA O NOME!");
+        function fecharModais() {
+            document.getElementById('modal-erro').style.display = 'none';
+        }
 
-            if(!emRota) {
-                watchId = navigator.geolocation.watchPosition(pos => {
-                    const {latitude, longitude} = pos.coords;
-                    
-                    if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
-                    else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-amber-500"></i>'})}).addTo(map);
-                    
-                    map.setView([latitude, longitude]);
-                    db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome});
-                }, null, {enableHighAccuracy: true});
-                
-                emRota = true;
-                document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
-                document.getElementById('statusGPS').className = "text-[10px] font-black text-green-500 uppercase";
-                document.getElementById('btnRota').innerText = "FINALIZAR ENTREGA";
-            } else {
-                navigator.geolocation.clearWatch(watchId);
-                db.ref(`lojas/${LOJA_ID}/motoboy_status`).update({online: false});
-                location.reload();
-            }
+        function resgatarPremio() {
+            alert("Redirecionando para o Terminal de Pagamento PIX...");
+            window.location.href = "#";
+        }
+
+        function falar(t) {
+            const msg = new SpeechSynthesisUtterance(t);
+            msg.lang = 'pt-BR';
+            window.speechSynthesis.speak(msg);
+        }
+
+        function dispararConfetes() {
+            console.log("HELENA: Disparando efeitos visuais de vitória.");
         }
     </script>
 </body>
