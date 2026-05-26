@@ -2,19 +2,44 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>JDP | ACOMPANHAMENTO</title>
+    <title>JDP | MONITORAMENTO SUPREME</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #0d0e12; }
-        #map { height: 100vh; width: 100%; filter: invert(100%) hue-rotate(180deg) brightness(80%); }
+        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+        #map { width: 100%; height: 100%; transition: all 1s ease; filter: invert(90%) hue-rotate(180deg); }
+        
+        /* Container de Mídia */
+        #tv-midia { 
+            position: absolute; bottom: 20px; right: 20px; width: 300px; height: 200px; 
+            background: #000; border: 3px solid #f59e0b; border-radius: 10px; z-index: 1000;
+            display: flex; align-items: center; justify-content: center; overflow: hidden; transition: all 0.5s;
+        }
+        #tv-midia .midia-content { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Logo Flutuante (Cardápio) */
+        #btn-logo {
+            position: absolute; bottom: 30px; left: 30px; width: 80px; height: 80px;
+            z-index: 2000; cursor: pointer; border-radius: 50%; border: 3px solid #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); transition: 0.3s;
+        }
+        #btn-logo:hover { transform: scale(1.1); }
+
+        /* Estado de Tela Cheia (TV) */
+        .modo-tv #map { height: 0%; opacity: 0; }
+        .modo-tv #tv-midia { width: 100%; height: 100%; bottom: 0; right: 0; border: none; border-radius: 0; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
+    <div id="tv-midia"><div id="display-area"></div></div>
+    
+    <a href="https://wa.me/seu_link_aqui" target="_blank">
+        <img id="btn-logo" src="https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779767922601_1779137704141.png" alt="Cardápio">
+    </a>
 
     <script>
         firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
@@ -24,35 +49,36 @@
         const map = L.map('map').setView([-2.9903, -60.0673], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let markerMotoboy, markerDestino;
+        let midias = [];
+        let indexMidia = 0;
 
-        // 1. ESCUTA A POSIÇÃO DO MOTOBOY (TEMPO REAL)
-        db.ref(`lojas/${LOJA_ID}/motoboy_status`).on('value', (snapshot) => {
-            const pos = snapshot.val();
-            if (pos && pos.online) {
-                if (!markerMotoboy) {
-                    markerMotoboy = L.marker([pos.latitude, pos.longitude], {
-                        icon: L.divIcon({ html: '<div style="font-size:24px;">🛵</div>' })
-                    }).addTo(map);
-                } else {
-                    markerMotoboy.setLatLng([pos.latitude, pos.longitude]);
-                }
-                map.panTo([pos.latitude, pos.longitude]);
-            }
+        // 1. MONITORAMENTO DE MÍDIAS
+        db.ref(`publicidade/prado_67`).on('value', snap => {
+            midias = [];
+            snap.forEach(s => midias.push(s.val()));
         });
 
-        // 2. ESCUTA O DESTINO DO PEDIDO
-        db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', (snapshot) => {
-            const pedido = snapshot.val();
-            if (pedido && pedido.latDestino) {
-                if (!markerDestino) {
-                    markerDestino = L.marker([pedido.latDestino, pedido.lngDestino], {
-                        icon: L.divIcon({ html: '<div style="font-size:24px;">📍</div>' })
-                    }).addTo(map).bindPopup("DESTINO DO SEU PEDIDO").openPopup();
+        function trocarMidia() {
+            if (midias.length > 0) {
+                const url = midias[indexMidia];
+                const display = document.getElementById('display-area');
+                
+                if (url.match(/\.(mp4|webm|ogg)$/i)) {
+                    display.innerHTML = `<video class="midia-content" autoplay muted loop src="${url}"></video>`;
+                } else {
+                    display.innerHTML = `<img class="midia-content" src="${url}">`;
                 }
+                indexMidia = (indexMidia + 1) % midias.length;
             }
+        }
+        // Tempo definido para 4 segundos conforme solicitado
+        setInterval(trocarMidia, 4000);
+
+        // 2. MONITORAMENTO DE MOVIMENTO
+        db.ref(`lojas/${LOJA_ID}/motoboy_status`).on('value', snap => {
+            const pos = snap.val();
+            document.body.classList.toggle('modo-tv', !(pos && pos.online));
         });
     </script>
 </body>
 </html>
-
