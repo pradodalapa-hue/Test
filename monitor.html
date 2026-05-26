@@ -2,130 +2,251 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JDP InDrive - Passageiro</title>
+    <title>DONY BURGUER'S - SISTEMA SOBERANO</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .text-gold { color: #FFD700 !important; }
         .border-gold { border-color: #FFD700 !important; }
         .bg-gold { background-color: #FFD700 !important; }
-        #lista-sugestoes { max-height: 200px; overflow-y: auto; }
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(80%); }
     </style>
 </head>
-<body class="bg-[#0d0e12] h-screen flex flex-col justify-between p-6 text-gold font-mono">
+<body class="bg-[#0d0e12] h-screen flex flex-col overflow-hidden text-gold">
 
-    <header class="border-b border-zinc-800 pb-4 text-center">
-        <h1 class="text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-300">
-            JDP INDUSTRIAL - PASSAGEIRO
-        </h1>
-        <p class="text-xs text-gray-500 mt-1">Soberania Digital - Modo Passageiro</p>
-    </header>
+    <div id="map" class="flex-1 z-0"></div>
 
-    <main class="flex-1 flex flex-col justify-center gap-4 max-w-md mx-auto w-full">
-        <div class="bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/80 flex flex-col gap-4">
-            
-            <!-- ORIGEM -->
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-green-400">🟢 Ponto de Partida</label>
-                <input id="origem" type="text" value="MEU LOCAL ATUAL (GPS ATIVO)" readonly class="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none text-yellow-400 font-bold uppercase">
-            </div>
-
-            <!-- DESTINO COM BUSCA INTELIGENTE -->
-            <div class="relative">
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-cyan-400">🔵 Destino (Selecione na lista)</label>
-                <input id="destino" type="text" placeholder="DIGITE O DESTINO..." class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-400 text-white font-bold uppercase">
-                <div id="lista-sugestoes" class="absolute z-50 bg-black border border-gold w-full mt-1 rounded-xl shadow-2xl hidden"></div>
-            </div>
-
-            <!-- VALOR -->
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2">Sua Oferta (R$)</label>
-                <input id="valor" type="number" value="15" class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:border-gold text-white font-bold text-lg">
-            </div>
+    <div class="absolute bottom-0 w-full bg-[#161820]/90 backdrop-blur-lg p-6 rounded-t-3xl border-t-2 border-gold z-10">
+        <div class="flex gap-2 mb-4">
+            <input type="text" id="inputEndereco" class="flex-1 p-3 bg-[#0d0e12] border border-gold rounded-lg text-gold font-bold uppercase" placeholder="DIGITE O ENDEREÇO DO CLIENTE...">
+            <button onclick="buscarEndereco()" class="bg-gold text-black px-4 py-2 rounded-lg font-black uppercase"><i class="fas fa-search"></i></button>
         </div>
 
-        <button onclick="solicitarCorrida()" class="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-black py-4 rounded-xl shadow-lg uppercase tracking-wider text-sm">
-            SOLICITAR MOTORISTA
-        </button>
-
-        <div class="bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800 p-4 min-h-[110px] flex flex-col justify-between">
-            <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Status do Barramento</span>
-            <div id="status-leilao" class="text-xs text-zinc-400 my-2 font-bold uppercase">Conectando...</div>
-            <div id="container-acao-passageiro" class="hidden pt-2 border-t border-zinc-900"></div>
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <p id="entCliente" class="text-gold font-black text-lg uppercase">AGUARDANDO PEDIDO...</p>
+                <p id="entEndereco" class="text-zinc-400 text-xs uppercase">---</p>
+            </div>
+            <div id="statusGPS" class="text-[10px] font-black text-red-500 uppercase">🔴 OFFLINE</div>
         </div>
-    </main>
+
+        <button id="btnRota" onclick="alternarRastreamento()" class="w-full bg-gold text-black font-black py-4 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.4)] uppercase">INICIAR ROTA</button>
+    </div>
+<button onclick="colarEndereco()" class="bg-zinc-800 text-gold p-3 rounded-lg border border-gold">
+    <i class="fas fa-paste"></i> COLAR ENDEREÇO
+</button>
 
     <script>
-        const firebaseConfig = { databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        firebase.initializeApp({databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"});
+        const db = firebase.database();
+        const LOJA_ID = 'LEOVARDIOS_burguer_2026';
+        const map = L.map('map').setView([-2.9903, -60.0673], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        const MAPA_INTERNO_MANAUS = {
-            "BANCA DA MERENDA": { lat: -2.990333, lng: -60.067333, nomeOficial: "BANCA DA MERENDA (COLÔNIA TERRA NOVA)" },
-            "RUA NOVA VENEZA": { lat: -2.991500, lng: -60.065200, nomeOficial: "RUA NOVA VENEZA (TERRA NOVA)" },
-            "TORQUATO TAPAJOS": { lat: -3.033500, lng: -60.024600, nomeOficial: "AV. TORQUATO TAPAJÓS" },
-            "DJALMA BATISTA": { lat: -3.102300, lng: -60.021100, nomeOficial: "AV. DJALMA BATISTA" },
-            "CENTRO": { lat: -3.131600, lng: -60.024200, nomeOficial: "CENTRO HISTÓRICO DE MANAUS" }
-        };
-
-        // Motor de Busca
-        const campoDestino = document.getElementById("destino");
-        const lista = document.getElementById("lista-sugestoes");
-
-        campoDestino.addEventListener("input", (e) => {
-            const termo = e.target.value.toUpperCase();
-            lista.innerHTML = "";
-            const matches = Object.keys(MAPA_INTERNO_MANAUS).filter(k => k.includes(termo));
-            
-            if (termo.length > 0 && matches.length > 0) {
-                lista.classList.remove("hidden");
-                matches.forEach(k => {
-                    const div = document.createElement("div");
-                    div.className = "p-3 text-xs text-white border-b border-zinc-800 hover:bg-zinc-800 cursor-pointer";
-                    div.innerText = MAPA_INTERNO_MANAUS[k].nomeOficial;
-                    div.onclick = () => {
-                        campoDestino.value = div.innerText;
-                        campoDestino.dataset.lat = MAPA_INTERNO_MANAUS[k].lat;
-                        campoDestino.dataset.lng = MAPA_INTERNO_MANAUS[k].lng;
-                        lista.classList.add("hidden");
-                    };
-                    lista.appendChild(div);
-                });
-            } else {
-                lista.classList.add("hidden");
-            }
-        });
-
-        function solicitarCorrida() {
-            const destLat = campoDestino.dataset.lat;
-            const destLng = campoDestino.dataset.lng;
-
-            if (!destLat) return alert("ERRO: SELECIONE UM DESTINO VÁLIDO NA LISTA!");
-
-            const novaCorrida = {
-                id: "RUN_" + Date.now(),
-                origem: "Banca da Merenda",
-                destino: campoDestino.value,
-                valor_oferecido: parseFloat(document.getElementById("valor").value),
-                latOrigem: -2.990333, lngOrigem: -60.067333,
-                latDestino: parseFloat(destLat), lngDestino: parseFloat(destLng),
-                status: "procurando"
-            };
-
-            database.ref("corrida_teste").set(novaCorrida)
-                .then(() => document.getElementById("status-leilao").innerText = "SOLICITAÇÃO ENVIADA!");
+        let markerCliente, markerBololo, watchId, emRota = false;
+// ESCUTA ATIVA: Adicione isso logo abaixo da declaração da constante 'db'
+db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).on('value', (snapshot) => {
+    const pedido = snapshot.val();
+    if (pedido) {
+        // Atualiza a interface quando um novo pedido é detectado
+        document.getElementById('entCliente').innerText = pedido.cliente.toUpperCase();
+        document.getElementById('entEndereco').innerText = pedido.endereco.toUpperCase();
+        
+        // Centraliza o mapa no novo destino automaticamente
+        if (pedido.latDestino && pedido.lngDestino) {
+            map.setView([pedido.latDestino, pedido.lngDestino], 17);
+            if(markerCliente) map.removeLayer(markerCliente);
+            markerCliente = L.marker([pedido.latDestino, pedido.lngDestino]).addTo(map).bindPopup("DESTINO ATUAL").openPopup();
         }
+    }
+});
 
-        // Escutador
-        database.ref("corrida_teste").on("value", (snap) => {
-            const dados = snap.val();
-            const status = document.getElementById("status-leilao");
-            if (dados) status.innerText = "STATUS: " + dados.status.toUpperCase();
+async function colarEndereco() {
+    try {
+        const texto = await navigator.clipboard.readText();
+        document.getElementById('inputEndereco').value = texto;
+        buscarEndereco(); // Dispara a busca automaticamente ao colar
+    } catch (err) {
+        alert("PERMISSÃO DE ÁREA DE TRANSFERÊNCIA NEGADA.");
+    }
+}
+
+        async function buscarEndereco() {
+            const end = document.getElementById('inputEndereco').value;
+            if(!end) return alert("DIGITE UM ENDEREÇO!");
+
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(end)}, Manaus`);
+            const data = await res.json();
+
+            if(data.length > 0) {
+                const {lat, lon, display_name} = data[0];
+                if(markerCliente) map.removeLayer(markerCliente);
+                markerCliente = L.marker([lat, lon]).addTo(map).bindPopup("DESTINO: " + end).openPopup();
+                map.setView([lat, lon], 17);
+
+                db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
+                    cliente: end,
+                    endereco: display_name,
+                    latDestino: lat,
+                    lngDestino: lon
+                });
+                document.getElementById('entCliente').innerText = end;
+                document.getElementById('entEndereco').innerText = "DESTINO ENCONTRADO";
+            } else {
+                alert("ENDEREÇO NÃO ENCONTRADO.");
+            }
+        }
+// --- MÓDULO DE CAPTURA AUTOMÁTICA ---
+// Este código monitora constantemente a entrada de novos pedidos na fila
+db.ref(`lojas/${LOJA_ID}/fila_pedidos`).limitToLast(1).on('child_added', (snapshot) => {
+    const pedido = snapshot.val();
+    const pedidoId = snapshot.key;
+
+    // Confirmação sonora ou visual para o entregador
+    console.log("Novo pedido detectado:", pedidoId);
+    
+    // Atualiza o painel com os dados do pedido vindo do sistema original
+    document.getElementById('entCliente').innerText = pedido.nome_cliente || "CLIENTE SEM NOME";
+    document.getElementById('entEndereco').innerText = pedido.endereco_completo || "ENDEREÇO NÃO DEFINIDO";
+    
+    // Armazena no painel de entrega ativa automaticamente
+    db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).set({
+        id: pedidoId,
+        cliente: pedido.nome_cliente,
+        endereco: pedido.endereco_completo,
+        latDestino: pedido.lat,
+        lngDestino: pedido.lng,
+        timestamp: Date.now()
+    });
+
+    // Centraliza o mapa automaticamente
+    if (pedido.lat && pedido.lng) {
+        map.setView([pedido.lat, pedido.lng], 17);
+        if (markerCliente) map.removeLayer(markerCliente);
+        markerCliente = L.marker([pedido.lat, pedido.lng]).addTo(map).bindPopup("NOVO DESTINO: " + pedido.nome_cliente).openPopup();
+    }
+});
+
+        function alternarRastreamento() {
+            if(!emRota) {
+                watchId = navigator.geolocation.watchPosition(pos => {
+                    const {latitude, longitude} = pos.coords;
+                    if(markerBololo) markerBololo.setLatLng([latitude, longitude]);
+                    else markerBololo = L.marker([latitude, longitude], {icon: L.divIcon({html: '<i class="fas fa-motorcycle text-2xl text-gold"></i>'})}).addTo(map);
+                    db.ref(`lojas/${LOJA_ID}/motoboy_status`).set({latitude, longitude, online: true, nome: "PILOTO"});
+                }, null, {enableHighAccuracy: true});
+                emRota = true;
+                document.getElementById('btnRota').innerText = "FINALIZAR ROTA";
+                document.getElementById('statusGPS').innerText = "🟢 TRANSMITINDO";
+            } else {
+                navigator.geolocation.clearWatch(watchId);
+                db.ref(`lojas/${LOJA_ID}/motoboy_status`).update({online: false});
+                location.reload();
+            }
+        }
+async function verificarPedido(novoPedidoId) {
+    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${novoPedidoId}`).once('value');
+    if (snapshot.exists()) {
+        console.warn("TRAVA ATIVADA: Pedido já entregue. Bloqueando duplicidade.");
+        return false; // Bloqueia o processamento
+    }
+    return true; // Pedido legítimo
+}
+// --- MÓDULO DE SEGURANÇA E TRAVA ANTI-LOOP ---
+
+async function registrarEntregaSegura(pedidoData, pedidoId) {
+    // 1. Verifica se já existe nos concluídos
+    const snapshot = await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).once('value');
+    
+    if (snapshot.exists()) {
+        console.error("ALERTA: Tentativa de reprocessamento bloqueada!");
+        return false;
+    }
+
+    // 2. Grava permanentemente como concluído
+    await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).set({
+        ...pedidoData,
+        status: "CONCLUIDO",
+        finalizado_em: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    // 3. Remove do painel ativo para evitar loop visual
+    await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
+    return true;
+}
+
+// Quando for iniciar uma nova entrega pelo seu input, crie o ID assim:
+function gerarIdUnico() {
+    return 'ID-' + Date.now().toString(36);
+}
+async function finalizarEntregaAtual() {
+    const refAtivo = db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`);
+    
+    // Pega o snapshot atual antes de remover
+    const snapshot = await refAtivo.once('value');
+    const pedidoData = snapshot.val();
+    
+    if (pedidoData) {
+        const pedidoId = pedidoData.id || Date.now();
+        
+        // Grava em pedidos_concluidos
+        await db.ref(`lojas/${LOJA_ID}/pedidos_concluidos/${pedidoId}`).set({
+            ...pedidoData,
+            status: "ENTREGUE",
+            finalizado_em: firebase.database.ServerValue.TIMESTAMP
         });
+        
+        // Remove de pedido_em_entrega (Isso para o loop do sistema)
+        await refAtivo.remove();
+        
+        // Reset da interface
+        document.getElementById('entCliente').innerText = "AGUARDANDO PEDIDO...";
+        document.getElementById('entEndereco').innerText = "---";
+        if(markerCliente) map.removeLayer(markerCliente);
+        
+        alert("ENTREGA FINALIZADA COM SUCESSO!");
+    } else {
+        alert("NENHUM PEDIDO ATIVO PARA FINALIZAR.");
+    }
+}
+// Função definitiva para matar o processo no servidor e na tela
+async function travarEFinalizarEntrega() {
+    // 1. Desliga o monitoramento do pedido atual para evitar reações do sistema
+    db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).off();
+
+    // 2. Remove o pedido do servidor (Isso é a trava real)
+    try {
+        await db.ref(`lojas/${LOJA_ID}/pedido_em_entrega`).remove();
+        console.log("TRAVA ATIVADA: Processo removido do servidor.");
+    } catch (error) {
+        console.error("Erro na trava:", error);
+    }
+
+    // 3. Limpeza visual imediata
+    document.getElementById('entCliente').innerText = "AGUARDANDO PEDIDO...";
+    document.getElementById('entEndereco').innerText = "---";
+    document.getElementById('btnRota').innerText = "INICIAR ROTA";
+    document.getElementById('btnRota').classList.remove('bg-red-600');
+    document.getElementById('btnRota').classList.add('bg-gold');
+    
+    // 4. Remove marcações do mapa
+    if(markerCliente) map.removeLayer(markerCliente);
+    if(markerBololo) markerBololo.remove();
+    
+    // 5. Para o rastreamento GPS
+    if(watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        emRota = false;
+    }
+    
+    // Força o reset para garantir que nada ficou pendurado na memória
+    location.reload(); 
+}
+
     </script>
 </body>
-</html>
+    </html>
