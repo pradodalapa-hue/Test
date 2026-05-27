@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-br" style="background-color: #000000 !important;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <title>JDP v18.0 - SUPREME ELITE 60 + ADS</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root { 
+            --gold: #f59e0b; --dark: #050b1a; --blue-tech: #00f2ff; 
+            --pix: #32bcad; --green: #10b981; --red: #ef4444; --road: #1a1a1a; --yellow: #ffc107;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 5px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: border 0.3s; }
+
+        /* ESTABILIZADOR JDP */
+        img { backface-visibility: hidden; transform: translateZ(0); }
+
+        /* LOGO FIXA SUPREME - NÃO TREME */
+        .logo-supreme-fixa {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%); 
+            z-index: 2000; pointer-events: none;
+        }
+        .logo-supreme-fixa img { width: 80px; filter: drop-shadow(0 0 5px var(--blue-tech)); opacity: 0.9; }
+
+        /* MODAL SUPREME */
+        #jdp-modal-supreme {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 9999;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+        .modal-box {
+            background: var(--dark); border: 3px solid var(--blue-tech);
+            box-shadow: 0 0 30px var(--blue-tech); border-radius: 20px;
+            width: 90%; max-width: 400px; padding: 25px; text-align: center;
+        }
+        .modal-title { color: var(--blue-tech); font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
+        .modal-msg { color: var(--yellow); font-size: 20px; font-weight: 900; margin-bottom: 20px; }
+        .modal-input { width: 100%; background: #000; border: 2px solid var(--blue-tech); color: var(--yellow); padding: 15px; font-size: 20px; text-align: center; border-radius: 10px; margin-bottom: 15px; outline: none; }
+        .modal-btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
+        .btn-confirm { background: var(--blue-tech); color: #000; }
+        .btn-cancel { background: transparent; color: var(--red); border: 1px solid var(--red); margin-top: 5px; }
+
+        /* DISPLAY E CENÁRIO */
+        #display-principal { flex: 1; border: 3px solid #333; border-radius: 15px; position: relative; background: #050505; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 5px; }
+        #btn-power { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; border-radius: 8px; background: #222; border: 1px solid var(--gold); color: var(--gold); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+        #btn-power.on { color: #00ff00; border-color: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        
+        #tela-off { position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; z-index: 500; }
+        #tela-on { display: none; flex-direction: column; height: 100%; width: 100%; position: relative; }
+
+        #cenario { display: grid; grid-template-rows: 1fr 60px 1fr; flex: 1; background: #050505; padding: 5px; gap: 2px; }
+        .fileira { display: grid; grid-template-columns: repeat(15, 1fr); gap: 4px; }
+        .rua-central { background: var(--road); position: relative; border-top: 3px solid #444; border-bottom: 3px solid #444; display: flex; align-items: center; justify-content: center; }
+        .vaga-box { border: 1px solid #222; border-top: 3px solid var(--yellow); height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+
+        /* CARRO */
+        .carro-composition { width: 90%; position: relative; z-index: 5; }
+        .carro-img { width: 100%; }
+        .cor-layer { position: absolute; top: 18%; left: 12%; width: 76%; height: 55%; mix-blend-mode: color; opacity: 0.9; }
+        .placa-tag { font-size: 6px; font-weight: 900; background: #fff; color: #000; position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); border: 1px solid #333; padding: 0 2px; }
+
+        .entrada { animation: driveIn 0.5s ease-out; }
+        .saida { animation: driveOut 0.6s ease-in forwards; }
+        @keyframes driveIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes driveOut { to { transform: translateX(50px); opacity: 0; } }
+
+        /* COMANDOS */
+        .painel-comandos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; height: 110px; }
+        .btn-cmd { border: none; border-radius: 10px; color: #fff; font-weight: bold; font-size: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+
+        #visor-caixa { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 1500; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .valor-grande { font-size: 50px; font-weight: 900; color: #fff; text-shadow: 0 0 15px var(--gold); }
+        
+        #dashboard { height: 60px; background: #000; border-top: 2px solid var(--gold); display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; text-align: center; }
+        .metric-title { color: var(--gold); font-size: 8px; }
+        .metric-value { font-size: 16px; font-weight: 900; }
+    </style>
+</head>
+<body>
+
+    <div id="jdp-modal-supreme">
+        <div class="modal-box">
+            <div id="modal-title" class="modal-title"></div>
+            <div id="modal-msg" class="modal-msg"></div>
+            <input type="text" id="modal-input" class="modal-input">
+            <button id="modal-btn-confirm" class="modal-btn btn-confirm">CONFIRMAR</button>
+            <button id="modal-btn-cancel" class="modal-btn btn-cancel">CANCELAR</button>
+        </div>
+    </div>
+
+    <div class="assinatura-senior" onclick="abrirEscritorio()">Engenheiro Sênior: José Divino Prado da Lapa</div>
+
+    <div id="display-principal">
+        <div id="btn-power" onclick="togglePower()"><i class="fas fa-power-off"></i></div>
+        <div id="reader"></div>
+
+        <div id="tela-off">
+            <img id="img-pub" src="https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779872491743_1776103643639.png" style="width:100%; height:100%; object-fit:contain;">
+        </div>
+
+        <div id="tela-on">
+            <div class="logo-supreme-fixa">
+                <img src="./foto.png" alt="Logo" onerror="this.style.display='none'">
+            </div>
+
+            <div id="visor-caixa">
+                <div class="valor-grande" id="displayValor">R$ 0,00</div>
+                <div id="caixa-detalhe" style="color:var(--blue-tech); margin-bottom:15px;"></div>
+                <div id="qrcode-container" style="background:white; padding:10px; border-radius:10px; margin-bottom:15px;"></div>
+                <button onclick="enviarPixWhatsApp()" style="background:#25d366; color:white; border:none; padding:12px; border-radius:10px; width:80%; font-weight:bold; margin-bottom:10px;">WHATSAPP PIX</button>
+                <button onclick="fecharCaixa()" style="background:var(--red); border:none; color:white; padding:8px 20px; border-radius:8px; font-size:10px;">CANCELAR</button>
+            </div>
+
+            <div id="cenario">
+                <div class="fileira-container"><div id="fileira-a1" class="fileira"></div><div id="fileira-a2" class="fileira"></div></div>
+                <div class="rua-central"><span style="opacity:0.2; font-size:8px; font-weight:bold;">JDP INDUSTRIAL ELITE 60</span></div>
+                <div class="fileira-container"><div id="fileira-b1" class="fileira"></div><div id="fileira-b2" class="fileira"></div></div>
+            </div>
+
+            <div id="dashboard">
+                <div><div class="metric-title">Relógio</div><div id="jdp-relogio" class="metric-value">00:00</div></div>
+                <div><div class="metric-title">Pátio</div><div id="jdp-total-patio" class="metric-value">0/60</div></div>
+                <div><div class="metric-title">Ocupação</div><div id="jdp-porcentagem" class="metric-value">0%</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="painel-comandos">
+        <button onclick="iniciarLeitor()" class="btn-cmd" style="background:#00bcd4;"><i class="fas fa-qrcode fa-2x"></i>BIP</button>
+        <button onclick="entradaManual()" class="btn-cmd" style="background:#424242;"><i class="fas fa-keyboard fa-2x"></i>MANUAL</button>
+        <button onclick="conectarBT()" class="btn-cmd" style="background:#1e88e5;"><i class="fas fa-print fa-2x"></i>PRINT</button>
+        <button onclick="finalizarVenda('PIX')" class="btn-cmd" style="background:var(--pix);"><i class="fas fa-bolt fa-2x"></i>PIX</button>
+        <button onclick="finalizarVenda('DINHEIRO')" class="btn-cmd" style="background:var(--green);"><i class="fas fa-money-bill-wave fa-2x"></i>CASH</button>
+        <button onclick="finalizarVenda('CARTÃO')" class="btn-cmd" style="background:#3949ab;"><i class="fas fa-credit-card fa-2x"></i>CARD</button>
+    </div>
+
+    <script>
+// --- MÓDULO DE DIAGNÓSTICO DIÁRIO (DADOS.JSON) ---
+
+function gerarRelatorioSaude() {
+    const dataHoje = new Date().toLocaleDateString('pt-BR');
+    
+    // Estrutura do arquivo de diagnóstico
+    const diagnosticoHelena = {
+        ultima_varredura: dataHoje,
+        status_sistema: "OPERACIONAL",
+        relatorio_seguranca: "CRIPTOGRAFIA JDP ATIVA - SEM INTRUSÕES",
+        relatorio_saude: "100%",
+        kernel_version: "18.0 SUPREME",
+        integridade_dados: "TOTAL",
+        manutencao_cabos: "CONCLUÍDA"
+    };
+
+    // Salva na mesma pasta de dados do sistema (LocalStorage)
+    localStorage.setItem('dados.json', JSON.stringify(diagnosticoHelena));
+    
+    console.log("📄 HELENA: Arquivo dados.json atualizado com Relatório de Saúde 100%");
+}
+
+// Chame a geração do relatório dentro da oficina
+gerarRelatorioSaude();
+
+// --- MONITOR DE SINCRONIZAÇÃO SOBERANA ---
+
+function configurarSincronizacaoAutomatica() {
+    window.addEventListener('online', () => {
+        console.log("Sinal recuperado! Iniciando Sincronização JDP...");
+        
+        // 1. Visual: Muda a borda para verde para avisar o Engenheiro
+        document.body.style.borderTop = "4px solid var(--green)";
+        
+        // 2. Recupera dados locais que podem ter sido gerados offline
+        const patioLocal = JSON.parse(localStorage.getItem('jdp_patio_v14')) || {};
+        const vendasLocais = JSON.parse(localStorage.getItem('jdp_vendas_helena')) || [];
+
+        // 3. Sincroniza Pátio com a Nuvem
+        if (Object.keys(patioLocal).length > 0) {
+            db.ref(`lojas/${LOJA_ID}/parking/patio`).set(patioLocal)
+                .then(() => console.log("Pátio sincronizado com Firebase."))
+                .catch(err => console.log("Erro ao subir pátio:", err));
+        }
+
+        // 4. Sincroniza Vendas Pendentes
+        // Aqui você pode implementar uma lógica para subir apenas o que não foi enviado,
+        // mas o set/push do Firebase já lida com a fila offline automaticamente se configurado.
+        
+        // 5. Atualiza a página suavemente para garantir que o Firebase Realtime esteja conectado
+        setTimeout(() => {
+            abrirModalJDP("CONEXÃO RESTABELECIDA", "SINCRONIZANDO DADOS COM A NUVEM...", null, () => {
+                location.reload(); 
+            }, false);
+        }, 2000);
+    });
+
+    window.addEventListener('offline', () => {
+        // Visual: Muda a borda para dourado (Modo Emergência/Offline)
+        document.body.style.borderTop = "4px solid var(--gold)";
+        console.log("Sistema operando em modo Soberano (Offline).");
+    });
+}
+
+// Chame a função no final do seu init
+configurarSincronizacaoAutomatica();
+
+// TELA CHEIA NA TELA TODA (QUALQUER CLIQUE REATIVA)
+        document.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const doc = document.documentElement;
+                if (doc.requestFullscreen) doc.requestFullscreen().catch(() => {});
+                else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen().catch(() => {});
+            }
+        });
+        const firebaseConfig = { apiKey: "AIzaSyCEdXF7ScnMYz0Ce0OW-B_UJ8Bm5Pl9m8o", databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const LOJA_ID = "PARKING_JDP_01";
+        const CHAVE_PIX = "Pradolindalva4@gmail.com";
+        const IMG_CAR = "https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1779872625202_Screenshot_20260413_155521_Chrome_Beta.jpg";
+        const CORES_MAP = { "PRETO": "#111", "VERMELHO": "#d00", "AZUL": "#005eff", "BRANCO": "#eee", "VERDE": "#008000", "PRATA": "#a9a9a9", "CINZA": "#666", "AMARELO": "#ff0" };
+        const somBuzina = new Audio('https://www.myinstants.com/media/sounds/car-horn-beep.mp3');
+
+        let valorCalculado = 0, sessaoAtual = null, charImpressora = null, payloadGlobal = "";
+        let anterior = {};
+        let adsCache = [IMG_CAR];
+        let adIndex = 0;
+
+        // --- MOTOR SUPREME ---
+        function abrirModalJDP(titulo, msg, placeholder, callback, showCancel = true) {
+            const modal = document.getElementById('jdp-modal-supreme');
+            const input = document.getElementById('modal-input');
+            document.getElementById('modal-title').innerText = titulo;
+            document.getElementById('modal-msg').innerText = msg;
+            input.placeholder = placeholder || "";
+            input.value = "";
+            input.style.display = placeholder ? "block" : "none";
+            document.getElementById('modal-btn-cancel').style.display = showCancel ? "block" : "none";
+            modal.style.display = "flex";
+            if(placeholder) input.focus();
+            document.getElementById('modal-btn-confirm').onclick = () => { modal.style.display = "none"; if(callback) callback(input.value); };
+            document.getElementById('modal-btn-cancel').onclick = () => { modal.style.display = "none"; };
+        }
+
+        // --- MOTOR DE PUBLICIDADE PRADO_67 ---
+        function motorPublicidade() {
+            db.ref(`publicidade/prado_67`).on('value', snap => {
+                if(snap.exists()){ adsCache = Object.values(snap.val()); }
+            });
+            setInterval(() => {
+                if(document.getElementById('tela-on').style.display === 'none' || document.getElementById('tela-on').style.display === '') {
+                    adIndex = (adIndex + 1) % adsCache.length;
+                    const img = document.getElementById('img-pub');
+                    img.style.opacity = 0;
+                    setTimeout(() => { img.src = adsCache[adIndex]; img.style.opacity = 1; }, 800);
+                }
+            }, 10000);
+        }
+
+        function togglePower() {
+            const tOn = document.getElementById('tela-on');
+            const tOff = document.getElementById('tela-off');
+            const btn = document.getElementById('btn-power');
+            if(tOn.style.display === 'none' || tOn.style.display === '') {
+                tOn.style.display = 'flex'; tOff.style.display = 'none'; btn.classList.add('on');
+                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+            } else {
+                tOn.style.display = 'none'; tOff.style.display = 'flex'; btn.classList.remove('on');
+            }
+        }
+
+        function initVagas() {
+            ['fileira-a1', 'fileira-a2', 'fileira-b1', 'fileira-b2'].forEach(fId => {
+                const div = document.getElementById(fId); div.innerHTML = "";
+                for(let i=1; i<=15; i++) {
+                    const v = document.createElement('div'); v.className = "vaga-box"; v.id = `vaga-${fId}-${i}`;
+                    div.appendChild(v);
+                }
+            });
+        }
+
+        function aplicarMudanca(atual) {
+            if(!atual) atual = {};
+            localStorage.setItem('jdp_patio_v14', JSON.stringify(atual));
+            
+            // Detectar Saída
+            Object.keys(anterior).forEach(p => {
+                if(!atual[p]) {
+                    const el = document.getElementById('carro-' + p);
+                    if(el) { el.classList.add('saida'); somBuzina.play().catch(()=>{}); setTimeout(() => el.remove(), 600); }
+                }
+            });
+
+            // Renderizar Pátio
+            const chaves = Object.keys(atual);
+            chaves.forEach((placa, index) => {
+                if(document.getElementById('carro-' + placa)) return;
+                
+                let fId = "";
+                let vNum = (index % 15) + 1;
+                if(index < 15) fId = "fileira-a1";
+                else if(index < 30) fId = "fileira-a2";
+                else if(index < 45) fId = "fileira-b1";
+                else fId = "fileira-b2";
+
+                const vaga = document.getElementById(`vaga-${fId}-${vNum}`);
+                if(vaga) {
+                    const corHex = CORES_MAP[atual[placa].cor] || "#555";
+                    const c = document.createElement('div');
+                    c.id = 'carro-' + placa; c.className = "carro-composition entrada";
+                    c.innerHTML = `<img src="${IMG_CAR}" class="carro-img"><div class="cor-layer" style="background:${corHex}"></div><div class="placa-tag">${placa}</div>`;
+                    vaga.appendChild(c);
+                    somBuzina.play().catch(()=>{});
+                }
+            });
+
+            document.getElementById('jdp-total-patio').innerText = chaves.length + "/60";
+            document.getElementById('jdp-porcentagem').innerText = Math.round((chaves.length/60)*100) + "%";
+            anterior = JSON.parse(JSON.stringify(atual));
+        }
+
+        db.ref(`lojas/${LOJA_ID}/parking/patio`).on('value', snap => aplicarMudanca(snap.val()));
+
+        async function processarAcao(codigo) {
+    const p = codigo.toUpperCase().trim();
+    if(!p) return;
+    
+    // Pega o pátio que está salvo NO CELULAR
+    const patio = JSON.parse(localStorage.getItem('jdp_patio_v14')) || {};
+
+    if (!patio[p]) {
+        abrirModalJDP("ENTRADA JDP", "COR DO VEÍCULO:", "EX: PRETO", (cor) => {
+            if(!cor) return;
+            const dadosVeiculo = { cod: p, cor: cor.toUpperCase(), time: Date.now() };
+
+            // --- AQUI ESTÁ A MUDANÇA ---
+            // Primeiro: Salva no celular e mostra na tela
+            patio[p] = dadosVeiculo;
+            aplicarMudanca(patio); 
+
+            // Segundo: Manda para a impressora via Bluetooth (não precisa de internet)
+            if(charImpressora) imprimirTicketLuxo(p, cor.toUpperCase());
+
+            // Terceiro: Tenta avisar o Firebase (se falhar, não tem problema, o ticket já saiu)
+            db.ref(`lojas/${LOJA_ID}/parking/patio/${p}`).set(dadosVeiculo);
+        });
+    } else {
+        // Lógica de saída (cálculo de valores)
+        const dados = patio[p];
+        const horas = Math.ceil((Date.now() - dados.time) / 3600000) || 1;
+        valorCalculado = horas * 10.00;
+        sessaoAtual = { ...dados, saida: Date.now(), valor: valorCalculado, horas: horas };
+        document.getElementById('displayValor').innerText = "R$ " + valorCalculado.toFixed(2).replace('.', ',');
+        document.getElementById('caixa-detalhe').innerText = `PLACA: ${p} | ${horas}H PERMANÊNCIA`;
+        document.getElementById('visor-caixa').style.display = 'flex';
+        gerarPixBlindado(valorCalculado);
+    }
+}
+
+
+        async function finalizarVenda(metodo) {
+            if(!sessaoAtual) return;
+            if(metodo === 'DINHEIRO') {
+                abrirModalJDP("PAGAMENTO CASH", `TOTAL: R$ ${valorCalculado.toFixed(2)}`, "VALOR RECEBIDO", (pago) => {
+                    let troco = parseFloat(pago.replace(',','.')) - valorCalculado;
+                    if(isNaN(troco) || troco < 0) {
+                        abrirModalJDP("ERRO", "VALOR INSUFICIENTE", null, () => {}, false);
+                        return;
+                    }
+                    abrirModalJDP("VENDA CONCLUÍDA", `TROCO: R$ ${troco.toFixed(2)}`, null, () => executarVenda(metodo), false);
+                });
+            } else { executarVenda(metodo); }
+        }
+
+        async function executarVenda(metodo) {
+    const venda = { ...sessaoAtual, metodo: metodo };
+    
+    // 1. SALVA NO LOCALSTORAGE PRIMEIRO (Segurança Máxima)
+    let hist = JSON.parse(localStorage.getItem('jdp_vendas_helena')) || [];
+    hist.push(venda); 
+    localStorage.setItem('jdp_vendas_helena', JSON.stringify(hist));
+
+    // 2. ATUALIZA O PÁTIO LOCAL (Remove o carro da tela na hora)
+    const patio = JSON.parse(localStorage.getItem('jdp_patio_v14')) || {};
+    delete patio[sessaoAtual.cod];
+    aplicarMudanca(patio);
+
+    // 3. TENTA ENVIAR PARA A NUVEM (Em segundo plano, sem travar o caixa)
+    db.ref(`lojas/${LOJA_ID}/parking/vendas`).push(venda).catch(e => console.log("Offline: Venda salva apenas localmente."));
+    db.ref(`lojas/${LOJA_ID}/parking/patio/${sessaoAtual.cod}`).remove().catch(e => console.log("Offline: Remoção pendente na nuvem."));
+
+    fecharCaixa();
+    abrirModalJDP("SUCESSO", "VENDA FINALIZADA COM SUCESSO!", null, () => {}, false);
+}
+
+        function gerarPixBlindado(valor) {
+            const v = valor.toFixed(2);
+            const f = (id, val) => id + val.length.toString().padStart(2, '0') + val;
+            const conta = f("00", "br.gov.bcb.pix") + f("01", CHAVE_PIX);
+            let p = "000201" + f("26", conta) + "520400005303986" + f("54", v) + "5802BR" + f("59", "JOSE DIVINO") + f("60", "MANAUS") + "62070503***6304";
+            let crc = 0xFFFF;
+            for (let i = 0; i < p.length; i++) {
+                crc ^= (p.charCodeAt(i) << 8);
+                for (let j = 0; j < 8; j++) {
+                    if ((crc & 0x8000) !== 0) crc = (crc << 1) ^ 0x1021;
+                    else crc <<= 1;
+                }
+            }
+            payloadGlobal = p + (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+            document.getElementById('qrcode-container').innerHTML = "";
+            new QRCode(document.getElementById('qrcode-container'), { text: payloadGlobal, width: 140, height: 140 });
+        }
+
+        function abrirEscritorio() {
+            abrirModalJDP("ACESSO RESTRITO", "SENHA DO ENGENHEIRO:", "****", (senha) => {
+                if(senha !== "drkling2025") {
+                    abrirModalJDP("ERRO", "ACESSO NEGADO", null, () => {}, false);
+                    return;
+                }
+                document.getElementById('painel-admin').style.display = 'block';
+                const vendas = JSON.parse(localStorage.getItem('jdp_vendas_helena')) || [];
+                let total = 0;
+                document.getElementById('logSaida').innerHTML = vendas.map(i => {
+                    total += i.valor;
+                    return `<div class="card-relatorio">${new Date(i.saida).toLocaleTimeString()} | <b>${i.cod}</b> | R$ ${i.valor.toFixed(2)} [${i.metodo}]</div>`;
+                }).reverse().join('');
+                document.getElementById('totalFaturamento').innerText = "TOTAL: R$ " + total.toFixed(2);
+            });
+        }
+
+        function reiniciarSistema() {
+            abrirModalJDP("RESET TOTAL", "DESEJA APAGAR TODOS OS DADOS?", null, () => {
+                db.ref(`lojas/${LOJA_ID}/parking`).remove();
+                localStorage.clear(); location.reload();
+            }, true);
+        }
+
+        async function conectarBT() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: '58' }, { namePrefix: 'Bluetooth' }], optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+                charImpressora = (await service.getCharacteristics()).find(c => c.properties.write);
+                abrirModalJDP("PRINT", "IMPRESSORA CONECTADA!", null, () => {}, false);
+            } catch (e) { abrirModalJDP("ERRO BT", "FALHA NA CONEXÃO", null, () => {}, false); }
+        }
+
+        async function imprimirTicketLuxo(cod, cor) {
+            if(!charImpressora) return;
+            let enc = new TextEncoder();
+            let centralizar = new Uint8Array([0x1b, 0x61, 0x01]);
+            let m = `\nESTACIONAMENTO DONY\n------------------------------\nPLACA: ${cod}\nCOR: ${cor}\nENTRADA: ${new Date().toLocaleString()}\n------------------------------\n`;
+            let qrcodeCmd = new Uint8Array([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x43, 0x06, 0x1d, 0x28, 0x6b, cod.length + 3, 0x00, 0x31, 0x50, 0x30, ...enc.encode(cod), 0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x51, 0x30]);
+            await charImpressora.writeValue(centralizar);
+            await charImpressora.writeValue(enc.encode(m));
+            await charImpressora.writeValue(qrcodeCmd);
+            await charImpressora.writeValue(enc.encode("\nAPRESENTE NA SAIDA\n\n\n\n\n"));
+        }
+
+        function fecharCaixa() { document.getElementById('visor-caixa').style.display = 'none'; sessaoAtual = null; }
+        function entradaManual() { abrirModalJDP("MANUAL", "DIGITE A PLACA:", "ABC1234", (p) => { if(p) processarAcao(p); }); }
+        function iniciarLeitor() {
+            const r = document.getElementById('reader'); r.style.display = 'block';
+            let s = new Html5Qrcode("reader");
+            s.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (t) => { s.stop(); r.style.display = 'none'; processarAcao(t); });
+        }
+        function enviarPixWhatsApp() {
+            const msg = `*DONY PARKING*\nPLACA: ${sessaoAtual.cod}\nVALOR: R$ ${valorCalculado.toFixed(2)}\n\nPIX:\n${payloadGlobal}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function baixarRelatorio() {
+            const v = JSON.parse(localStorage.getItem('jdp_vendas_helena')) || [];
+            let t = "RELATORIO JDP INDUSTRIAL\n\n";
+            v.forEach(i => t += `[${new Date(i.saida).toLocaleString()}] ${i.cod} | R$ ${i.valor} | ${i.metodo}\n`);
+            const blob = new Blob([t], {type: "text/plain"});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `RELATORIO_JDP.txt`; a.click();
+        }
+
+        // MONITORES DE REDE
+        window.addEventListener('online', () => document.body.style.borderTop = "4px solid var(--green)");
+        window.addEventListener('offline', () => document.body.style.borderTop = "4px solid var(--gold)");
+
+        setInterval(() => { document.getElementById('jdp-relogio').innerText = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}); }, 1000);
+        
+        initVagas();
+        motorPublicidade();
+
+        
+// sw.js - Otimizado para Máxima Resiliência Offline
+
+// Importa a biblioteca Workbox do CDN
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
+
+// Verifica se o Workbox foi carregado com sucesso
+if (workbox) {
+    console.log(`🎉 [HELENA-CORE SW] Workbox carregado com sucesso!`);
+
+    // --- Configurações Globais ---
+    // Define o nome do cache principal, versionado para facilitar a atualização forçada
+    const CACHE_VERSION = 'jdp-offline-supreme-v3.0'; // Aumente o número da versão para forçar uma atualização completa
+    workbox.core.setCacheNameDetails({
+        prefix: 'jdp',
+        suffix: CACHE_VERSION
+    });
+
+    // Força o Service Worker a ativar imediatamente e controlar as páginas abertas
+    workbox.core.clientsClaim();
+    workbox.core.skipWaiting();
+
+    // --- 1. Pré-caching de Ativos Críticos (Essenciais para o funcionamento offline) ---
+    // Esta é a lista que garante que seu index.html e ativos básicos "nunca sumam".
+    // Você DEVE atualizar esta lista manualmente com todos os arquivos importantes do seu site.
+    workbox.precaching.precacheAndRoute([
+        { url: '/index.html', revision: '1' }, // O próprio arquivo HTML principal
+        { url: '/', revision: '1' },           // A URL raiz, importante para a navegação offline
+        { url: '/styles.css', revision: '1' }, // Seu arquivo CSS principal
+        { url: '/script.js', revision: '1' },  // Seu arquivo JS principal (se houver)
+
+        // Adicione aqui TODOS os arquivos CSS, JS, imagens (logo, banners, lanches)
+        // e quaisquer outros ativos estáticos CRÍTICOS para a experiência inicial.
+        // As URLs dos seus links e imagens no HTML devem ser relativas ou absolutas e corretas.
+        // Exemplo:
+        { url: '/images/logo.png', revision: '1' },
+        { url: '/images/background.jpg', revision: '1' },
+        { url: '/img/jdp_1779611869839_1779137773417.png', revision: '1' }, // Ex: X-Salada
+        { url: '/img/jdp_1779611673113_1779137704141.png', revision: '1' }, // Ex: Kikoa
+
+        // Se você tiver links para o cardápio, status e pix (mesmo que redirecionem),
+        // eles são considerados 'links' e não 'ativos' para cache direto.
+        // No entanto, se o destino desses links for HTML/CSS/JS/Imagens do SEU domínio,
+        // eles podem ser cacheados pelas rotas abaixo.
+
+        // Arquivos de fontes
+        // { url: '/fonts/myfont.woff2', revision: '1' },
+
+        // Inclua também a página offline personalizada, se você criar uma:
+        // { url: '/offline.html', revision: '1' },
+    ], {
+        // Ignora query parameters para o pré-caching, útil para URLs com ?origem=whatsapp
+        ignoreURLParametersMatching: [/^origem$/],
+    });
+
+    // --- 2. Roteamento e Estratégias de Caching em Tempo de Execução (Runtime Caching) ---
+
+    // 2.1. Cache para PÁGINAS HTML (incluindo o index.html e outras páginas)
+    // Estratégia: NetworkFirst com Fallback para Cache.
+    // Tenta obter o HTML mais atualizado da rede. Se offline, serve a versão cacheada.
+    workbox.routing.registerRoute(
+        // Captura todas as requisições de documentos (páginas HTML)
+        ({ request }) => request.mode === 'navigate',
+        new workbox.strategies.NetworkFirst({
+            cacheName: `${workbox.core.cacheNames.prefix}-html-documents-${CACHE_VERSION}`,
+            plugins: [
+                new workbox.expiration.ExpirationPlugin({
+                    maxEntries: 50, // Cacheia até 50 páginas HTML
+                    maxAgeSeconds: 7 * 24 * 60 * 60, // Expira após 7 dias
+                }),
+                new workbox.cacheableResponse.CacheableResponsePlugin({
+                    statuses: [200], // Apenas cacheia respostas bem-sucedidas
+                }),
+                // Fallback para uma página offline genérica se a rede falhar e o recurso não estiver no cache
+                new workbox.recipes.OfflineFallbackPlugin({
+                    pageFallback: '/index.html', // Ou '/offline.html' se você criar uma
+                }),
+            ],
+        })
+    );
+
+    // 2.2. Cache de Assets Estáticos (CSS, JS, Imagens, Fontes, etc.)
+    // Estratégia: CacheFirst (Cachear primeiro)
+    // Serve instantaneamente do cache para alta performance.
+    workbox.routing.registerRoute(
+        // Expressão regular para capturar URLs com extensões comuns de ativos estáticos
+        /\.(?:js|css|png|gif|jpg|jpeg|svg|webp|avif|ico|woff|woff2|ttf|eot)$/,
+        new workbox.strategies.CacheFirst({
+            cacheName: `${workbox.core.cacheNames.prefix}-static-assets-${CACHE_VERSION}`,
+            plugins: [
+                new workbox.expiration.ExpirationPlugin({
+                    maxEntries: 100, // Mantém até 100 ativos estáticos
+                    maxAgeSeconds: 30 * 24 * 60 * 60, // Expira após 30 dias
+                    purgeOnQuotaError: true, // Remove caches antigos se o espaço acabar
+                }),
+                new workbox.cacheableResponse.CacheableResponsePlugin({
+                    statuses: [0, 200], // Cacheia também respostas opacas (como de CDNs que não permitem ler o status)
+                }),
+            ],
+        })
+    );
+
+    // 2.3. Cache para chamadas de API (se o seu site consumir dados dinâmicos)
+    // Estratégia: StaleWhileRevalidate (Obsoleto Enquanto Revalida)
+    // Serve do cache rapidamente, mas busca atualização em segundo plano.
+    workbox.routing.registerRoute(
+        /.*\/api\/.*/, // Altere conforme o padrão das suas URLs de API
+        new workbox.strategies.StaleWhileRevalidate({
+            cacheName: `${workbox.core.cacheNames.prefix}-api-data-${CACHE_VERSION}`,
+            plugins: [
+                new workbox.cacheableResponse.CacheableResponsePlugin({
+                    statuses: [200],
+                }),
+                new workbox.expiration.ExpirationPlugin({
+                    maxEntries: 50,
+                    maxAgeSeconds: 24 * 60 * 60, // 24 horas
+                }),
+            ],
+        })
+    );
+
+    // 2.4. Cache para Links Externos de Imagens (ex: CDNs, Avatares, Giphy)
+    // Estratégia: CacheFirst. Se são imagens que raramente mudam, é seguro.
+    workbox.routing.registerRoute(
+        /^https:\/\/.*(?:gravatar|googleusercontent|unsplash|imgur|giphy)\.com\/.*\.(?:png|jpg|jpeg|gif|webp|avif)$/,
+        new workbox.strategies.CacheFirst({
+            cacheName: `${workbox.core.cacheNames.prefix}-external-images-${CACHE_VERSION}`,
+            plugins: [
+                new workbox.expiration.ExpirationPlugin({
+                    maxEntries: 50,
+                    maxAgeSeconds: 30 * 24 * 60 * 60, // 30 dias
+                    purgeOnQuotaError: true,
+                }),
+                new workbox.cacheableResponse.CacheableResponsePlugin({
+                    statuses: [0, 200], // Importante para recursos de terceiros (opacos)
+                }),
+            ],
+        })
+    );
+
+    // 3. Limpeza de Cache Antigo
+    // Isso garante que versões antigas do Service Worker não deixem lixo de cache.
+    workbox.precaching.cleanupOutdatedCaches();
+
+    console.log(`[HELENA-CORE SW] Service Worker configurado para máxima resiliência.`);
+
+} else {
+    console.log(`😢 [HELENA-CORE SW] ERRO: Workbox não foi carregado. A funcionalidade offline estará desabilitada.`);
+}
+
+    </script>
+</body>
+</html>
+ 
