@@ -1,19 +1,19 @@
-```html
+
 <!DOCTYPE html>
 <html lang="pt-BR" class="no-zoom">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DonyPay - Carteira de Canal Único</title>
-    
+         
     <!-- BIBLIOTECAS DE ALTA PERFORMANCE -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
-    
-    <!-- LEITOR DE QR CODE REAL VIA CÂMERA (SINGLETON PATTERN) -->
+         
+    <!-- LEITOR DE QR CODE REAL VIA CÂMERA -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <!-- GERADOR DE QR CODE -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -59,21 +59,42 @@
             height: 100% !important;
             border-radius: 24px;
         }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* ANEL DE CARGA CRIPTOGRÁFICA GESTADO PELO CRIADOR (VERDE, LILÁS E AZUL) */
+        .rainbow-spinner {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 6px solid transparent;
+            border-top-color: #10b981; /* Verde */
+            border-right-color: #8b5cf6; /* Lilás */
+            border-bottom-color: #3b82f6; /* Azul */
+            animation: spin-rainbow 1.2s linear infinite;
+        }
+        @keyframes spin-rainbow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="min-h-screen p-2 md:p-6 flex flex-col items-center justify-start relative overflow-y-auto">
 
     <!-- IMAGEM DE FUNDO DO CRIADOR (LEALDADE SUPREMA) -->
     <div class="fixed inset-0 z-0 pointer-events-none opacity-5 bg-cover bg-center" 
-         style="background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1780222302298_Screenshot_20260530_220819_WhatsApp.jpg');"></div>
+          style="background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1780222302298_Screenshot_20260530_220819_WhatsApp.jpg');"></div>
 
     <!-- MOCKUP DO CELULAR DONYPAY -->
-    <div class="w-full max-w-sm h-[760px] bg-slate-950 rounded-[45px] border-[8px] border-slate-800 relative shadow-2xl overflow-hidden flex flex-col justify-between z-10 picpay-gradient">
-        
+    <div class="w-full max-w-sm h-[780px] bg-slate-950 rounded-[45px] border-[8px] border-slate-800 relative shadow-2xl overflow-hidden flex flex-col justify-between z-10 picpay-gradient">
+         
         <!-- BARRA DE STATUS DO CELULAR -->
         <div class="px-6 pt-3 pb-2 flex justify-between items-center text-[10px] text-slate-500 font-bold z-20">
             <span id="phone-time">12:00</span>
             <div class="flex items-center gap-2">
+                <!-- Botão Secreto de Configuração de Termos -->
+                <button onclick="abrirConfiguradorTermos()" class="text-slate-700 hover:text-yellow-300 transition">
+                    <i class="fas fa-cog"></i>
+                </button>
                 <i class="fas fa-wifi text-cyan-500"></i>
                 <span class="text-[8px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">CANAL-UNICO</span>
                 <i class="fas fa-battery-three-quarters text-yellow-300"></i>
@@ -81,7 +102,7 @@
         </div>
 
         <!-- CONTEÚDO DINÂMICO DO APP -->
-        <div class="flex-1 px-5 overflow-y-auto pb-4 z-10" id="app-content">
+        <div class="flex-1 px-5 overflow-y-auto pb-4 z-10 no-scrollbar" id="app-content">
 
             <!-- TELA 1: WELCOME / ENTRADA POR CHAVE DE TELEFONE -->
             <div id="screen-welcome" class="h-full flex flex-col justify-center items-center text-center space-y-8 pt-10">
@@ -92,12 +113,12 @@
                     <h2 class="text-xl font-black text-white tracking-wider">DonyPay</h2>
                     <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">SISTEMA FINANCEIRO INTEGRADO JDP</p>
                 </div>
-                
+                                 
                 <div class="w-full space-y-3">
                     <div class="bg-black/40 p-3.5 rounded-xl border border-slate-800 text-left">
                         <label class="text-[8px] text-cyan-400 block uppercase font-bold mb-1">WhatsApp de Acesso (Canal Único)</label>
                         <input type="tel" id="input-login-phone" placeholder="Ex: 5592984846058" 
-                               class="w-full bg-black border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono">
+                                class="w-full bg-black border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono">
                     </div>
                     <button onclick="verificarAcessoUsuario()" class="w-full bg-cyan-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider hover:opacity-95 transition">
                         Conectar ao Canal Único
@@ -112,21 +133,21 @@
                     <button onclick="showScreen('screen-welcome')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
                     <span class="text-xs font-black text-white uppercase">Criar Carteira DonyPay</span>
                 </div>
-                
+                                 
                 <div class="space-y-3">
                     <div>
                         <label class="text-[8px] text-cyan-400 block uppercase mb-1">Nome Completo</label>
                         <input type="text" id="reg-name" placeholder="Ex: João da Silva" 
-                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
+                                class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
                     </div>
                     <div>
                         <label class="text-[8px] text-cyan-400 block uppercase mb-1">Endereço Completo</label>
                         <input type="text" id="reg-address" placeholder="Rua, Número, Bairro" 
-                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
+                                class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
                     </div>
                     <div>
                         <label class="text-[8px] text-cyan-400 block uppercase mb-1">WhatsApp de Operador</label>
-                        <input type="tel" id="reg-phone" readonly
+                        <input type="tel" id="reg-phone" readonly 
                                class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-400 font-mono">
                     </div>
                 </div>
@@ -153,7 +174,7 @@
                 </div>
             </div>
 
-            <!-- TELA 4: CADASTRO DE PIN DE 6 DÍGITOS -->
+            <!-- TELA 4: CADASTRO DE PIN -->
             <div id="screen-pin-setup" class="hidden space-y-6 pt-10 text-center">
                 <div class="w-16 h-16 rounded-3xl bg-yellow-300/10 border border-yellow-300/30 flex items-center justify-center mx-auto">
                     <i class="fas fa-key text-yellow-300 text-2xl"></i>
@@ -163,8 +184,8 @@
                     <p class="text-[10px] text-slate-400 mt-1">Crie um código numérico de 6 dígitos para transações</p>
                 </div>
 
-                <input type="password" id="setup-pin" placeholder="••••••" maxlength="6"
-                       class="w-full max-w-[200px] bg-black border border-slate-800 rounded-xl py-3 text-center text-xl text-white tracking-[0.5em] focus:outline-none focus:border-cyan-500 font-mono">
+                <input type="password" id="setup-pin" placeholder="••••••" maxlength="6" 
+                        class="w-full max-w-[200px] bg-black border border-slate-800 rounded-xl py-3 text-center text-xl text-white tracking-[0.5em] focus:outline-none focus:border-cyan-500 font-mono">
 
                 <button onclick="salvarPINUsuario()" class="w-full bg-cyan-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition">
                     Ativar Minha Carteira
@@ -181,8 +202,8 @@
                     <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">Digite seu PIN de 6 dígitos</p>
                 </div>
 
-                <input type="password" id="login-pin-6" placeholder="••••••" maxlength="6"
-                       class="w-full max-w-[200px] bg-black border border-slate-800 rounded-xl py-3 text-center text-xl text-white tracking-[0.5em] focus:outline-none focus:border-cyan-500 font-mono">
+                <input type="password" id="login-pin-6" placeholder="••••••" maxlength="6" 
+                        class="w-full max-w-[200px] bg-black border border-slate-800 rounded-xl py-3 text-center text-xl text-white tracking-[0.5em] focus:outline-none focus:border-cyan-500 font-mono">
 
                 <button onclick="efetuarLoginPIN()" class="w-full bg-cyan-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition">
                     Desbloquear Carteira
@@ -190,8 +211,8 @@
                 <button onclick="showScreen('screen-welcome')" class="text-[9px] text-slate-500 hover:underline uppercase">Alterar Telefone</button>
             </div>
 
-            <!-- TELA 6: DASHBOARD PRINCIPAL (ESTILO PICPAY) -->
-            <div id="screen-dashboard" class="hidden space-y-6 pt-4 text-left">
+            <!-- TELA 6: DASHBOARD PRINCIPAL -->
+            <div id="screen-dashboard" class="hidden space-y-5 pt-4 text-left">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2.5">
                         <div class="w-9 h-9 rounded-full bg-yellow-300 text-black flex items-center justify-center font-black text-xs" id="dash-avatar">
@@ -202,10 +223,18 @@
                             <span class="text-xs font-black text-white" id="dash-name">Carregando...</span>
                         </div>
                     </div>
-                    <span class="text-[8px] bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-bold" id="dash-phone">CONECTADO</span>
+                    
+                    <!-- NOTIFICAÇÃO CANTO SUPERIOR DIREITO -->
+                    <div class="flex items-center gap-3">
+                        <button onclick="showScreen('screen-notifications')" class="relative text-cyan-500 hover:text-yellow-300 transition p-1.5 bg-slate-900 border border-slate-800 rounded-xl">
+                            <i class="fas fa-bell text-xs"></i>
+                            <span id="notif-badge" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-slate-950 hidden"></span>
+                        </button>
+                        <span class="text-[8px] bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-bold" id="dash-phone">CONECTADO</span>
+                    </div>
                 </div>
 
-                <!-- CARD DE SALDO PICPAY -->
+                <!-- CARD DE SALDO -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
                     <span class="text-[8px] text-slate-400 block uppercase tracking-widest font-bold">Saldo Disponível</span>
                     <div class="flex items-baseline gap-1 mt-1.5">
@@ -214,36 +243,43 @@
                     </div>
                     <div class="text-[8px] text-cyan-400 font-bold uppercase tracking-wider mt-2 flex justify-between items-center">
                         <span><i class="fas fa-shield-alt mr-1"></i> 1 DNY = R$ 1,00</span>
-                        <span id="dash-level" class="text-yellow-300">BAÚ 01</span>
+                        <span id="dash-level" class="text-yellow-300 font-mono">BAÚ 01</span>
                     </div>
                 </div>
 
-                <!-- BOTÕES DE OPERAÇÃO -->
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="showScreen('screen-pagar')" class="bg-cyan-500 text-black p-3.5 rounded-2xl flex flex-col items-center justify-center gap-1 hover:opacity-90 transition">
-                        <i class="fas fa-camera text-xs"></i>
-                        <span class="text-[7px] font-black uppercase">Pagar</span>
+                <!-- BOTÕES DE OPERAÇÃO MULTIPLICADOS -->
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button onclick="showScreen('screen-pagar')" class="bg-cyan-500 text-black py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:opacity-90 transition">
+                        <i class="fas fa-camera text-[10px]"></i>
+                        <span class="text-[6px] font-black uppercase">Pagar</span>
                     </button>
-                    <button onclick="abrirCobrar()" class="bg-slate-900 border border-slate-800 text-white p-3.5 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-slate-800 transition">
-                        <i class="fas fa-qrcode text-xs text-yellow-300"></i>
-                        <span class="text-[7px] font-black uppercase">Cobrar</span>
+                    <button onclick="abrirCobrar()" class="bg-slate-900 border border-slate-800 text-white py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-slate-850 transition">
+                        <i class="fas fa-qrcode text-[10px] text-yellow-300"></i>
+                        <span class="text-[6px] font-black uppercase">Cobrar</span>
                     </button>
-                    <button onclick="showScreen('screen-prensa')" class="bg-slate-900 border border-slate-800 text-white p-3.5 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-slate-800 transition">
-                        <i class="fas fa-industry text-xs text-cyan-400"></i>
-                        <span class="text-[7px] font-black uppercase">Prensar</span>
+                    <button onclick="showScreen('screen-prensa')" class="bg-slate-900 border border-slate-800 text-white py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-slate-850 transition">
+                        <i class="fas fa-industry text-[10px] text-cyan-400"></i>
+                        <span class="text-[6px] font-black uppercase">Prensar</span>
+                    </button>
+                    <button onclick="abrirTelaEmprestimos()" class="bg-slate-900 border border-slate-800 text-white py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-slate-850 transition">
+                        <i class="fas fa-hand-holding-dollar text-[10px] text-emerald-400"></i>
+                        <span class="text-[6px] font-black uppercase">Crédito</span>
                     </button>
                 </div>
 
-                <!-- LIVRO-RAZÃO SIMPLIFICADO -->
+                <!-- HISTÓRICO SIMPLIFICADO -->
                 <div class="space-y-3">
-                    <span class="text-[8px] text-slate-500 block uppercase font-bold tracking-wider">Histórico de Transações</span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[8px] text-slate-500 block uppercase font-bold tracking-wider">Atividade Recente</span>
+                        <button onclick="showScreen('screen-extrato')" class="text-[8px] text-cyan-400 font-bold uppercase hover:underline">Ver Extrato</button>
+                    </div>
                     <div class="space-y-2" id="history-container">
                         <!-- Injetado dinamicamente -->
                     </div>
                 </div>
             </div>
 
-            <!-- TELA 7: PRENSA JDP (DEPOSITAR VIA PIX COM CANAL ÚNICO) -->
+            <!-- TELA 7: PRENSA JDP (DEPÓSITO) -->
             <div id="screen-prensa" class="hidden space-y-4 pt-2 text-left">
                 <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
                     <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
@@ -253,7 +289,7 @@
                 <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3">
                     <span class="text-[8px] text-yellow-300 block uppercase font-bold tracking-widest">// EMISSÃO VIA TELEFONE</span>
                     <input type="number" id="valorManual" class="w-full p-3 bg-black border border-cyan-500 text-white rounded-lg text-center text-lg font-bold focus:outline-none" placeholder="R$ 0,00">
-                    
+                                         
                     <div class="grid grid-cols-3 gap-2">
                         <button onclick="setValorPrensa(20)" class="bg-slate-850 border border-slate-850 text-xs py-2 rounded-lg font-bold hover:bg-slate-800">R$ 20</button>
                         <button onclick="setValorPrensa(50)" class="bg-slate-850 border border-slate-850 text-xs py-2 rounded-lg font-bold hover:bg-slate-800">R$ 50</button>
@@ -282,7 +318,7 @@
                 </div>
             </div>
 
-            <!-- TELA 8: COBRAR (GERAR QR CODE) -->
+            <!-- TELA 8: COBRAR -->
             <div id="screen-cobrar" class="hidden space-y-5 pt-4 text-left">
                 <div class="flex items-center gap-2">
                     <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
@@ -299,7 +335,7 @@
                 </div>
             </div>
 
-            <!-- TELA 9: PAGAR (CÂMERA REAL SCANNER) -->
+            <!-- TELA 9: PAGAR -->
             <div id="screen-pagar" class="hidden space-y-4 pt-4 text-left flex flex-col h-full justify-between">
                 <div>
                     <div class="flex items-center gap-2 mb-4">
@@ -340,6 +376,113 @@
                 <button onclick="showScreen('screen-dashboard')" class="w-full bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs uppercase">Voltar ao Início</button>
             </div>
 
+            <!-- TELA 12: EXTRATO DETALHADO -->
+            <div id="screen-extrato" class="hidden space-y-4 pt-4 text-left">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
+                        <span class="text-xs font-black text-white uppercase">Extrato de Conta</span>
+                    </div>
+                    <span class="text-[8px] text-slate-500 font-mono">DONYBANK LEDGER</span>
+                </div>
+
+                <div class="space-y-3 overflow-y-auto max-h-[620px] pr-1 no-scrollbar" id="full-statement-container">
+                    <!-- Injetado dinamicamente -->
+                </div>
+            </div>
+
+            <!-- TELA 13: NOVO MÓDULO DE EMPRÉSTIMOS JDP -->
+            <div id="screen-emprestimo" class="hidden space-y-4 pt-4 text-left">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
+                    <span class="text-xs font-black text-white uppercase">Crédito DonyCoins</span>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Simulador -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+                        <span class="text-[8px] text-cyan-400 block uppercase font-bold mb-2">// Simulador de Linha de Crédito</span>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[8px] text-slate-500 block mb-1">VALOR DESEJADO (🪙 DONYCOINS)</label>
+                                <input type="number" id="loan-amount" oninput="calcularSimulacaoEmprestimo()" class="w-full bg-black border border-slate-800 rounded-lg p-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-500" placeholder="Ex: 100">
+                            </div>
+                            <div>
+                                <label class="text-[8px] text-slate-500 block mb-1">FORMA DE PAGAMENTO (JUROS DE 20%)</label>
+                                <select id="loan-term" onchange="calcularSimulacaoEmprestimo()" class="w-full bg-black border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                                    <option value="semanal">SEMANAL (7 DIAS)</option>
+                                    <option value="quinzenal">15ZENA (15 DIAS)</option>
+                                    <option value="mensal">POR MÊS (30 DIAS)</option>
+                                </select>
+                            </div>
+                            <div class="bg-black/50 p-2.5 rounded-lg border border-slate-850 flex justify-between text-[10px]">
+                                <span class="text-slate-400">Total a Pagar (+20%):</span>
+                                <span class="text-yellow-300 font-bold font-mono" id="loan-total-display">0.00 DNY</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Envio de Documentos (Base64 Automático) -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+                        <span class="text-[8px] text-cyan-400 block uppercase font-bold">// Protocolo de Identidade</span>
+                        
+                        <div class="space-y-2 text-[9px]">
+                            <div>
+                                <!-- FORÇA CÂMERA FRONTAL (CAPTURE="USER") -->
+                                <label class="text-slate-400 block mb-1">1. SELFIE EM TEMPO REAL (Obrigatório câmera frontal)</label>
+                                <input type="file" id="file-face" accept="image/*" capture="user" class="w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-cyan-500 file:text-black hover:file:opacity-90">
+                            </div>
+                            <div>
+                                <label class="text-slate-400 block mb-1">2. FOTO DO RG OU CNH FRENTE E VERSO NÍTIDO</label>
+                                <input type="file" id="file-doc" accept="image/*" class="w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-cyan-500 file:text-black hover:file:opacity-90">
+                            </div>
+                            <div>
+                                <label class="text-slate-400 block mb-1">3. COMPROVANTE DE RESIDÊNCIA (Max: 3 meses atrás)</label>
+                                <input type="file" id="file-residence" accept="image/*" class="w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-cyan-500 file:text-black hover:file:opacity-90">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Termos de Uso Carregados do Banco -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+                        <span class="text-[8px] text-yellow-300 block uppercase font-bold">// Termos e Condições JDP</span>
+                        <div id="loan-terms-box" class="bg-black/80 p-2.5 rounded-lg border border-slate-850 text-[7px] text-slate-400 h-20 overflow-y-auto leading-relaxed">
+                            Carregando termos de crédito homologados...
+                        </div>
+                    </div>
+
+                    <button onclick="submeterPedidoEmprestimo()" class="w-full bg-emerald-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider hover:opacity-90 transition">
+                        Solicitar Crédito ao Banco JDP
+                    </button>
+                </div>
+            </div>
+
+            <!-- TELA 14: CARREGAMENTO DA CRIPTOGRAFIA (RAINBOW SPINNER) -->
+            <div id="screen-loan-loading" class="hidden h-full flex flex-col justify-center items-center text-center space-y-6 pt-16">
+                <div class="rainbow-spinner mx-auto"></div>
+                <div>
+                    <h3 class="text-xs font-black text-white uppercase tracking-widest">Processando Proposta</h3>
+                    <p class="text-[9px] text-slate-400 mt-2 px-6 leading-relaxed">
+                        A Helena está criptografando seus documentos e enviando sua proposta de crédito para o Banco Central JDP...
+                    </p>
+                </div>
+            </div>
+
+            <!-- TELA 15: NOTIFICAÇÕES GERAIS -->
+            <div id="screen-notifications" class="hidden space-y-4 pt-4 text-left">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
+                        <span class="text-xs font-black text-white uppercase">Notificações</span>
+                    </div>
+                    <span class="text-[8px] text-slate-500 font-mono">DONYPAY INFO</span>
+                </div>
+
+                <div class="space-y-3 overflow-y-auto max-h-[620px] pr-1 no-scrollbar" id="notifications-container">
+                    <!-- Injetado via JS -->
+                </div>
+            </div>
+
         </div>
 
         <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
@@ -360,7 +503,29 @@
 
     </div>
 
-    <!-- FUNÇÕES DE ENGENHARIA CLIENTE (CONEXÃO REAL DATABASE) -->
+    <!-- MODAL CONFIGURADOR DE TERMOS SECRETO DO CRIADOR -->
+    <div id="modal-config-termos" class="fixed inset-0 bg-[#020617]/95 z-[9999] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-[#fde047] p-6 rounded-2xl max-w-sm w-full text-center">
+            <i class="fas fa-shield-alt text-3xl text-yellow-300 mb-2"></i>
+            <h3 class="text-sm font-black text-white uppercase">Configurador de Termos</h3>
+            <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">Acesso Exclusivo do Criador</p>
+            
+            <div id="terms-auth-area" class="mt-4 space-y-3">
+                <input type="password" id="terms-pass" placeholder="Senha do Criador" class="w-full bg-black border border-slate-700 text-white rounded-lg p-2.5 text-center text-xs focus:outline-none">
+                <button onclick="verificarSenhaTermos()" class="w-full bg-yellow-300 text-black font-black py-2 rounded-lg text-xs uppercase">Autenticar</button>
+            </div>
+
+            <div id="terms-editor-area" class="mt-4 space-y-3 hidden text-left">
+                <label class="text-[8px] text-cyan-400 block font-bold uppercase">Termos de Empréstimo (DonyCoins)</label>
+                <textarea id="terms-text-editor" class="w-full bg-black border border-slate-700 text-white rounded-lg p-2.5 text-[9px] h-32 focus:outline-none font-mono"></textarea>
+                <button onclick="salvarTermosNoBanco()" class="w-full bg-cyan-500 text-black font-black py-2.5 rounded-lg text-xs uppercase">Salvar Termos</button>
+            </div>
+
+            <button onclick="fecharConfiguradorTermos()" class="text-slate-500 hover:text-white text-[10px] font-bold uppercase tracking-wider mt-4">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- FUNÇÕES DE ENGENHARIA CLIENTE -->
     <script>
         const LOJA_ID = "LEOVARDIOS_burguer_2026";
         const firebaseConfig = {
@@ -377,6 +542,11 @@
         let scanningActive = false;
         let currentPayerPayload = null;
 
+        let base64Face = "";
+        let base64Doc = "";
+        let base64Residence = "";
+        let configTermosMemo = "";
+
         const CHAVE_PIX_JDP = "70945887205";
         const NOME_JDP = "JOSE DIVINOPRADODALAPA";
         const CIDADE_JDP = "MANAUS";
@@ -392,7 +562,8 @@
             const screens = [
                 'screen-welcome', 'screen-register', 'screen-analysis',
                 'screen-pin-setup', 'screen-login-pin', 'screen-dashboard', 'screen-prensa',
-                'screen-cobrar', 'screen-pagar', 'screen-confirm', 'screen-success'
+                'screen-cobrar', 'screen-pagar', 'screen-confirm', 'screen-success',
+                'screen-extrato', 'screen-emprestimo', 'screen-loan-loading', 'screen-notifications'
             ];
             screens.forEach(id => {
                 document.getElementById(id).classList.add('hidden');
@@ -420,6 +591,12 @@
                 if (snap.exists()) {
                     userData = snap.val();
                     
+                    // Verifica se o usuário está suspenso (Modo Sombra)
+                    if (userData.suspenso === true) {
+                        carregarDashboard();
+                        return;
+                    }
+                                        
                     if (userData.status_cadastro === "aprovado" && userData.pin) {
                         document.getElementById('login-user-title').innerText = `Olá, ${userData.nome.split(' ')[0]}`;
                         showScreen('screen-login-pin');
@@ -455,10 +632,10 @@
                 nome: name.toUpperCase(),
                 endereco: address.toUpperCase(),
                 whatsapp: userWhatsApp,
-                chave_dony: userWhatsApp, // Chave Dony é o próprio telefone (Canal Único)
-                status_cadastro: "pendente", 
+                chave_dony: userWhatsApp,
+                status_cadastro: "pendente",
                 status_missao: "nenhuma",
-                donycoins: 10, 
+                donycoins: 10,
                 currentUnlocked: 1,
                 data_cadastro: Date.now()
             };
@@ -523,45 +700,286 @@
                 }
             });
 
-            db.ref(`lojas/${LOJA_ID}/DonyCoins/ledger`).limitToLast(10).on('value', snap => {
+            // ESCUTA SÍNCRONA DE TRANSAÇÕES DO LIVRO-RAZÃO
+            db.ref(`lojas/${LOJA_ID}/DonyCoins/ledger`).on('value', snap => {
                 const container = document.getElementById('history-container');
+                const fullContainer = document.getElementById('full-statement-container');
+                
                 container.innerHTML = "";
+                fullContainer.innerHTML = "";
+                
                 const ledger = snap.val() || {};
-
-                const txs = Object.values(ledger).reverse();
+                const txs = Object.values(ledger).sort((a,b) => b.index - a.index);
+                
                 const minhasTxs = txs.filter(t => t.sender === userWhatsApp || t.receiver === userWhatsApp);
 
                 if (minhasTxs.length === 0) {
-                    container.innerHTML = `<p class="text-[9px] text-slate-600 text-center py-4">Nenhuma atividade registrada no ledger.</p>`;
+                    container.innerHTML = `<p class="text-[9px] text-slate-600 text-center py-4">Nenhuma atividade registrada.</p>`;
+                    fullContainer.innerHTML = `<p class="text-[9px] text-slate-600 text-center py-4">Nenhuma atividade registrada no ledger.</p>`;
                     return;
                 }
 
-                minhasTxs.forEach(tx => {
+                minhasTxs.forEach((tx, idx) => {
                     const isReceive = tx.receiver === userWhatsApp;
                     const color = isReceive ? 'text-green-400' : 'text-red-400';
                     const sign = isReceive ? '+' : '-';
                     const icon = isReceive ? 'fa-arrow-down text-green-500' : 'fa-arrow-up text-red-500';
+                    const dateStr = new Date(tx.timestamp).toLocaleString('pt-BR');
 
-                    container.innerHTML += `
-                        <div class="bg-slate-900/40 border border-slate-800/40 rounded-xl p-3 flex justify-between items-center">
-                            <div class="flex items-center gap-2">
-                                <i class="fas ${icon} text-[10px]"></i>
-                                <div>
-                                    <span class="text-[10px] font-bold text-white block">${tx.type || 'TRANSFERÊNCIA'}</span>
-                                    <span class="text-[8px] text-slate-500 uppercase">${tx.reason || 'DonyPay'}</span>
+                    if (idx < 4) {
+                        container.innerHTML += `
+                            <div class="bg-slate-900/40 border border-slate-800/40 rounded-xl p-3 flex justify-between items-center">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas ${icon} text-[10px]"></i>
+                                    <div>
+                                        <span class="text-[10px] font-bold text-white block">${tx.type || 'TRANSFERÊNCIA'}</span>
+                                        <span class="text-[8px] text-slate-500 uppercase">${tx.reason || 'DonyPay'}</span>
+                                    </div>
                                 </div>
+                                <span class="text-[10px] font-black ${color}">${sign} R$ ${(tx.amount || 0).toFixed(2)}</span>
                             </div>
-                            <span class="text-[10px] font-black ${color}">${sign} R$ ${(tx.amount || 0).toFixed(2)}</span>
+                        `;
+                    }
+
+                    let descDetalhada = isReceive ? `Você recebeu de [${tx.sender_name || tx.sender}]` : `Você pagou para [${tx.receiver_name || tx.receiver}]`;
+
+                    fullContainer.innerHTML += `
+                        <div class="bg-slate-900 border border-slate-800/60 rounded-xl p-4 space-y-1">
+                            <div class="flex justify-between text-[8px] text-slate-500">
+                                <span>BLOCO #${tx.index} [${tx.type}]</span>
+                                <span>${dateStr}</span>
+                            </div>
+                            <p class="text-white text-[11px] font-bold leading-relaxed">${descDetalhada}</p>
+                            <div class="flex justify-between items-center pt-1 mt-1 border-t border-slate-850">
+                                <span class="text-slate-500 text-[8px]">MOTIVO: ${tx.reason || 'DonyPay'}</span>
+                                <span class="text-xs font-black ${color}">${sign} R$ ${(tx.amount || 0).toFixed(2)}</span>
+                            </div>
                         </div>
                     `;
                 });
+            });
+
+            // Carrega termos de empréstimo do Firebase
+            db.ref(`lojas/${LOJA_ID}/config_emprestimo/termos`).on('value', snap => {
+                configTermosMemo = snap.val() || "Termos padrão do quintal: Juros de 20% aplicados ao total solicitado. Pagamento a ser compensado no prazo selecionado.";
+                document.getElementById('loan-terms-box').innerText = configTermosMemo;
+            });
+
+            // ESCUTA REAL-TIME DE SOLICITAÇÕES DE EMPRÉSTIMO PARA FEED DE NOTIFICAÇÕES
+            db.ref(`lojas/${LOJA_ID}/solicitacoes_emprestimo`).on('value', snap => {
+                const requests = snap.val() || {};
+                const notifContainer = document.getElementById('notifications-container');
+                const badge = document.getElementById('notif-badge');
+                
+                notifContainer.innerHTML = "";
+                let hasUnread = false;
+
+                const minhasSolicitacoes = Object.values(requests)
+                    .filter(r => r.whatsapp === userWhatsApp)
+                    .sort((a,b) => b.timestamp - a.timestamp);
+
+                if (minhasSolicitacoes.length === 0) {
+                    notifContainer.innerHTML = `<p class="text-[10px] text-slate-500 text-center py-10">Você não possui notificações de crédito.</p>`;
+                    badge.classList.add('hidden');
+                    return;
+                }
+
+                minhasSolicitacoes.forEach(req => {
+                    let cardBg = "bg-slate-900 border-slate-800";
+                    let statusText = "";
+                    let iconHtml = "";
+                    let extraHtml = "";
+
+                    if (req.status === "Pendente") {
+                        statusText = `<span class="text-yellow-400 font-bold">EM ANÁLISE</span>`;
+                        iconHtml = `<i class="fas fa-hourglass-half text-yellow-400"></i>`;
+                        cardBg = "bg-slate-900/60 border-slate-800";
+                    } else if (req.status === "Aprovado") {
+                        statusText = `<span class="text-green-400 font-bold">APROVADO</span>`;
+                        iconHtml = `<i class="fas fa-check-circle text-green-400"></i>`;
+                        cardBg = "bg-green-950/10 border-green-500/30";
+                        hasUnread = true; // Ativa o alerta visual de sino
+
+                        extraHtml = `
+                            <div class="mt-2 p-2 bg-black/40 rounded border border-green-500/20 text-[9px] text-slate-300">
+                                <strong>ESCLARECIMENTO:</strong> Seu empréstimo de 🪙 ${req.valor.toFixed(2)} DNY foi homologado! O valor foi debitado do Cofre Central do Banco JDP e adicionado ao seu saldo.
+                            </div>
+                        `;
+                    } else if (req.status === "Recusado") {
+                        statusText = `<span class="text-red-500 font-bold">RECUSADO</span>`;
+                        iconHtml = `<i class="fas fa-times-circle text-red-500"></i>`;
+                        cardBg = "bg-red-950/10 border-red-500/30";
+                        hasUnread = true;
+
+                        extraHtml = `
+                            <div class="mt-2 p-2.5 bg-black/50 rounded border border-red-500/20 text-[8px] text-slate-400 space-y-1.5">
+                                <p class="text-red-400 font-bold">MOTIVO: Proposta não enquadrada nos critérios de segurança JDP.</p>
+                                <p class="border-t border-slate-800 pt-1"><strong>TERMOS DE USO VIGENTES:</strong></p>
+                                <p class="italic leading-relaxed">${configTermosMemo}</p>
+                            </div>
+                        `;
+                    }
+
+                    notifContainer.innerHTML += `
+                        <div class="border rounded-xl p-4 space-y-1.5 ${cardBg}">
+                            <div class="flex justify-between items-center text-[8px] text-slate-500">
+                                <span>SOLICITAÇÃO DE CRÉDITO</span>
+                                <span>${new Date(req.timestamp).toLocaleString()}</span>
+                            </div>
+                            <div class="flex items-center gap-2 pt-1">
+                                ${iconHtml}
+                                <span class="text-xs font-black text-white">VALOR: 🪙 ${req.valor.toFixed(2)} DNY</span>
+                            </div>
+                            <div class="flex justify-between text-[9px] pt-1">
+                                <span class="text-slate-400">Prazo: ${req.prazo}</span>
+                                <span>Status: ${statusText}</span>
+                            </div>
+                            ${extraHtml}
+                        </div>
+                    `;
+                });
+
+                if (hasUnread) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
             });
 
             showScreen('screen-dashboard');
         }
 
         // ==========================================
-        //  CÂMERA REAL: HTML5-QRCODE SINGLETON
+        //  MÓDULO DE CRÉDITO / EMPRÉSTIMOS JDP
+        // ==========================================
+        function abrirTelaEmprestimos() {
+            if (userData.suspenso === true) {
+                alert("HELENA: Linha de crédito temporariamente indisponível para esta conta. (Código 403-IP)");
+                return;
+            }
+            document.getElementById('loan-amount').value = "";
+            document.getElementById('loan-total-display').innerText = "0.00 DNY";
+            showScreen('screen-emprestimo');
+            ativarLeitoresImagens();
+        }
+
+        function calcularSimulacaoEmprestimo() {
+            const valor = parseFloat(document.getElementById('loan-amount').value) || 0;
+            const total = valor * 1.20; // 20% de Juros
+            document.getElementById('loan-total-display').innerText = `${total.toFixed(2)} DNY`;
+        }
+
+        function registrarConversorImagem(inputId, callback) {
+            const input = document.getElementById(inputId);
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        callback(evt.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+        }
+
+        function activarLeitoresImagens() {
+            registrarConversorImagem('file-face', base64 => base64Face = base64);
+            registrarConversorImagem('file-doc', base64 => base64Doc = base64);
+            registrarConversorImagem('file-residence', base64 => base64Residence = base64);
+        }
+
+        function submeterPedidoEmprestimo() {
+            const valor = parseFloat(document.getElementById('loan-amount').value);
+            const prazo = document.getElementById('loan-term').value;
+
+            if (isNaN(valor) || valor <= 0) {
+                alert("HELENA: Insira um valor válido para simular.");
+                return;
+            }
+
+            if (!base64Face) {
+                alert("HELENA: Selfie facial obrigatória não detectada. Tire uma foto do seu rosto usando a câmera frontal.");
+                return;
+            }
+
+            if (!base64Doc || !base64Residence) {
+                alert("HELENA: Protocolo incompleto. Faça o upload das fotos do RG/CNH nítido e do Comprovante de Residência.");
+                return;
+            }
+
+            // Ativa o Anel de Carga Criptográfica
+            showScreen('screen-loan-loading');
+
+            setTimeout(() => {
+                const reqId = 'LOAN-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+                const solicitacao = {
+                    nome: userData.nome,
+                    whatsapp: userWhatsApp,
+                    valor: valor,
+                    valor_total: valor * 1.20,
+                    prazo: prazo.toUpperCase(),
+                    foto_face: base64Face,
+                    foto_documento: base64Doc,
+                    comprovante_residencia: base64Residence,
+                    status: "Pendente",
+                    timestamp: Date.now()
+                };
+
+                db.ref(`lojas/${LOJA_ID}/solicitacoes_emprestimo/${reqId}`).set(solicitacao).then(() => {
+                    alert("PROPOSTA CRIPTOGRAFADA E TRANSMITIDA!\n\nSeus documentos foram enviados ao Criador Sr. José. Verifique o status no painel de notificações.");
+                    
+                    // Limpa buffers
+                    base64Face = "";
+                    base64Doc = "";
+                    base64Residence = "";
+                    document.getElementById('file-face').value = "";
+                    document.getElementById('file-doc').value = "";
+                    document.getElementById('file-residence').value = "";
+
+                    showScreen('screen-dashboard');
+                });
+            }, 3000); // 3 segundos de carga colorida (verde, lilás e azul)
+        }
+
+        // ==========================================
+        //  EDITOR DE TERMOS SECRETO DO CRIADOR (SENHA: 1234)
+        // ==========================================
+        function abrirConfiguradorTermos() {
+            document.getElementById('modal-config-termos').classList.remove('hidden');
+            document.getElementById('terms-auth-area').classList.remove('hidden');
+            document.getElementById('terms-editor-area').classList.add('hidden');
+            document.getElementById('terms-pass').value = "";
+        }
+
+        function fecharConfiguradorTermos() {
+            document.getElementById('modal-config-termos').classList.add('hidden');
+        }
+
+        function verificarSenhaTermos() {
+            const senha = document.getElementById('terms-pass').value;
+            if (senha === "1234") {
+                document.getElementById('terms-auth-area').classList.add('hidden');
+                document.getElementById('terms-editor-area').classList.remove('hidden');
+                
+                db.ref(`lojas/${LOJA_ID}/config_emprestimo/termos`).once('value', snap => {
+                    document.getElementById('terms-text-editor').value = snap.val() || "";
+                });
+            } else {
+                alert("SENHA INCORRETA.");
+            }
+        }
+
+        function salvarTermosNoBanco() {
+            const texto = document.getElementById('terms-text-editor').value;
+            db.ref(`lojas/${LOJA_ID}/config_emprestimo/termos`).set(texto).then(() => {
+                alert("Termos de Empréstimo atualizados no Banco Central!");
+                fecharConfiguradorTermos();
+            });
+        }
+
+        // ==========================================
+        //  CÂMERA REAL E QR CODE
         // ==========================================
         async function iniciarCameraReal() {
             if (scanningActive) return;
@@ -569,7 +987,7 @@
 
             await pararCameraScanner();
             const container = document.getElementById("camera-reader");
-            if (container) container.innerHTML = ""; 
+            if (container) container.innerHTML = "";
 
             setTimeout(async () => {
                 try {
@@ -591,14 +1009,13 @@
                                     payload = JSON.parse(decodedText);
                                 } else if (decodedText.startsWith("DNY-VALUE-")) {
                                     const val = parseFloat(decodedText.replace("DNY-VALUE-", ""));
-                                    payload = { 
-                                        value: val, 
-                                        recipient: "CRIADOR_JDP", 
-                                        name: "José Divino", 
-                                        hash: "DNY-RAW-" + Date.now() 
+                                    payload = {
+                                        value: val,
+                                        recipient: "CRIADOR_JDP",
+                                        name: "José Divino",
+                                        hash: "DNY-RAW-" + Date.now()
                                     };
                                 }
-
                                 if (payload && payload.recipient && payload.value) {
                                     pararCameraScanner();
                                     abrirConfirmacaoPagamento(payload);
@@ -607,12 +1024,12 @@
                                 console.warn("Erro ao ler QR Code:", e);
                             }
                         },
-                        () => {} 
+                        () => {}
                     );
                 } catch (err) {
-                    console.error("Erro na inicialização da câmera:", err);
+                    console.error("Erro na câmera:", err);
                     scanningActive = false;
-                    alert("HELENA: Erro ao acessar a câmera. Verifique as permissões.");
+                    alert("HELENA: Erro ao acessar a câmera.");
                     showScreen('screen-dashboard');
                 }
             }, 350);
@@ -630,7 +1047,7 @@
                     html5QrScanner = null;
                     scanningActive = false;
                     const container = document.getElementById("camera-reader");
-                    if (container) container.innerHTML = ""; 
+                    if (container) container.innerHTML = "";
                 }
             }
         }
@@ -692,15 +1109,17 @@
             ledgerRef.once('value', snap => {
                 const ledger = snap.val() || {};
                 const index = Object.keys(ledger).length;
-                
+                                
                 const novoBloco = {
                     index: index,
                     timestamp: Date.now(),
                     sender: userWhatsApp,
                     receiver: recipient,
+                    sender_name: userData.nome,
+                    receiver_name: currentPayerPayload.name || recipient,
                     amount: amount,
                     type: "DEBITO",
-                    reason: `TRANSFERENCIA PARA ${recipient}`,
+                    reason: `PAGAMENTO QR CODE`,
                     hash: currentPayerPayload.hash
                 };
 
@@ -711,9 +1130,7 @@
             });
         }
 
-        // ==========================================
-        //  PRENSA JDP: EMISSÃO VIA CANAL ÚNICO
-        // ==========================================
+        // PRENSA JDP
         function setValorPrensa(v) {
             document.getElementById('valorManual').value = v;
         }
@@ -722,7 +1139,7 @@
             const f = (id, v) => id + v.length.toString().padStart(2, '0') + v;
             const vStr = valor.toFixed(2);
             let p = "000201" + f("26", f("00", "br.gov.bcb.pix") + f("01", CHAVE_PIX_JDP)) + "520400005303986" + f("54", vStr) + "5802BR" + f("59", NOME_JDP.substring(0,25)) + f("60", CIDADE_JDP.substring(0,15)) + "62070503***6304";
-            
+                         
             let crc = 0xFFFF;
             for (let i = 0; i < p.length; i++) {
                 crc ^= (p.charCodeAt(i) << 8);
@@ -741,21 +1158,20 @@
             const pix = gerarPayloadPix(v);
             document.getElementById('qr-box').innerHTML = "";
             new QRCode(document.getElementById('qr-box'), { text: pix, width: 96, height: 96 });
-            
+                         
             document.getElementById('pix-texto').innerText = pix;
-            document.getElementById('pix-dest-phone').innerText = userWhatsApp; // Vincula o Telefone na Interface
+            document.getElementById('pix-dest-phone').innerText = userWhatsApp;
             document.getElementById('pagamento-area').classList.remove('hidden');
 
             const reqId = 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase();
             const novaSolicitacao = {
                 nome: userData.nome,
-                whatsapp: userWhatsApp, // Chave Primária de Roteamento
+                whatsapp: userWhatsApp,
                 valor: v,
                 tipo: "DEPOSITO",
                 status: "Pendente"
             };
 
-            // Envia para a fila única do Banco Central no Firebase
             db.ref(`lojas/${LOJA_ID}/solicitacoes_pix/${reqId}`).set(novaSolicitacao);
         }
 
@@ -777,4 +1193,5 @@
         };
     </script>
 </body>
-    </html>
+</html>
+ 
