@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR" class="no-zoom">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DonyPay - Carteira Digital Oficial</title>
+    <title>DonyPay - Carteira Digital Integrada</title>
     
     <!-- BIBLIOTECAS DE ALTA PERFORMANCE -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -53,10 +52,9 @@
             50% { top: 100%; }
             100% { top: 0%; }
         }
-        /* Ajuste para o container do leitor de QR Code */
         #camera-reader video {
             object-fit: cover !important;
-            border-radius: 20px;
+            border-radius: 24px;
         }
     </style>
 </head>
@@ -74,7 +72,7 @@
             <span id="phone-time">12:00</span>
             <div class="flex items-center gap-2">
                 <i class="fas fa-wifi text-cyan-500"></i>
-                <span class="text-[8px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">DONY-NET</span>
+                <span class="text-[8px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">DONYBANK-NET</span>
                 <i class="fas fa-battery-three-quarters text-yellow-300"></i>
             </div>
         </div>
@@ -94,18 +92,18 @@
                 
                 <div class="w-full space-y-3">
                     <div class="bg-black/40 p-3.5 rounded-xl border border-slate-800 text-left">
-                        <label class="text-[8px] text-cyan-400 block uppercase font-bold mb-1">Acessar com seu WhatsApp</label>
+                        <label class="text-[8px] text-cyan-400 block uppercase font-bold mb-1">WhatsApp de Operador</label>
                         <input type="tel" id="input-login-phone" placeholder="Ex: 5592984846058" 
                                class="w-full bg-black border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono">
                     </div>
                     <button onclick="verificarAcessoUsuario()" class="w-full bg-cyan-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider hover:opacity-95 transition">
-                        Verificar Conta DonyPay
+                        Verificar Credenciais
                     </button>
                 </div>
                 <span class="text-[8px] text-slate-600 uppercase">Protegido por coracao.json</span>
             </div>
 
-            <!-- TELA 2: REGISTRO DE NOVO CLIENTE -->
+            <!-- TELA 2: REGISTRO DE NOVO OPERADOR -->
             <div id="screen-register" class="hidden space-y-4 pt-4 text-left">
                 <div class="flex items-center gap-2 mb-2">
                     <button onclick="showScreen('screen-welcome')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
@@ -116,16 +114,16 @@
                     <div>
                         <label class="text-[8px] text-cyan-400 block uppercase mb-1">Nome Completo</label>
                         <input type="text" id="reg-name" placeholder="Ex: João da Silva" 
-                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
                     </div>
                     <div>
                         <label class="text-[8px] text-cyan-400 block uppercase mb-1">Endereço Completo</label>
                         <input type="text" id="reg-address" placeholder="Rua, Número, Bairro" 
-                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
                     </div>
                     <div>
-                        <label class="text-[8px] text-cyan-400 block uppercase mb-1">WhatsApp (Apenas números)</label>
-                        <input type="tel" id="reg-phone" placeholder="Ex: 5592984846058" readonly
+                        <label class="text-[8px] text-cyan-400 block uppercase mb-1">WhatsApp de Operador</label>
+                        <input type="tel" id="reg-phone" readonly
                                class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-400 font-mono">
                     </div>
                 </div>
@@ -138,7 +136,7 @@
             <!-- TELA 3: CADASTRO CHAVE DONY -->
             <div id="screen-dony-key" class="hidden space-y-5 pt-4 text-left">
                 <span class="text-xs font-black text-white uppercase block">Definir Chave Dony</span>
-                <p class="text-[10px] text-slate-400 leading-relaxed">Sua Chave Dony será utilizada pelo sistema para receber pagamentos e transferências rápidas.</p>
+                <p class="text-[10px] text-slate-400 leading-relaxed">Sua Chave Dony será utilizada para receber transferências de Donycoins no ecossistema.</p>
                 
                 <div class="space-y-3">
                     <button onclick="selectDonyKeyType('phone')" id="btn-key-phone" class="w-full bg-slate-900 border border-cyan-500 text-white p-4 rounded-xl text-left flex justify-between items-center">
@@ -170,14 +168,14 @@
                     <i class="fas fa-hourglass-half animate-spin"></i>
                 </div>
                 <div>
-                    <h3 class="text-sm font-black text-white uppercase">Aguardando Aprovação</h3>
+                    <h3 class="text-sm font-black text-white uppercase">Aguardando Homologação</h3>
                     <p class="text-[10px] text-slate-400 mt-2 px-4 leading-relaxed">
-                        O Banco Central do Sr. José Divino recebeu sua solicitação. O app atualizará sozinho assim que for aprovado.
+                        Seu cadastro foi enviado para a Câmara de Segurança do Sr. José Divino. O app atualizará automaticamente assim que for homologado.
                     </p>
                 </div>
                 <div class="bg-black/60 p-3 rounded-xl border border-slate-900 text-left text-[9px] w-full font-mono">
-                    <span class="text-slate-500">STATUS DA CONTA:</span>
-                    <span class="text-yellow-300 block">EM ANÁLISE NO BANCO CENTRAL</span>
+                    <span class="text-slate-500">STATUS DO CADASTRO:</span>
+                    <span class="text-yellow-300 block font-bold">EM ANÁLISE NO BANCO CENTRAL</span>
                 </div>
             </div>
 
@@ -188,7 +186,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-black text-white uppercase">Cadastre seu PIN de Segurança</h3>
-                    <p class="text-[10px] text-slate-400 mt-1">Crie um código de acesso com 6 números</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Crie um código numérico de 6 dígitos para transações</p>
                 </div>
 
                 <input type="password" id="setup-pin" placeholder="••••••" maxlength="6"
@@ -238,7 +236,7 @@
                     <span class="text-[8px] text-slate-400 block uppercase tracking-widest font-bold">Saldo Disponível</span>
                     <div class="flex items-baseline gap-1 mt-1.5">
                         <span class="text-xs font-bold text-slate-500">R$</span>
-                        <span id="dash-balance" class="text-2xl font-black text-white tracking-wide">0,00</span>
+                        <span id="dash-balance" class="text-2xl font-black text-white tracking-wide font-mono">0,00</span>
                     </div>
                     <div class="text-[8px] text-cyan-400 font-bold uppercase tracking-wider mt-2 flex justify-between items-center">
                         <span><i class="fas fa-shield-alt mr-1"></i> 1 DNY = R$ 1,00</span>
@@ -388,7 +386,6 @@
 
     <!-- FUNÇÕES DE ENGENHARIA CLIENTE (CONEXÃO REAL DATABASE) -->
     <script>
-        // CONFIGURAÇÕES DO SERVIDOR DO CRIADOR SR. JOSÉ
         const LOJA_ID = "LEOVARDIOS_burguer_2026";
         const firebaseConfig = {
             apiKey: "AIzaSyCEdXF7ScnMYz0Ce0OW-B_UJ8Bm5Pl9m8o",
@@ -398,7 +395,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Dados do Operador Conectado
         let userWhatsApp = "";
         let userData = null;
         let tempKeyType = "phone";
@@ -406,12 +402,10 @@
         let scanningActive = false;
         let currentPayerPayload = null;
 
-        // Dados da Prensa (PIX)
         const CHAVE_PIX_JDP = "70945887205";
         const NOME_JDP = "JOSE DIVINOPRADODALAPA";
         const CIDADE_JDP = "MANAUS";
 
-        // Relógio
         function updateTime() {
             const now = new Date();
             document.getElementById('phone-time').innerText = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -430,7 +424,6 @@
             });
             document.getElementById(screenId).classList.remove('hidden');
 
-            // Gerencia inicialização/parada da câmera
             if (screenId === 'screen-pagar') {
                 iniciarCameraReal();
             } else {
@@ -438,7 +431,7 @@
             }
         }
 
-        // ETAPA 1: VERIFICAR SE JÁ EXISTE CONTA
+        // VERIFICAR ACESSO NO BANCO DE DADOS INTEGRADO
         function verificarAcessoUsuario() {
             const phone = document.getElementById('input-login-phone').value.trim().replace(/\D/g, "");
             if (!phone) {
@@ -448,37 +441,34 @@
 
             userWhatsApp = phone;
 
-            // Consulta diretamente no Firebase
             db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).once('value', snap => {
                 if (snap.exists()) {
                     userData = snap.val();
                     
-                    // Se estiver aprovado e tiver PIN, vai para login
                     if (userData.status_cadastro === "aprovado" && userData.pin) {
                         document.getElementById('login-user-title').innerText = `Olá, ${userData.nome.split(' ')[0]}`;
                         showScreen('screen-login-pin');
-                    } 
-                    // Se estiver pendente
-                    else if (userData.status_cadastro === "pendente") {
+                    } else if (userData.status_cadastro === "pendente") {
                         showScreen('screen-analysis');
                         ativarEscutaStatus();
-                    }
-                    // Se aprovado mas sem PIN
-                    else if (userData.status_cadastro === "aprovado" && !userData.pin) {
+                    } else if (userData.status_cadastro === "aprovado" && !userData.pin) {
                         showScreen('screen-pin-setup');
-                    }
-                    else if (userData.status_cadastro === "rejeitado") {
+                    } else if (userData.status_cadastro === "rejeitado") {
                         alert("HELENA: Seu cadastro foi reprovado pelo Banco Central.");
+                    } else {
+                        // Caso exista no Dony Burguer mas não tenha status_cadastro (usuário antigo)
+                        db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).update({ status_cadastro: "aprovado" }).then(() => {
+                            showScreen('screen-pin-setup');
+                        });
                     }
                 } else {
-                    // Se não existe, inicia fluxo de registro
+                    // Direcionamento síncrono para criação de conta
                     document.getElementById('reg-phone').value = userWhatsApp;
                     showScreen('screen-register');
                 }
             });
         }
 
-        // ETAPA 2: PROSSEGUIR COM ONBOARDING
         function prosseguirOnboardingChave() {
             const name = document.getElementById('reg-name').value.trim();
             const address = document.getElementById('reg-address').value.trim();
@@ -506,7 +496,7 @@
             }
         }
 
-        // ETAPA 3: REGISTRO NO BANCO DE DADOS EM TEMPO REAL
+        // CADASTRO INTEGRADO AO ECOSSISTEMA DONY BURGER
         function finalizarCadastroBanco() {
             const name = document.getElementById('reg-name').value.trim();
             const address = document.getElementById('reg-address').value.trim();
@@ -522,14 +512,15 @@
             }
 
             const novoCadastro = {
-                nome: name,
-                endereco: address,
+                nome: name.toUpperCase(),
+                endereco: address.toUpperCase(),
                 whatsapp: userWhatsApp,
                 chave_dony: chaveFinal,
-                status_cadastro: "pendente", // Entra na fila do Criador
+                status_cadastro: "pendente", 
                 status_missao: "nenhuma",
-                donycoins: 100, // Saldo inicial de missão concedido
-                currentUnlocked: 1
+                donycoins: 10, // Recompensa padrão de boas-vindas do Dony Burguer
+                currentUnlocked: 1,
+                data_cadastro: Date.now()
             };
 
             db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).set(novoCadastro).then(() => {
@@ -538,13 +529,12 @@
             });
         }
 
-        // ESCUTA DE STATUS EM TEMPO REAL (GATILHO DO CRIADOR)
         function ativarEscutaStatus() {
             db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).on('value', snap => {
                 if (snap.exists()) {
                     userData = snap.val();
                     if (userData.status_cadastro === "aprovado") {
-                        db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).off(); // Desliga escuta
+                        db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).off();
                         if (!userData.pin) {
                             showScreen('screen-pin-setup');
                         } else {
@@ -559,7 +549,6 @@
             });
         }
 
-        // ETAPA 4: CONFIGURAR PIN DE 6 DÍGITOS
         function salvarPINUsuario() {
             const pin = document.getElementById('setup-pin').value;
             if (pin.length !== 6 || isNaN(pin)) {
@@ -567,13 +556,12 @@
                 return;
             }
 
-            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).update({ pin: pin }).then(() => {
+            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).update({ pin: pin, status_cadastro: "aprovado" }).then(() => {
                 alert("PIN cadastrado com sucesso!");
                 carregarDashboard();
             });
         }
 
-        // ETAPA 5: LOGIN POR PIN
         function efetuarLoginPIN() {
             const pin = document.getElementById('login-pin-6').value;
             if (pin === userData.pin || pin === "150970") {
@@ -583,7 +571,6 @@
             }
         }
 
-        // CARREGA PAINEL PRINCIPAL
         function carregarDashboard() {
             db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).on('value', snap => {
                 if (snap.exists()) {
@@ -595,7 +582,7 @@
                 }
             });
 
-            // Carrega Histórico do Livro-Razão
+            // Carrega Histórico do Livro-Razão (Ledger) do DonyBank
             db.ref(`lojas/${LOJA_ID}/DonyCoins/ledger`).limitToLast(10).on('value', snap => {
                 const container = document.getElementById('history-container');
                 container.innerHTML = "";
@@ -634,7 +621,7 @@
         }
 
         // ==========================================
-        //  CÂMERA REAL: LEITOR DE QR CODE INTEGRADO
+        //  CÂMERA REAL: HTML5-QRCODE ENGINE
         // ==========================================
         function iniciarCameraReal() {
             if (scanningActive) return;
@@ -644,9 +631,8 @@
                 html5QrScanner = new Html5Qrcode("camera-reader");
                 html5QrScanner.start(
                     { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 200, height: 200 } },
+                    { fps: 10, qrbox: { width: 220, height: 220 } },
                     (decodedText) => {
-                        // QR CODE ESCANEADO COM SUCESSO
                         try {
                             const payload = JSON.parse(decodedText);
                             if (payload.recipient && payload.value) {
@@ -654,15 +640,13 @@
                                 abrirConfirmacaoPagamento(payload);
                             }
                         } catch (e) {
-                            console.log("Ignorando QR Code não-DonyPay.");
+                            console.log("Ignorando varreduras externas.");
                         }
                     },
-                    (errorMessage) => {
-                        // Silencia logs de erro de varredura
-                    }
+                    () => {}
                 ).catch(err => {
-                    console.error("Erro ao iniciar câmera: ", err);
-                    alert("HELENA: Câmera não disponível. Verifique as permissões de acesso.");
+                    console.error("Erro na câmera: ", err);
+                    alert("HELENA: Câmera indisponível. Verifique as permissões.");
                     showScreen('screen-dashboard');
                 });
             }, 300);
@@ -681,9 +665,6 @@
             showScreen('screen-dashboard');
         }
 
-        // ==========================================
-        //  FLUXOS DE COBRANÇA E PAGAMENTO
-        // ==========================================
         function abrirCobrar() {
             document.getElementById('dny-qr-display').classList.add('hidden');
             showScreen('screen-cobrar');
@@ -717,7 +698,7 @@
             showScreen('screen-confirm');
         }
 
-        // PROCESSAMENTO DO ENVIO DE DONYCOINS NO LIVRO-RAZÃO (LEDGER)
+        // DEBITAR E REGISTRAR NO LEDGER DO DONYBANK
         function processarEnvioDny() {
             if (!currentPayerPayload) return;
 
@@ -730,11 +711,9 @@
                 return;
             }
 
-            // Realiza a transação no Firebase (Dupla entrada)
             db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}/donycoins`).transaction(current => (current || 0) - amount);
             db.ref(`lojas/${LOJA_ID}/usuarios/${recipient}/donycoins`).transaction(current => (current || 0) + amount);
 
-            // Registra no Livro-Razão global para auditoria do Criador
             const ledgerRef = db.ref(`lojas/${LOJA_ID}/DonyCoins/ledger`);
             ledgerRef.once('value', snap => {
                 const ledger = snap.val() || {};
@@ -759,7 +738,7 @@
         }
 
         // ==========================================
-        //  PRENSA JDP (SISTEMA INTEGRADO DE DEPÓSITO)
+        //  PRENSA JDP (SISTEMA INTEGRADO DE PIX)
         // ==========================================
         function setValorPrensa(v) {
             document.getElementById('valorManual').value = v;
@@ -791,7 +770,6 @@
             document.getElementById('pix-texto').innerText = pix;
             document.getElementById('pagamento-area').classList.remove('hidden');
 
-            // Cria a solicitação pendente no banco de dados para o Criador compensar
             const reqId = 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase();
             const novaSolicitacao = {
                 nome: userData.nome,
@@ -822,4 +800,5 @@
         };
     </script>
 </body>
-    </html>
+</html>
+
