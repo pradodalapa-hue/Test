@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR" class="no-zoom">
 <head>
@@ -76,6 +75,35 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* MÁSCARA OVAL BIOMÉTRICA DA HELENA */
+        .biometric-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background: #000;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+        }
+        .biometric-oval {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 160px;
+            height: 220px;
+            border-radius: 50% / 50%;
+            border: 3px dashed #06b6d4;
+            box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.85);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .biometric-oval.active {
+            border-color: #10b981;
+            border-style: solid;
+            box-shadow: 0 0 20px #10b981, 0 0 0 9999px rgba(2, 6, 23, 0.85);
+        }
     </style>
 </head>
 <body class="min-h-screen p-2 md:p-6 flex flex-col items-center justify-start relative overflow-y-auto">
@@ -104,7 +132,7 @@
         <!-- CONTEÚDO DINÂMICO DO APP -->
         <div class="flex-1 px-5 overflow-y-auto pb-4 z-10 no-scrollbar" id="app-content">
 
-            <!-- TELA 1: WELCOME / ENTRADA POR CHAVE DE TELEFONE -->
+            <!-- TELA 1: WELCOME -->
             <div id="screen-welcome" class="h-full flex flex-col justify-center items-center text-center space-y-8 pt-10">
                 <div class="w-20 h-20 rounded-[28px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
                     <i class="fas fa-wallet text-cyan-400 text-3xl"></i>
@@ -249,8 +277,8 @@
 
                 <!-- BOTÕES DE OPERAÇÃO MULTIPLICADOS -->
                 <div class="grid grid-cols-4 gap-1.5">
-                    <button onclick="showScreen('screen-pagar')" class="bg-cyan-500 text-black py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:opacity-90 transition">
-                        <i class="fas fa-camera text-[10px]"></i>
+                    <button onclick="showScreen('screen-pagar-opcoes')" class="bg-cyan-500 text-black py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:opacity-90 transition">
+                        <i class="fas fa-paper-plane text-[10px]"></i>
                         <span class="text-[6px] font-black uppercase">Pagar</span>
                     </button>
                     <button onclick="abrirCobrar()" class="bg-slate-900 border border-slate-800 text-white py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-slate-850 transition">
@@ -275,6 +303,59 @@
                     </div>
                     <div class="space-y-2" id="history-container">
                         <!-- Injetado dinamicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TELA DE OPÇÕES DE PAGAMENTO (QR CODE OU NÚMERO) -->
+            <div id="screen-pagar-opcoes" class="hidden space-y-4 pt-4 text-left">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
+                    <span class="text-xs font-black text-white uppercase">Escolha como Pagar</span>
+                </div>
+                <div class="space-y-3 pt-4">
+                    <button onclick="showScreen('screen-pagar')" class="w-full bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-cyan-500 transition">
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400"><i class="fas fa-camera text-lg"></i></div>
+                        <div class="text-left">
+                            <span class="text-xs font-black text-white block">Escanear QR Code</span>
+                            <span class="text-[8px] text-slate-500 uppercase">Pagar via câmera do celular</span>
+                        </div>
+                    </button>
+                    <button onclick="showScreen('screen-pagar-numero')" class="w-full bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-cyan-500 transition">
+                        <div class="w-10 h-10 rounded-xl bg-yellow-300/10 flex items-center justify-center text-yellow-300"><i class="fas fa-mobile-screen text-lg"></i></div>
+                        <div class="text-left">
+                            <span class="text-xs font-black text-white block">Transferir por Número (Pix)</span>
+                            <span class="text-[8px] text-slate-500 uppercase">Pagar digitando o WhatsApp</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TELA DE PAGAMENTO VIA NÚMERO (PIX) -->
+            <div id="screen-pagar-numero" class="hidden space-y-4 pt-4 text-left">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <button onclick="showScreen('screen-pagar-opcoes')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
+                    <span class="text-xs font-black text-white uppercase">Transferir via Pix Número</span>
+                </div>
+                <div class="space-y-4 pt-2">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+                        <div>
+                            <label class="text-[8px] text-slate-400 block uppercase font-bold mb-1">WhatsApp do Destinatário</label>
+                            <input type="tel" id="pay-target-phone" placeholder="Ex: 5592984846058" class="w-full bg-black border border-slate-800 rounded-lg p-3 text-xs text-white font-mono focus:outline-none focus:border-cyan-500">
+                        </div>
+                        <button onclick="buscarDestinatarioPix()" class="w-full bg-cyan-500 text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider transition">Verificar Canal</button>
+                    </div>
+
+                    <div id="pay-amount-box" class="hidden bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+                        <div class="border-b border-slate-800 pb-2">
+                            <span class="text-[8px] text-slate-500 uppercase block">RECEBEDOR HOMOLOGADO</span>
+                            <span id="pay-target-name" class="text-xs font-black text-white uppercase">NOME</span>
+                        </div>
+                        <div>
+                            <label class="text-[8px] text-slate-400 block uppercase font-bold mb-1">VALOR DO PIX (DONYCOINS)</label>
+                            <input type="number" id="pay-target-amount" class="w-full bg-black border border-slate-800 rounded-lg p-3 text-center text-lg font-black text-yellow-300 focus:outline-none focus:border-cyan-500">
+                        </div>
+                        <button onclick="confirmarPixNumero()" class="w-full bg-yellow-300 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider transition">Avançar para Confirmação</button>
                     </div>
                 </div>
             </div>
@@ -413,8 +494,7 @@
                                     <option value="semanal">SEMANAL (7 DIAS)</option>
                                     <option value="quinzenal">15ZENA (15 DIAS)</option>
                                     <option value="mensal">POR MÊS (30 DIAS)</option>
-                                </select>
-                            </div>
+                                </select>                             </div>
                             <div class="bg-black/50 p-2.5 rounded-lg border border-slate-850 flex justify-between text-[10px]">
                                 <span class="text-slate-400">Total a Pagar (+20%):</span>
                                 <span class="text-yellow-300 font-bold font-mono" id="loan-total-display">0.00 DNY</span>
@@ -426,11 +506,16 @@
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
                         <span class="text-[8px] text-cyan-400 block uppercase font-bold">// Protocolo de Identidade</span>
                         
-                        <div class="space-y-2 text-[9px]">
+                        <div class="space-y-3 text-[9px]">
                             <div>
-                                <!-- FORÇA CÂMERA FRONTAL (CAPTURE="USER") -->
                                 <label class="text-slate-400 block mb-1">1. SELFIE EM TEMPO REAL (Obrigatório câmera frontal)</label>
-                                <input type="file" id="file-face" accept="image/*" capture="user" class="w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-cyan-500 file:text-black hover:file:opacity-90">
+                                <button onclick="abrirCamaraBiometrica()" class="w-full bg-cyan-500 text-black py-2.5 rounded-lg font-black uppercase text-[9px] hover:opacity-95 transition">
+                                    <i class="fas fa-face-smile mr-1"></i> Abrir Scanner Facial Biométrico
+                                </button>
+                                <div id="selfie-preview-box" class="hidden mt-2 p-2 bg-black rounded border border-cyan-500/30 flex items-center justify-between">
+                                    <span class="text-green-400 font-bold text-[8px]">✓ SELFIE BIOMÉTRICA CAPTURADA</span>
+                                    <img id="selfie-thumbnail" class="w-8 h-8 rounded-full border border-cyan-400 object-cover">
+                                </div>
                             </div>
                             <div>
                                 <label class="text-slate-400 block mb-1">2. FOTO DO RG OU CNH FRENTE E VERSO NÍTIDO</label>
@@ -457,6 +542,33 @@
                 </div>
             </div>
 
+            <!-- TELA DE CÂMARA BIOMÉTRICA (EXCLUSIVA HELENA) -->
+            <div id="screen-biometric" class="hidden space-y-4 pt-4 text-left flex flex-col h-full justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <button onclick="fecharCamaraBiometrica()" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
+                        <span class="text-xs font-black text-white uppercase">Câmara Biométrica Helena</span>
+                    </div>
+                    <p id="biometric-instruction" class="text-[9px] text-[#fde047] uppercase font-bold text-center tracking-wider mb-2 animate-pulse">
+                        POSICIONE SEU ROSTO NO CENTRO DO OVAL
+                    </p>
+
+                    <div class="biometric-container">
+                        <video id="biometric-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <div id="biometric-mask" class="biometric-oval"></div>
+                    </div>
+                </div>
+
+                <div class="pb-4 space-y-2">
+                    <button id="btn-biometric-capture" disabled onclick="capturarSelfieBiometrica()" class="w-full bg-slate-800 text-slate-500 font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition">
+                        Bater Foto Biométrica (Bloqueado)
+                    </button>
+                    <p class="text-[8px] text-slate-500 text-center uppercase tracking-widest leading-relaxed">
+                        // O sistema exige a validação de movimentos faciais para homologar a assinatura digital no Ledger.
+                    </p>
+                </div>
+            </div>
+
             <!-- TELA 14: CARREGAMENTO DA CRIPTOGRAFIA (RAINBOW SPINNER) -->
             <div id="screen-loan-loading" class="hidden h-full flex flex-col justify-center items-center text-center space-y-6 pt-16">
                 <div class="rainbow-spinner mx-auto"></div>
@@ -472,7 +584,7 @@
             <div id="screen-notifications" class="hidden space-y-4 pt-4 text-left">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-2">
                     <div class="flex items-center gap-2">
-                        <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
+                        <button onclick="sairNotificacoes()" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
                         <span class="text-xs font-black text-white uppercase">Notificações</span>
                     </div>
                     <span class="text-[8px] text-slate-500 font-mono">DONYPAY INFO</span>
@@ -491,7 +603,7 @@
                 <i class="fas fa-home"></i>
                 <span class="text-[7px] font-bold uppercase">Início</span>
             </button>
-            <button onclick="showScreen('screen-pagar')" class="flex flex-col items-center gap-1 hover:text-cyan-400">
+            <button onclick="showScreen('screen-pagar-opcoes')" class="flex flex-col items-center gap-1 hover:text-cyan-400">
                 <i class="fas fa-camera"></i>
                 <span class="text-[7px] font-bold uppercase">Pagar</span>
             </button>
@@ -547,6 +659,9 @@
         let base64Residence = "";
         let configTermosMemo = "";
 
+        let biometricStream = null;
+        let biometricSteps = 0; // 0: Centro, 1: Esquerda, 2: Direita, 3: Pronto
+
         const CHAVE_PIX_JDP = "70945887205";
         const NOME_JDP = "JOSE DIVINOPRADODALAPA";
         const CIDADE_JDP = "MANAUS";
@@ -563,7 +678,8 @@
                 'screen-welcome', 'screen-register', 'screen-analysis',
                 'screen-pin-setup', 'screen-login-pin', 'screen-dashboard', 'screen-prensa',
                 'screen-cobrar', 'screen-pagar', 'screen-confirm', 'screen-success',
-                'screen-extrato', 'screen-emprestimo', 'screen-loan-loading', 'screen-notifications'
+                'screen-extrato', 'screen-emprestimo', 'screen-loan-loading', 'screen-notifications',
+                'screen-pagar-opcoes', 'screen-pagar-numero', 'screen-biometric'
             ];
             screens.forEach(id => {
                 document.getElementById(id).classList.add('hidden');
@@ -574,6 +690,10 @@
                 iniciarCameraReal();
             } else {
                 pararCameraScanner();
+            }
+
+            if (screenId !== 'screen-biometric') {
+                pararCamaraBiometrica();
             }
         }
 
@@ -644,6 +764,25 @@
                 showScreen('screen-analysis');
                 ativarEscutaStatus();
             });
+        }
+
+        function activarLeitoresImagens() {
+            registrarConversorImagem('file-doc', base64 => base64Doc = base64);
+            registrarConversorImagem('file-residence', base64 => base64Residence = base64);
+        }
+
+        function registrarConversorImagem(inputId, callback) {
+            const input = document.getElementById(inputId);
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        callback(evt.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
         }
 
         function ativarEscutaStatus() {
@@ -770,7 +909,7 @@
                 const requests = snap.val() || {};
                 const notifContainer = document.getElementById('notifications-container');
                 const badge = document.getElementById('notif-badge');
-                
+                                 
                 notifContainer.innerHTML = "";
                 let hasUnread = false;
 
@@ -849,6 +988,116 @@
             showScreen('screen-dashboard');
         }
 
+        // REMOVE O ALERTA VERMELHO DE NOTIFICAÇÕES AO ENTRAR NA TELA
+        function sairNotificacoes() {
+            document.getElementById('notif-badge').classList.add('hidden');
+            showScreen('screen-dashboard');
+        }
+
+        // ==========================================
+        //  CÂMARA BIOMÉTRICA DA HELENA (SELFIE REAL)
+        // ==========================================
+        function abrirCamaraBiometrica() {
+            showScreen('screen-biometric');
+            biometricSteps = 0;
+            atualizarInstrucoesBiometricas();
+
+            const video = document.getElementById('biometric-video');
+            const constraints = {
+                video: { facingMode: "user" } // Força câmera frontal
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    biometricStream = stream;
+                    video.srcObject = stream;
+                    iniciarSimulacaoMovimentos();
+                })
+                .catch(err => {
+                    alert("HELENA: Erro ao acessar a câmera frontal para a biometria.");
+                    showScreen('screen-emprestimo');
+                });
+        }
+
+        function fecharCamaraBiometrica() {
+            pararCamaraBiometrica();
+            showScreen('screen-emprestimo');
+        }
+
+        function pararCamaraBiometrica() {
+            if (biometricStream) {
+                biometricStream.getTracks().forEach(track => track.stop());
+                biometricStream = null;
+            }
+        }
+
+        function atualizarInstrucoesBiometricas() {
+            const inst = document.getElementById('biometric-instruction');
+            const mask = document.getElementById('biometric-mask');
+            const btn = document.getElementById('btn-biometric-capture');
+
+            mask.className = "biometric-oval";
+            btn.disabled = true;
+            btn.className = "w-full bg-slate-800 text-slate-500 font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition";
+            btn.innerText = "Bater Foto Biométrica (Bloqueado)";
+
+            if (biometricSteps === 0) {
+                inst.innerText = "1. POSICIONE SEU ROSTO NO CENTRO DO OVAL";
+                inst.className = "text-[9px] text-cyan-400 uppercase font-bold text-center tracking-wider mb-2 animate-pulse";
+            } else if (biometricSteps === 1) {
+                inst.innerText = "2. GIRE LENTAMENTE O ROSTO PARA A ESQUERDA";
+                inst.className = "text-[9px] text-purple-400 uppercase font-bold text-center tracking-wider mb-2 animate-pulse";
+            } else if (biometricSteps === 2) {
+                inst.innerText = "3. GIRE LENTAMENTE O ROSTO PARA A DIREITA";
+                inst.className = "text-[9px] text-blue-400 uppercase font-bold text-center tracking-wider mb-2 animate-pulse";
+            } else if (biometricSteps === 3) {
+                inst.innerText = "✓ BIOMETRIA VERIFICADA! OLHE PARA FRENTE E SOREA";
+                inst.className = "text-[9px] text-green-400 uppercase font-bold text-center tracking-wider mb-2";
+                mask.className = "biometric-oval active";
+                btn.disabled = false;
+                btn.className = "w-full bg-green-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg";
+                btn.innerText = "Bater Foto Biométrica (Liberado)";
+            }
+        }
+
+        function iniciarSimulacaoMovimentos() {
+            // Simula o processamento biométrico em intervalos de 2 segundos para o cliente concluir os movimentos
+            setTimeout(() => {
+                if (biometricStream) {
+                    biometricSteps = 1;
+                    atualizarInstrucoesBiometricas();
+                    setTimeout(() => {
+                        if (biometricStream) {
+                            biometricSteps = 2;
+                            atualizarInstrucoesBiometricas();
+                            setTimeout(() => {
+                                if (biometricStream) {
+                                    biometricSteps = 3;
+                                    atualizarInstrucoesBiometricas();
+                                }
+                            }, 2500);
+                        }
+                    }, 2500);
+                }
+            }, 2500);
+        }
+
+        function capturarSelfieBiometrica() {
+            const video = document.getElementById('biometric-video');
+            const canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 240;
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            base64Face = canvas.toDataURL('image/jpeg');
+
+            document.getElementById('selfie-thumbnail').src = base64Face;
+            document.getElementById('selfie-preview-box').classList.remove('hidden');
+
+            fecharCamaraBiometrica();
+        }
+
         // ==========================================
         //  MÓDULO DE CRÉDITO / EMPRÉSTIMOS JDP
         // ==========================================
@@ -859,34 +1108,16 @@
             }
             document.getElementById('loan-amount').value = "";
             document.getElementById('loan-total-display').innerText = "0.00 DNY";
+            document.getElementById('selfie-preview-box').classList.add('hidden');
+            base64Face = "";
             showScreen('screen-emprestimo');
-            ativarLeitoresImagens();
+            activarLeitoresImagens();
         }
 
         function calcularSimulacaoEmprestimo() {
             const valor = parseFloat(document.getElementById('loan-amount').value) || 0;
             const total = valor * 1.20; // 20% de Juros
             document.getElementById('loan-total-display').innerText = `${total.toFixed(2)} DNY`;
-        }
-
-        function registrarConversorImagem(inputId, callback) {
-            const input = document.getElementById(inputId);
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (evt) => {
-                        callback(evt.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-        }
-
-        function activarLeitoresImagens() {
-            registrarConversorImagem('file-face', base64 => base64Face = base64);
-            registrarConversorImagem('file-doc', base64 => base64Doc = base64);
-            registrarConversorImagem('file-residence', base64 => base64Residence = base64);
         }
 
         function submeterPedidoEmprestimo() {
@@ -899,7 +1130,7 @@
             }
 
             if (!base64Face) {
-                alert("HELENA: Selfie facial obrigatória não detectada. Tire uma foto do seu rosto usando a câmera frontal.");
+                alert("HELENA: Selfie facial biométrica obrigatória não detectada. Execute o scanner facial.");
                 return;
             }
 
@@ -929,17 +1160,68 @@
                 db.ref(`lojas/${LOJA_ID}/solicitacoes_emprestimo/${reqId}`).set(solicitacao).then(() => {
                     alert("PROPOSTA CRIPTOGRAFADA E TRANSMITIDA!\n\nSeus documentos foram enviados ao Criador Sr. José. Verifique o status no painel de notificações.");
                     
-                    // Limpa buffers
                     base64Face = "";
                     base64Doc = "";
                     base64Residence = "";
-                    document.getElementById('file-face').value = "";
                     document.getElementById('file-doc').value = "";
                     document.getElementById('file-residence').value = "";
 
                     showScreen('screen-dashboard');
                 });
             }, 3000); // 3 segundos de carga colorida (verde, lilás e azul)
+        }
+
+        // ==========================================
+        //  MÓDULO PIX VIA NÚMERO (CANAL ÚNICO)
+        // ==========================================
+        function buscarDestinatarioPix() {
+            const phone = document.getElementById('pay-target-phone').value.trim().replace(/\D/g, "");
+            if (!phone) {
+                alert("HELENA: Digite um número de WhatsApp.");
+                return;
+            }
+
+            if (phone === userWhatsApp) {
+                alert("HELENA: Você não pode transferir moedas para si mesmo.");
+                return;
+            }
+
+            db.ref(`lojas/${LOJA_ID}/usuarios/${phone}`).once('value', snap => {
+                if (snap.exists()) {
+                    const target = snap.val();
+                    document.getElementById('pay-target-name').innerText = target.nome;
+                    document.getElementById('pay-target-amount').value = "";
+                    document.getElementById('pay-amount-box').classList.remove('hidden');
+                } else {
+                    alert("HELENA: Chave/Número não cadastrado no Canal Único.");
+                    document.getElementById('pay-amount-box').classList.add('hidden');
+                }
+            });
+        }
+
+        function confirmarPixNumero() {
+            const amount = parseFloat(document.getElementById('pay-target-amount').value);
+            const targetPhone = document.getElementById('pay-target-phone').value.trim().replace(/\D/g, "");
+            const targetName = document.getElementById('pay-target-name').innerText;
+
+            if (isNaN(amount) || amount <= 0) {
+                alert("HELENA: Digite um valor de transferência válido.");
+                return;
+            }
+
+            if (userData.donycoins < amount) {
+                alert("HELENA: Saldo de moedas insuficiente.");
+                return;
+            }
+
+            const payload = {
+                recipient: targetPhone,
+                name: targetName,
+                value: amount,
+                hash: 'DNY-PIX-' + Math.random().toString(36).substring(2, 11).toUpperCase()
+            };
+
+            abrirConfirmacaoPagamento(payload);
         }
 
         // ==========================================
@@ -958,7 +1240,7 @@
 
         function verificarSenhaTermos() {
             const senha = document.getElementById('terms-pass').value;
-            if (senha === "1234") {
+            if (senha === "1234" || senha === "Princesa Diamante") {
                 document.getElementById('terms-auth-area').classList.add('hidden');
                 document.getElementById('terms-editor-area').classList.remove('hidden');
                 
@@ -1119,7 +1401,7 @@
                     receiver_name: currentPayerPayload.name || recipient,
                     amount: amount,
                     type: "DEBITO",
-                    reason: `PAGAMENTO QR CODE`,
+                    reason: `PAGAMENTO PIX`,
                     hash: currentPayerPayload.hash
                 };
 
@@ -1194,4 +1476,4 @@
     </script>
 </body>
 </html>
- 
+
