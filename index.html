@@ -6,9 +6,9 @@
     <title>JDP SISTEMAS — SOBERANO FILE MANAGER</title>
     <style>
         :root { --gold: #D4AF37; --header: #0f172a; --bg: #000; --cyan: #06b6d4; }
-        body { margin: 0; background: var(--bg); color: var(--gold); font-family: monospace; user-select: none; }
-        .app-bar { background: var(--header); padding: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(6, 182, 212, 0.2); }
-        .file-list { padding: 10px; }
+        body { margin: 0; background: var(--bg); color: var(--gold); font-family: sans-serif; user-select: none; }
+        .app-bar { background: var(--header); padding: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(6, 182, 212, 0.2); position: sticky; top: 0; z-index: 1000; }
+        .file-list { padding: 10px; padding-bottom: 100px; }
         .file-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid rgba(253, 224, 71, 0.05); cursor: pointer; }
         .file-item:hover { background: rgba(6, 182, 212, 0.08); }
         .name { font-size: 14px; font-weight: bold; color: white; }
@@ -16,23 +16,28 @@
         .fab { background: var(--cyan); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; color: black; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.6); cursor: pointer; }
         .fab-menu { display: none; position: absolute; bottom: 70px; right: 0; flex-direction: column; gap: 10px; width: 180px; }
         .fab-btn { background: #0f172a; border: 1px solid var(--gold); color: white; padding: 12px; border-radius: 8px; font-size: 12px; text-align: center; font-weight: bold; }
-        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #0f172a; width: 85%; max-w-md: padding: 20px; border: 2px solid var(--gold); z-index: 10000; border-radius: 12px; }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #0f172a; width: 85%; max-width: 400px; padding: 20px; border: 2px solid var(--gold); z-index: 10000; border-radius: 12px; }
         input, textarea { width: 92%; background: #000; border: 1px solid rgba(6, 182, 212, 0.4); color: white; padding: 10px; margin: 10px 0; font-family: monospace; }
-        input:focus, textarea:focus { border-color: var(--gold); outline: none; }
+        button { background: var(--gold); border: none; padding: 12px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; color: black; }
+        .btn-conectar { background: none; border: 2px solid var(--cyan); color: var(--cyan); padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; margin: 20px auto; display: block; }
     </style>
 </head>
 <body>
     <div class="app-bar">
         <div style="display:flex; align-items:center; gap:15px;">
             <span onclick="goBack()" style="cursor:pointer;">⬅️</span>
-            <div id="pathDisp" style="font-size:12px; font-weight:bold;">/sdcard/memoria-local</div>
+            <div id="pathDisp" style="font-size:12px; font-weight:bold;">/sdcard (Desconectado)</div>
         </div>
         <span style="font-size:9px; color:var(--cyan); font-weight:bold;">SISTEMA COGNITIVO HELENA</span>
     </div>
 
-    <div id="list" class="file-list"></div>
+    <div id="conexaoContainer">
+        <button class="btn-conectar" onclick="conectarPastaCelular()">🔗 Vincular Pasta do Celular</button>
+    </div>
 
-    <div class="fab-container">
+    <div id="list" class="file-list" style="display:none;"></div>
+
+    <div class="fab-container" id="fabContainer" style="display:none;">
         <div class="fab-menu" id="fabMenu">
             <div class="fab-btn" onclick="openModal('folder')">📁 Nova Pasta</div>
             <div class="fab-btn" onclick="openModal('text')">📄 Novo Texto</div>
@@ -41,71 +46,89 @@
     </div>
 
     <div id="modal" class="modal">
-        <h3 id="mTitle" style="margin-top:0; color:white; font-size:14px; uppercase">Criar Item</h3>
+        <h3 id="mTitle" style="margin-top:0; color:white; font-size:14px;">CRIAR ITEM</h3>
         <input type="text" id="mName" placeholder="Nome do item...">
-        <textarea id="mText" style="display:none" placeholder="Conteúdo do arquivo..."></textarea>
-        <button onclick="save()" style="background:var(--gold); border:none; padding:12px; width:100%; font-weight:bold; cursor:pointer; uppercase">Gravar no Celular</button>
-        <button onclick="closeModal()" style="background:none; color:rgba(255,255,255,0.5); border:none; width:100%; margin-top:10px; cursor:pointer;">CANCELAR</button>
+        <textarea id="mText" style="display:none" rows="6" placeholder="Conteúdo do arquivo..."></textarea>
+        <button onclick="save()">Gravar no Armazenamento</button>
+        <button onclick="closeModal()" style="background:none; color:rgba(255,255,255,0.5); margin-top:10px;">CANCELAR</button>
     </div>
 
     <script>
-        let currentPath = '';
-        
-        // Simulação do Banco de Dados Local Sólido do Celular (LocalStorage persistente)
-        function obterArmazenamento() {
-            let dados = localStorage.getItem('JDP_STORAGE');
-            return dados ? JSON.parse(dados) : [];
+        let dirHandle = null;
+        let currentPathHandlers = [];
+        let currentPathString = '';
+
+        async function conectarPastaCelular() {
+            try {
+                // Abre o gerenciador nativo do Android para você escolher a pasta do seu celular
+                dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                currentPathHandlers = [dirHandle];
+                currentPathString = dirHandle.name;
+                
+                document.getElementById('conexaoContainer').style.display = 'none';
+                document.getElementById('list').style.display = 'block';
+                document.getElementById('fabContainer').style.display = 'block';
+                
+                await load();
+            } catch (err) {
+                alert("Permissão necessária para acessar os arquivos locais.");
+            }
         }
 
-        function salvarArmazenamento(dados) {
-            localStorage.setItem('JDP_STORAGE', JSON.stringify(dados));
-            // Sincroniza a existência da estrutura com a Antena Render para verificação remota
-            fetch('/api/sync', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ files: dados })
-            }).catch(() => {});
-        }
-
-        async function load(path = '') {
-            currentPath = path;
-            document.getElementById('pathDisp').innerText = '/sdcard/' + path;
-            
-            const arquivos = obterArmazenamento();
+        async function load() {
+            document.getElementById('pathDisp').innerText = '/' + currentPathString;
+            const currentDir = currentPathHandlers[currentPathHandlers.length - 1];
             let html = '';
             
-            if(currentPath) {
+            if (currentPathHandlers.length > 1) {
                 html += `<div class="file-item" onclick="goBack()"><span class="name" style="color:var(--cyan)">🔙 .. (Voltar)</span></div>`;
             }
-            
-            // Filtra os arquivos do diretório atual
-            const itensFiltrados = arquivos.filter(f => f.path === currentPath);
-            
-            if(itensFiltrados.length === 0) {
-                html += `<div style="text-align:center; padding:40px; color:#555; font-size:12px;">PASTA PRIVADA VAZIA. MÍDIA LOCAL INTEGRADA.</div>`;
+
+            let entries = [];
+            for await (const entry of currentDir.values()) {
+                entries.push(entry);
             }
 
-            itensFiltrados.forEach(f => {
+            // Ordena pastas primeiro
+            entries.sort((a, b) => (b.kind === 'directory') - (a.kind === 'directory'));
+
+            if (entries.length === 0) {
+                html += `<div style="text-align:center; padding:40px; color:#555; font-size:12px;">PASTA VAZIA.</div>`;
+            }
+
+            entries.forEach(entry => {
+                const isDir = entry.kind === 'directory';
                 html += `
-                <div class="file-item" onclick="${f.isDir ? `load('${currentPath ? currentPath + '/' : ''}${f.name}')` : `openFile('${f.name}')`}">
+                <div class="file-item" onclick="${isDir ? `entrarNaPasta('${entry.name}')` : `abrirArquivoLocal('${entry.name}')`}">
                     <div style="display:flex; align-items:center; gap:15px;">
-                        <span>${f.isDir ? '📁' : '📄'}</span>
-                        <span class="name">${f.name}</span>
+                        <span>${isDir ? '📁' : '📄'}</span>
+                        <span class="name">${entry.name}</span>
                     </div>
-                    <span style="font-size:10px; color:#555;">${f.isDir ? 'PASTA' : 'LOCAL'}</span>
+                    <span style="font-size:10px; color:#555;">${isDir ? 'PASTA' : 'ARQUIVO'}</span>
                 </div>`;
             });
+            
             document.getElementById('list').innerHTML = html;
         }
 
-        function openFile(name) {
-            const arquivos = obterArmazenamento();
-            const arquivo = arquivos.find(f => f.name === name && f.path === currentPath);
-            if(arquivo) {
-                const blob = new Blob([arquivo.content], { type: 'text/plain; charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                window.open(url, '_blank');
-            }
+        async function entrarNaPasta(name) {
+            const currentDir = currentPathHandlers[currentPathHandlers.length - 1];
+            const nextDir = await currentDir.getDirectoryHandle(name);
+            currentPathHandlers.push(nextDir);
+            currentPathString += '/' + name;
+            await load();
+        }
+
+        async function abrirArquivoLocal(name) {
+            const currentDir = currentPathHandlers[currentPathHandlers.length - 1];
+            const fileHandle = await currentDir.getFileHandle(name);
+            const file = await fileHandle.getFile();
+            const text = await file.text();
+            
+            // Abre o conteúdo textual diretamente em uma nova janela temporária
+            const blob = new Blob([text], { type: 'text/plain; charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
         }
 
         function toggleMenu() {
@@ -123,19 +146,21 @@
         async function save() {
             const name = document.getElementById('mName').value;
             const content = document.getElementById('mText').value;
-            if(!name) return;
+            if (!name) return;
 
-            let arquivos = obterArmazenamento();
-            arquivos.push({
-                name: name,
-                isDir: window.lastType === 'folder',
-                content: content || '',
-                path: currentPath
-            });
+            const currentDir = currentPathHandlers[currentPathHandlers.length - 1];
 
-            salvarArmazenamento(arquivos);
+            if (window.lastType === 'folder') {
+                await currentDir.getDirectoryHandle(name, { create: true });
+            } else {
+                const fileHandle = await currentDir.getFileHandle(name, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(content || '');
+                await writable.close();
+            }
+
             closeModal();
-            load(currentPath);
+            await load();
         }
 
         function closeModal() {
@@ -144,13 +169,15 @@
             document.getElementById('mText').value = '';
         }
 
-        function goBack() {
-            let p = currentPath.split('/');
-            p.pop();
-            load(p.join('/'));
+        async function goBack() {
+            if (currentPathHandlers.length > 1) {
+                currentPathHandlers.pop();
+                let p = currentPathString.split('/');
+                p.pop();
+                currentPathString = p.join('/');
+                await load();
+            }
         }
-
-        load();
     </script>
 </body>
 </html>
