@@ -1,208 +1,155 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JDP SISTEMAS — SOBERANO FILE MANAGER</title>
-    <!-- TAILWIND E ICONES PARA ALTA PERFORMANCE -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
-
     <style>
-        :root {
-             --gold: #fde047;
-             --bg: #020617;
-             --cyan: #06b6d4;
-        }
-        body {
-             margin: 0;
-             background: var(--bg);
-             color: var(--gold);
-             font-family: 'JetBrains Mono', monospace;
-             user-select: none;
-             -webkit-user-select: none;
-        }
-        .app-bar {
-             background: #0f172a;
-             border-bottom: 1px solid rgba(6, 182, 212, 0.2);
-        }
-        .file-item {
-             border-bottom: 1px solid rgba(253, 224, 71, 0.05);
-             transition: all 0.2s ease;
-        }
-        .file-item:hover {
-             background: rgba(6, 182, 212, 0.08);
-             border-left: 4px solid var(--cyan);
-        }
-        .jdp-card {
-             background: rgba(15, 23, 42, 0.95);
-             border: 1px solid rgba(6, 182, 212, 0.2);
-             backdrop-filter: blur(12px);
-             border-radius: 12px;
-        }
+        :root { --gold: #D4AF37; --header: #0f172a; --bg: #000; --cyan: #06b6d4; }
+        body { margin: 0; background: var(--bg); color: var(--gold); font-family: monospace; user-select: none; }
+        .app-bar { background: var(--header); padding: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(6, 182, 212, 0.2); }
+        .file-list { padding: 10px; }
+        .file-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid rgba(253, 224, 71, 0.05); cursor: pointer; }
+        .file-item:hover { background: rgba(6, 182, 212, 0.08); }
+        .name { font-size: 14px; font-weight: bold; color: white; }
+        .fab-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; }
+        .fab { background: var(--cyan); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; color: black; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.6); cursor: pointer; }
+        .fab-menu { display: none; position: absolute; bottom: 70px; right: 0; flex-direction: column; gap: 10px; width: 180px; }
+        .fab-btn { background: #0f172a; border: 1px solid var(--gold); color: white; padding: 12px; border-radius: 8px; font-size: 12px; text-align: center; font-weight: bold; }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #0f172a; width: 85%; max-w-md: padding: 20px; border: 2px solid var(--gold); z-index: 10000; border-radius: 12px; }
+        input, textarea { width: 92%; background: #000; border: 1px solid rgba(6, 182, 212, 0.4); color: white; padding: 10px; margin: 10px 0; font-family: monospace; }
+        input:focus, textarea:focus { border-color: var(--gold); outline: none; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between pb-24">
-
-    <!-- BARRA SUPERIOR -->
-    <div class="app-bar p-4 flex items-center justify-between sticky top-0 z-50">
-        <div class="flex items-center gap-4">
-            <span onclick="goBack()" class="cursor-pointer text-xl hover:scale-110 transition">⬅️</span>
-            <div id="pathDisp" class="text-xs text-white font-bold font-mono">/sdcard</div>
+<body>
+    <div class="app-bar">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <span onclick="goBack()" style="cursor:pointer;">⬅️</span>
+            <div id="pathDisp" style="font-size:12px; font-weight:bold;">/sdcard/memoria-local</div>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
-            <span class="text-[9px] text-cyan-400 font-bold uppercase tracking-wider">JDP SISTEMAS</span>
-        </div>
+        <span style="font-size:9px; color:var(--cyan); font-weight:bold;">SISTEMA COGNITIVO HELENA</span>
     </div>
 
-    <!-- LISTAGEM DE ARQUIVOS -->
-    <div class="max-w-6xl w-full mx-auto p-4 flex-1">
-        <div id="list" class="divide-y divide-slate-800 bg-slate-950/50 rounded-xl border border-slate-800/80 overflow-hidden">
-            <!-- Injetado dinamicamente -->
+    <div id="list" class="file-list"></div>
+
+    <div class="fab-container">
+        <div class="fab-menu" id="fabMenu">
+            <div class="fab-btn" onclick="openModal('folder')">📁 Nova Pasta</div>
+            <div class="fab-btn" onclick="openModal('text')">📄 Novo Texto</div>
         </div>
+        <div class="fab" onclick="toggleMenu()">+</div>
     </div>
 
-    <!-- BOTÕES FLUTUANTES (FAB) -->
-    <div class="fixed bottom-6 right-6 z-50">
-        <div class="hidden flex-col gap-2 mb-3 items-end" id="fabMenu">
-            <button onclick="openModal('folder')" class="bg-slate-900 border border-yellow-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
-                📁 Nova Pasta
-            </button>
-            <button onclick="openModal('text')" class="bg-slate-900 border border-cyan-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
-                📄 Novo Texto
-            </button>
-        </div>
-        <button onclick="toggleMenu()" class="w-14 h-14 bg-cyan-500 text-black font-black text-2xl rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition">
-            +
-        </button>
+    <div id="modal" class="modal">
+        <h3 id="mTitle" style="margin-top:0; color:white; font-size:14px; uppercase">Criar Item</h3>
+        <input type="text" id="mName" placeholder="Nome do item...">
+        <textarea id="mText" style="display:none" placeholder="Conteúdo do arquivo..."></textarea>
+        <button onclick="save()" style="background:var(--gold); border:none; padding:12px; width:100%; font-weight:bold; cursor:pointer; uppercase">Gravar no Celular</button>
+        <button onclick="closeModal()" style="background:none; color:rgba(255,255,255,0.5); border:none; width:100%; margin-top:10px; cursor:pointer;">CANCELAR</button>
     </div>
-
-    <!-- MODAL DE CRIAÇÃO -->
-    <div id="modal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md jdp-card p-6 border-yellow-400 z-50">
-        <h3 id="mTitle" class="text-white font-black text-sm uppercase tracking-wider mb-4">Criar Novo Item</h3>
-        <input type="text" id="mName" placeholder="Nome..." class="w-full bg-black border border-yellow-500/40 rounded p-2 text-white text-xs font-mono mb-3 focus:outline-none focus:border-yellow-400">
-        <textarea id="mText" placeholder="Conteúdo..." class="hidden w-full h-32 bg-black border border-cyan-500/40 rounded p-2 text-white text-xs font-mono mb-4 focus:outline-none focus:border-cyan-400"></textarea>
-                 
-        <div class="flex gap-2">
-            <button onclick="save()" class="flex-1 bg-yellow-400 text-black font-black py-2.5 rounded text-xs uppercase tracking-wider hover:bg-yellow-300 transition">OK</button>
-            <button onclick="closeModal()" class="flex-1 border border-slate-700 text-slate-400 py-2.5 rounded text-xs uppercase tracking-wider hover:text-white transition">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- RODAPÉ INDUSTRIAL -->
-    <footer class="text-center text-[9px] text-slate-600 tracking-wider py-4 border-t border-slate-950 bg-[#020308] w-full mt-auto">
-        SISTEMA COGNITIVO HELENA // DOMÍNIO: JDPSISTEMAS.COM.BR
-    </footer>
 
     <script>
-        // ENDEREÇO DA SUA RENDER OFICIAL (Configurado e sem barra "/" no final)
-        const LOCAL_NODE = 'https://jdp-sistema-backend.onrender.com';
         let currentPath = '';
+        
+        // Simulação do Banco de Dados Local Sólido do Celular (LocalStorage persistente)
+        function obterArmazenamento() {
+            let dados = localStorage.getItem('JDP_STORAGE');
+            return dados ? JSON.parse(dados) : [];
+        }
 
-        // Carregar arquivos e pastas
+        function salvarArmazenamento(dados) {
+            localStorage.setItem('JDP_STORAGE', JSON.stringify(dados));
+            // Sincroniza a existência da estrutura com a Antena Render para verificação remota
+            fetch('/api/sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ files: dados })
+            }).catch(() => {});
+        }
+
         async function load(path = '') {
             currentPath = path;
             document.getElementById('pathDisp').innerText = '/sdcard/' + path;
-            try {
-                const r = await fetch(`${LOCAL_NODE}/api/list?path=${encodeURIComponent(path)}`);
-                const data = await r.json();
-                                 
-                let html = '';
-                if(currentPath) {
-                    html += `
-                    <div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">
-                        <span class="text-lg">🔙</span>
-                        <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar)</span>
-                    </div>`;
-                }
-                                 
-                if (data.files && data.files.length > 0) {
-                    data.files.forEach(f => {
-                        html += `
-                        <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="${f.isDir ? `load('${currentPath ? currentPath + '/' + f.name : f.name}')` : `openFile('${f.name}')`}">
-                            <div class="flex items-center gap-3">
-                                <span class="text-lg">${f.isDir ? '📁' : '📄'}</span>
-                                <span class="text-xs text-white font-mono font-bold">${f.name}</span>
-                            </div>
-                            <span class="text-[10px] text-slate-500 font-mono">${f.size || 'PASTA'}</span>
-                        </div>`;
-                    });
-                } else {
-                    html += `
-                    <div class="p-8 text-center text-slate-500 text-xs font-bold uppercase">
-                        <i class="fas fa-folder-open text-lg mb-2 block"></i>
-                        Esta pasta está vazia. Use o botão "+" para criar itens.
-                    </div>`;
-                }
-                document.getElementById('list').innerHTML = html;
-            } catch (err) {
-                document.getElementById('list').innerHTML = `
-                <div class="p-8 text-center text-red-500 text-xs font-bold uppercase">
-                    <i class="fas fa-exclamation-triangle text-lg mb-2 block"></i>
-                    ERRO DE CONEXÃO: O SEU SERVIDOR RENDER ESTÁ INICIALIZANDO OU FORA DO AR.
+            
+            const arquivos = obterArmazenamento();
+            let html = '';
+            
+            if(currentPath) {
+                html += `<div class="file-item" onclick="goBack()"><span class="name" style="color:var(--cyan)">🔙 .. (Voltar)</span></div>`;
+            }
+            
+            // Filtra os arquivos do diretório atual
+            const itensFiltrados = arquivos.filter(f => f.path === currentPath);
+            
+            if(itensFiltrados.length === 0) {
+                html += `<div style="text-align:center; padding:40px; color:#555; font-size:12px;">PASTA PRIVADA VAZIA. MÍDIA LOCAL INTEGRADA.</div>`;
+            }
+
+            itensFiltrados.forEach(f => {
+                html += `
+                <div class="file-item" onclick="${f.isDir ? `load('${currentPath ? currentPath + '/' : ''}${f.name}')` : `openFile('${f.name}')`}">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <span>${f.isDir ? '📁' : '📄'}</span>
+                        <span class="name">${f.name}</span>
+                    </div>
+                    <span style="font-size:10px; color:#555;">${f.isDir ? 'PASTA' : 'LOCAL'}</span>
                 </div>`;
+            });
+            document.getElementById('list').innerHTML = html;
+        }
+
+        function openFile(name) {
+            const arquivos = obterArmazenamento();
+            const arquivo = arquivos.find(f => f.name === name && f.path === currentPath);
+            if(arquivo) {
+                const blob = new Blob([arquivo.content], { type: 'text/plain; charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
             }
         }
 
-        // Abrir arquivo de texto em uma nova aba
-        function openFile(name) {
-            const fileUrl = `${LOCAL_NODE}/api/open?path=${encodeURIComponent(currentPath ? currentPath + '/' + name : name)}`;
-            window.open(fileUrl, '_blank');
-        }
-
-        // Alternar menu flutuante (+)
         function toggleMenu() {
             const m = document.getElementById('fabMenu');
-            m.classList.toggle('hidden');
-            m.classList.toggle('flex');
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        // Abrir modal de criação
         function openModal(type) {
             window.lastType = type;
-            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal').style.display = 'block';
             document.getElementById('mText').style.display = type === 'text' ? 'block' : 'none';
-            document.getElementById('mTitle').innerText = type === 'text' ? 'Criar Novo Arquivo' : 'Criar Nova Pasta';
-            document.getElementById('fabMenu').classList.add('hidden');
+            document.getElementById('fabMenu').style.display = 'none';
         }
 
-        // Salvar nova pasta ou arquivo no servidor Render
         async function save() {
             const name = document.getElementById('mName').value;
             const content = document.getElementById('mText').value;
-            if (!name) return;
+            if(!name) return;
 
-            try {
-                await fetch(`${LOCAL_NODE}/api/create`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
-                });
-                closeModal();
-                load(currentPath);
-            } catch (err) {
-                alert("Erro ao salvar o arquivo no servidor Render.");
-            }
+            let arquivos = obterArmazenamento();
+            arquivos.push({
+                name: name,
+                isDir: window.lastType === 'folder',
+                content: content || '',
+                path: currentPath
+            });
+
+            salvarArmazenamento(arquivos);
+            closeModal();
+            load(currentPath);
         }
 
-        // Fechar modal de criação
         function closeModal() {
-             document.getElementById('modal').classList.add('hidden');
-             document.getElementById('mName').value = '';
-             document.getElementById('mText').value = '';
-        }
-                 
-        // Voltar um nível de diretório
-        function goBack() {
-             let p = currentPath.split('/');
-             p.pop();
-             load(p.join('/'));
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('mName').value = '';
+            document.getElementById('mText').value = '';
         }
 
-        // Inicialização do sistema
+        function goBack() {
+            let p = currentPath.split('/');
+            p.pop();
+            load(p.join('/'));
+        }
+
         load();
     </script>
 </body>
