@@ -4,7 +4,7 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 
-// CORS LIBERADO PARA O SEU DOMÍNIO E GITHUB
+// CORS LIBERADO PARA AS SUAS REQUISIÇÕES
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -13,13 +13,21 @@ app.use((req, res, next) => {
     next();
 });
 
+// ABRE O SEU PAINEL DIRETAMENTE NO NAVEGADOR
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// SUA PASTA PRIVADA DE ARQUIVOS
 const ROOT = path.join(__dirname, 'storage');
 if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
 
-// ROTA DE HOSPEDAGEM PÚBLICA DE OUTROS SITES DO CRIADOR
+// ACESSO DIRETO AOS SEUS ARQUIVOS PÚBLICOS SE PRECISAR
 app.use('/publico', express.static(ROOT));
 
-// LISTAR ARQUIVOS E PASTAS
+// LISTAR OS SEUS ARQUIVOS E PASTAS
 app.get('/api/list', (req, res) => {
     const relPath = req.query.path || '';
     const fullPath = path.join(ROOT, relPath);
@@ -37,7 +45,7 @@ app.get('/api/list', (req, res) => {
     });
 });
 
-// ABRIR ARQUIVO DIRETAMENTE NO NAVEGADOR
+// ABRIR OS SEUS ARQUIVOS TEXTO/MÍDIA
 app.get('/api/open', (req, res) => {
     const relPath = req.query.path || '';
     const fullPath = path.join(ROOT, relPath);
@@ -48,7 +56,7 @@ app.get('/api/open', (req, res) => {
     }
 });
 
-// CRIAR ARQUIVO OU PASTA
+// CRIAR AS SUAS PASTAS E ARQUIVOS ATRAVÉS DO BOTÃO (+)
 app.post('/api/create', (req, res) => {
     const { type, name, content, path: relPath } = req.body;
     const fullPath = path.join(ROOT, relPath, name);
