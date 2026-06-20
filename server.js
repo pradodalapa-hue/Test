@@ -70,3 +70,36 @@ app.post('/api/create', (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log('Z-PRIVADO ATIVO PORTA ' + PORT));
+// ==========================================================
+// CENTRAL DE ROTEAMENTO SOBERANO - COLE NO SEU BACKEND EXPRESS
+// ==========================================================
+
+// 1. Rota de Execução Limpa do Filho (Simula o GitHub Pages)
+app.get('/go/:repo', (req, res) => {
+    const repo = req.params.repo.toLowerCase();
+    const path = require('path');
+    const fs = require('fs');
+    
+    const indexHtmlPath = path.join(__dirname, 'clientes', repo, 'www', 'index.html');
+    
+    if (fs.existsSync(indexHtmlPath)) {
+        res.sendFile(indexHtmlPath);
+    } else {
+        res.status(404).send('<h1 style="color:#ef4444;font-family:monospace;text-align:center;margin-top:50px;">⚠️ REPOSITÓRIO NÃO ENCONTRADO NO SEU TERRENO</h1>');
+    }
+});
+
+// 2. Rota de Entrega Limpa dos Assets do PWA (sw.js, manifest.json)
+app.get('/go/:repo/:file', (req, res) => {
+    const { repo, file } = req.params;
+    const path = require('path');
+    const fs = require('fs');
+    
+    const filePath = path.join(__dirname, 'clientes', repo.toLowerCase(), 'www', file);
+    
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('Not Found');
+    }
+});
