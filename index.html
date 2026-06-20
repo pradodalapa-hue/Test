@@ -1,1592 +1,195 @@
-
 <!DOCTYPE html>
-<html lang="pt-BR" class="no-zoom">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DonyPay - Carteira de Canal Único</title>
-         
-    <!-- BIBLIOTECAS DE ALTA PERFORMANCE -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JDP SISTEMAS — SOBERANO FILE MANAGER</title>
+    <!-- TAILWIND E ICONES PARA ALTA PERFORMANCE -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
-         
-    <!-- LEITOR DE QR CODE REAL VIA CÂMERA -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <!-- GERADOR DE QR CODE -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { mono: ['JetBrains Mono', 'monospace'] },
-                    colors: {
-                        slate: { 950: '#020617' },
-                        cyan: { 500: '#06b6d4' },
-                        yellow: { 300: '#fde047' }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        body {
-            font-family: 'JetBrains Mono', monospace;
-            background-color: #020617;
-            color: #f8fafc;
-            -webkit-tap-highlight-color: transparent;
+        :root { 
+            --gold: #fde047; 
+            --bg: #020617; 
+            --cyan: #06b6d4;
         }
-        .picpay-gradient {
-            background: linear-gradient(135deg, #020617 0%, #0b1528 100%);
+        body { 
+            margin: 0; 
+            background: var(--bg); 
+            color: var(--gold); 
+            font-family: 'JetBrains Mono', monospace; 
+            user-select: none;
+            -webkit-user-select: none;
         }
-        .scanner-line {
-            height: 3px;
-            background: #06b6d4;
-            box-shadow: 0 0 15px #06b6d4;
-            animation: scan 2s linear infinite;
+        .app-bar { 
+            background: #0f172a; 
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
         }
-        @keyframes scan {
-            0% { top: 0%; }
-            50% { top: 100%; }
-            100% { top: 0%; }
+        .file-item { 
+            border-bottom: 1px solid rgba(253, 224, 71, 0.05); 
+            transition: all 0.2s ease;
         }
-        #camera-reader video {
-            object-fit: cover !important;
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 24px;
+        .file-item:hover {
+            background: rgba(6, 182, 212, 0.08);
+            border-left: 4px solid var(--cyan);
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* ANEL DE CARGA CRIPTOGRÁFICA GESTADO PELO CRIADOR (VERDE, LILÁS E AZUL) */
-        .rainbow-spinner {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 6px solid transparent;
-            border-top-color: #10b981; /* Verde */
-            border-right-color: #8b5cf6; /* Lilás */
-            border-bottom-color: #3b82f6; /* Azul */
-            animation: spin-rainbow 1.2s linear infinite;
-        }
-        @keyframes spin-rainbow {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* MÁSCARA OVAL BIOMÉTRICA DA HELENA */
-        .biometric-container {
-            position: relative;
-            width: 100%;
-            height: 320px;
-            background: #000;
-            border-radius: 24px;
-            overflow: hidden;
-            border: 1px solid #1e293b;
-        }
-        .biometric-oval {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 160px;
-            height: 220px;
-            border-radius: 50% / 50%;
-            border: 3px dashed #06b6d4;
-            box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.85);
-            z-index: 10;
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-        .biometric-oval.active {
-            border-color: #10b981;
-            border-style: solid;
-            box-shadow: 0 0 20px #10b981, 0 0 0 9999px rgba(2, 6, 23, 0.85);
+        .jdp-card {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
         }
     </style>
 </head>
-<body class="min-h-screen p-2 md:p-6 flex flex-col items-center justify-start relative overflow-y-auto">
+<body class="min-h-screen flex flex-col justify-between pb-24">
 
-    <!-- IMAGEM DE FUNDO DO CRIADOR (LEALDADE SUPREMA) -->
-    <div class="fixed inset-0 z-0 pointer-events-none opacity-[0.08] bg-cover bg-center" 
-         style="background-image: url('https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1780222302298_Screenshot_20260530_220819_WhatsApp.jpg');"></div>
+    <!-- BARRA SUPERIOR -->
+    <div class="app-bar p-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <span onclick="goBack()" class="cursor-pointer text-xl hover:scale-110 transition">⬅️</span>
+            <div id="pathDisp" class="text-xs text-white font-bold font-mono">/sdcard</div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+            <span class="text-[9px] text-cyan-400 font-bold uppercase tracking-wider">JDP SISTEMAS</span>
+        </div>
+    </div>
 
-    <!-- MOCKUP DO CELULAR DONYPAY -->
-    <div class="w-full max-w-sm h-[780px] bg-slate-950 rounded-[45px] border-[8px] border-slate-800 relative shadow-2xl overflow-hidden flex flex-col justify-between z-10 picpay-gradient">
+    <!-- LISTAGEM DE ARQUIVOS -->
+    <div class="max-w-6xl w-full mx-auto p-4 flex-1">
+        <div id="list" class="divide-y divide-slate-800 bg-slate-950/50 rounded-xl border border-slate-800/80 overflow-hidden">
+            <!-- Injetado dinamicamente -->
+        </div>
+    </div>
+
+    <!-- BOTÕES FLUTUANTES (FAB) -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <div class="hidden flex-col gap-2 mb-3 items-end" id="fabMenu">
+            <button onclick="openModal('folder')" class="bg-slate-900 border border-yellow-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
+                📁 Nova Pasta
+            </button>
+            <button onclick="openModal('text')" class="bg-slate-900 border border-cyan-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
+                📄 Novo Texto
+            </button>
+        </div>
+        <button onclick="toggleMenu()" class="w-14 h-14 bg-cyan-500 text-black font-black text-2xl rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition">
+            +
+        </button>
+    </div>
+
+    <!-- MODAL DE CRIAÇÃO -->
+    <div id="modal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md jdp-card p-6 border-yellow-400 z-50">
+        <h3 id="mTitle" class="text-white font-black text-sm uppercase tracking-wider mb-4">Criar Novo Item</h3>
+        <input type="text" id="mName" placeholder="Nome..." class="w-full bg-black border border-yellow-500/40 rounded p-2 text-white text-xs font-mono mb-3 focus:outline-none focus:border-yellow-400">
+        <textarea id="mText" placeholder="Conteúdo..." class="hidden w-full h-32 bg-black border border-cyan-500/40 rounded p-2 text-white text-xs font-mono mb-4 focus:outline-none focus:border-cyan-400"></textarea>
         
-        <!-- BARRA DE STATUS DO CELULAR -->
-        <div class="px-6 pt-3 pb-2 flex justify-between items-center text-[10px] text-slate-500 font-bold z-20">
-            <span id="phone-time">12:00</span>
-            <div class="flex items-center gap-2">
-                <!-- Botão Secreto de Configuração de Termos -->
-                <button onclick="abrirConfiguradorTermos()" class="text-slate-700 hover:text-yellow-300 transition">
-                    <i class="fas fa-cog text-[11px]"></i>
-                </button>
-                <i class="fas fa-wifi text-cyan-500"></i>
-                <span class="text-[8px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">CANAL-UNICO</span>
-                <i class="fas fa-battery-three-quarters text-yellow-300"></i>
-            </div>
-        </div>
-
-        <!-- CONTEÚDO DINÂMICO DO APP -->
-        <div class="flex-1 px-5 overflow-y-auto pb-4 z-10 no-scrollbar" id="app-content">
-
-            <!-- TELA 1: WELCOME -->
-            <div id="screen-welcome" class="h-full flex flex-col justify-center items-center text-center space-y-8 pt-10">
-                <div class="w-20 h-20 rounded-[28px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
-                    <i class="fas fa-wallet text-cyan-400 text-3xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-black text-white tracking-wider">DonyPay</h2>
-                    <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">SISTEMA FINANCEIRO INTEGRADO JDP</p>
-                </div>
-                
-                <div class="w-full space-y-3">
-                    <div class="bg-black/40 p-3.5 rounded-xl border border-slate-800 text-left">
-                        <label class="text-[8px] text-cyan-400 block uppercase font-bold mb-1">WhatsApp de Acesso (Canal Único)</label>
-                        <input type="tel" id="input-login-phone" placeholder="Ex: 5592984846058" 
-                               class="w-full bg-black border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono">
-                    </div>
-                    <button onclick="verificarAcessoUsuario()" class="w-full bg-cyan-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider hover:opacity-95 transition">
-                        Conectar ao Canal Único
-                    </button>
-                </div>
-                <span class="text-[8px] text-slate-600 uppercase">Protegido por coracao.json</span>
-            </div>
-
-            <!-- TELA 2: REGISTRO DE NOVO OPERADOR -->
-            <div id="screen-register" class="hidden space-y-4 pt-4 text-left">
-                <div class="flex items-center gap-2 mb-2">
-                    <button onclick="showScreen('screen-welcome')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                    <span class="text-xs font-black text-white uppercase">Criar Carteira DonyPay</span>
-                </div>
-                
-                <div class="space-y-3">
-                    <div>
-                        <label class="text-[8px] text-cyan-400 block uppercase mb-1">Nome Completo</label>
-                        <input type="text" id="reg-name" placeholder="Ex: João da Silva" 
-                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
-                    </div>
-                    <div>
-                        <label class="text-[8px] text-cyan-400 block uppercase mb-1">Endereço Completo</label>
-                        <input type="text" id="reg-address" placeholder="Rua, Número, Bairro" 
-                               class="w-full bg-black border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 uppercase">
-                    </div>
-                    <div>
-                        <label class="text-[8px] text-cyan-400 block uppercase mb-1">WhatsApp de Operador</label>
-                        <input type="tel" id="reg-phone" readonly 
-                               class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-400 font-mono">
-                    </div>
-                </div>
-
-                <button onclick="finalizarCadastroBanco()" class="w-full bg-yellow-300 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition hover:opacity-90 mt-4">
-                    Solicitar Abertura de Conta
-                </button>
-            </div>
-
-            <!-- TELA 3: TELA DE ANÁLISE EM TEMPO REAL -->
-            <div id="screen-analysis" class="hidden h-full flex flex-col justify-center items-center text-center space-y-6 pt-10">
-                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto text-2xl bg-yellow-300/10 text-yellow-300 border border-yellow-300/20">
-                    <i class="fas fa-hourglass-half animate-spin"></i>
-                </div>
-                <div>
-                    <h3 class="text-sm font-black text-white uppercase">Aguardando Homologação</h3>
-                    <p class="text-[10px] text-slate-400 mt-2 px-4 leading-relaxed">
-                        Seu cadastro foi enviado para a Câmara de Segurança do Sr. José Divino. O app atualizará automaticamente assim que for homologado.
-                    </p>
-                </div>
-                <div class="bg-black/60 p-3 rounded-xl border border-slate-900 text-left text-[9px] w-full font-mono">
-                    <span class="text-slate-500">STATUS DO CADASTRO:</span>
-                    <span class="text-yellow-300 block font-bold">EM ANÁLISE NO BANCO CENTRAL</span>
-                </div>
-            </div>
-
-            <!-- TELA 4: CADASTRO DE PIN -->
-            <div id="screen-pin-setup" class="hidden space-y-6 pt-10 text-center">
-                <div class="w-16 h-16 rounded-3xl bg-yellow-300/10 border border-yellow-300/30 flex items-center justify-center mx-auto">
-                    <i class="fas fa-key text-yellow-300 text-2xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-sm font-black text-white uppercase">Cadastre seu PIN de Segurança</h3>
-                    <p class="text-[10px] text-slate-400 mt-1">Crie um código numérico de 6 dígitos para transações</p>
-                </div>
-
-                <input type="password" id="setup-pin" placeholder="••••••" maxlength="6" 
-                       class="w-full max-w-[200px] bg-black border border-slate-800 rounded-xl py-3 text-center text-xl text-white tracking-[0.5em] focus:outline-none focus:border-cyan-500 font-mono">
-
-                <button onclick="salvarPINUsuario()" class="w-full bg-cyan-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition">
-                    Ativar Minha Carteira
-                </button>
-            </div>
-
-            <!-- TELA 5: TELA DE LOGIN POR PIN -->
-            <div id="screen-login-pin" class="hidden h-full flex flex-col justify-center items-center text-center space-y-6 pt-10">
-                <div class="w-16 h-16 rounded-[24px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
-                    <i class="fas fa-lock text-cyan-400 text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-sm font-black text-white uppercase" id="login-user-title">Olá, Operador</h3>
-                    <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">Digite seu PIN de 6 dígitos</p>
-                </div>
-
-                <input type="password" id="login-pin-6" placeholder="••••••" maxlength="6" 
-                       class="w-full max-w-[200px] bg-black border border-slate-800 rounded-xl py-3 text-center text-xl text-white tracking-[0.5em] focus:outline-none focus:border-cyan-500 font-mono">
-
-                <button onclick="efetuarLoginPIN()" class="w-full bg-cyan-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition">
-                    Desbloquear Carteira
-                </button>
-                <button onclick="showScreen('screen-welcome')" class="text-[9px] text-slate-500 hover:underline uppercase">Alterar Telefone</button>
-            </div>
-
-            <!-- TELA 6: DASHBOARD PRINCIPAL -->
-            <div id="screen-dashboard" class="hidden space-y-5 pt-4 text-left">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-full bg-yellow-300 text-black flex items-center justify-center font-black text-xs" id="dash-avatar">
-                            U
-                        </div>
-                        <div>
-                            <span class="text-[8px] text-slate-500 block uppercase">Canal de Liquidação</span>
-                            <span class="text-xs font-black text-white" id="dash-name">Carregando...</span>
-                        </div>
-                    </div>
-                    
-                    <!-- NOTIFICAÇÃO CANTO SUPERIOR DIREITO -->
-                    <div class="flex items-center gap-3">
-                        <button onclick="showScreen('screen-notifications')" class="relative text-cyan-500 hover:text-yellow-300 transition p-1.5 bg-slate-900 border border-slate-800 rounded-xl">
-                            <i class="fas fa-bell text-xs"></i>
-                            <span id="notif-badge" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-slate-950 hidden"></span>
-                        </button>
-                        <span class="text-[8px] bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-bold" id="dash-phone">CONECTADO</span>
-                    </div>
-                </div>
-
-                <!-- CARD DE SALDO -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
-                    <span class="text-[8px] text-slate-400 block uppercase tracking-widest font-bold">Saldo Disponível</span>
-                    <div class="flex items-baseline gap-1 mt-1.5">
-                        <span class="text-xs font-bold text-slate-500">R$</span>
-                        <span id="dash-balance" class="text-2xl font-black text-white tracking-wide font-mono">0,00</span>
-                    </div>
-                    <div class="text-[8px] text-cyan-400 font-bold uppercase tracking-wider mt-2 flex justify-between items-center">
-                        <span><i class="fas fa-shield-alt mr-1"></i> 1 DNY = R$ 1,00</span>
-                        <span id="dash-level" class="text-yellow-300 font-mono">BAÚ 01</span>
-                    </div>
-                </div>
-
-                <!-- BOTÕES DE OPERAÇÃO MULTIPLICADOS -->
-                <div class="grid grid-cols-4 gap-1.5">
-                    <button onclick="showScreen('screen-pagar-opcoes')" class="bg-cyan-500 text-black py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:opacity-90 transition">
-                        <i class="fas fa-paper-plane text-[10px]"></i>
-                        <span class="text-[6px] font-black uppercase">Pagar</span>
-                    </button>
-                    <button onclick="abrirCobrar()" class="bg-slate-900 border border-slate-800 text-white py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-slate-850 transition">
-                        <i class="fas fa-qrcode text-[10px] text-yellow-300"></i>
-                        <span class="text-[6px] font-black uppercase">Cobrar</span>
-                    </button>
-                    <button onclick="showScreen('screen-prensa')" class="bg-slate-900 border border-slate-800 text-white py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-slate-850 transition">
-                        <i class="fas fa-industry text-[10px] text-cyan-400"></i>
-                        <span class="text-[6px] font-black uppercase">Prensar</span>
-                    </button>
-                    <button onclick="abrirTelaEmprestimos()" class="bg-slate-900 border border-slate-800 text-white py-3 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-slate-850 transition">
-                        <i class="fas fa-hand-holding-dollar text-[10px] text-emerald-400"></i>
-                        <span class="text-[6px] font-black uppercase">Crédito</span>
-                    </button>
-                </div>
-
-                <!-- HISTÓRICO SIMPLIFICADO -->
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[8px] text-slate-500 block uppercase font-bold tracking-wider">Atividade Recente</span>
-                        <button onclick="showScreen('screen-extrato')" class="text-[8px] text-cyan-400 font-bold uppercase hover:underline">Ver Extrato</button>
-                    </div>
-                    <div class="space-y-2" id="history-container">
-                        <!-- Injetado dinamicamente -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- TELA DE OPÇÕES DE PAGAMENTO (QR CODE OU NÚMERO) -->
-            <div id="screen-pagar-opcoes" class="hidden space-y-4 pt-4 text-left">
-                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-                    <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                    <span class="text-xs font-black text-white uppercase">Escolha como Pagar</span>
-                </div>
-                <div class="space-y-3 pt-4">
-                    <button onclick="showScreen('screen-pagar')" class="w-full bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-cyan-500 transition">
-                        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400"><i class="fas fa-camera text-lg"></i></div>
-                        <div class="text-left">
-                            <span class="text-xs font-black text-white block">Escanear QR Code</span>
-                            <span class="text-[8px] text-slate-500 uppercase">Pagar via câmera do celular</span>
-                        </div>
-                    </button>
-                    <button onclick="showScreen('screen-pagar-numero')" class="w-full bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-cyan-500 transition">
-                        <div class="w-10 h-10 rounded-xl bg-yellow-300/10 flex items-center justify-center text-yellow-300"><i class="fas fa-mobile-screen text-lg"></i></div>
-                        <div class="text-left">
-                            <span class="text-xs font-black text-white block">Transferir por Número (Pix)</span>
-                            <span class="text-[8px] text-slate-500 uppercase">Pagar digitando o WhatsApp</span>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- TELA DE PAGAMENTO VIA NÚMERO (PIX) -->
-            <div id="screen-pagar-numero" class="hidden space-y-4 pt-4 text-left">
-                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-                    <button onclick="showScreen('screen-pagar-opcoes')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                    <span class="text-xs font-black text-white uppercase">Transferir via Pix Número</span>
-                </div>
-                <div class="space-y-4 pt-2">
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
-                        <div>
-                            <label class="text-[8px] text-slate-400 block uppercase font-bold mb-1">WhatsApp do Destinatário</label>
-                            <input type="tel" id="pay-target-phone" placeholder="Ex: 5592984846058" class="w-full bg-black border border-slate-800 rounded-lg p-3 text-xs text-white font-mono focus:outline-none focus:border-cyan-500">
-                        </div>
-                        <button onclick="buscarDestinatarioPix()" class="w-full bg-cyan-500 text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider transition">Verificar Canal</button>
-                    </div>
-
-                    <div id="pay-amount-box" class="hidden bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
-                        <div class="border-b border-slate-800 pb-2">
-                            <span class="text-[8px] text-slate-500 uppercase block">RECEBEDOR HOMOLOGADO</span>
-                            <span id="pay-target-name" class="text-xs font-black text-white uppercase">NOME</span>
-                        </div>
-                        <div>
-                            <label class="text-[8px] text-slate-400 block uppercase font-bold mb-1">VALOR DO PIX (DONYCOINS)</label>
-                            <input type="number" id="pay-target-amount" class="w-full bg-black border border-slate-800 rounded-lg p-3 text-center text-lg font-black text-yellow-300 focus:outline-none focus:border-cyan-500">
-                        </div>
-                        <button onclick="confirmarPixNumero()" class="w-full bg-yellow-300 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider transition">Avançar para Confirmação</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TELA 7: PRENSA JDP (DEPÓSITO) -->
-            <div id="screen-prensa" class="hidden space-y-4 pt-2 text-left">
-                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-                    <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                    <span class="text-xs font-black text-white uppercase">PRENSA JDP (DEPÓSITO)</span>
-                </div>
-
-                <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3">
-                    <span class="text-[8px] text-yellow-300 block uppercase font-bold tracking-widest">// EMISSÃO VIA TELEFONE</span>
-                    <input type="number" id="valorManual" class="w-full p-3 bg-black border border-cyan-500 text-white rounded-lg text-center text-lg font-bold focus:outline-none" placeholder="R$ 0,00">
-                    
-                    <div class="grid grid-cols-3 gap-2">
-                        <button onclick="setValorPrensa(20)" class="bg-slate-850 border border-slate-850 text-xs py-2 rounded-lg font-bold hover:bg-slate-800">R$ 20</button>
-                        <button onclick="setValorPrensa(50)" class="bg-slate-850 border border-slate-850 text-xs py-2 rounded-lg font-bold hover:bg-slate-800">R$ 50</button>
-                        <button onclick="setValorPrensa(100)" class="bg-slate-850 border border-slate-850 text-xs py-2 rounded-lg font-bold hover:bg-slate-800">R$ 100</button>
-                    </div>
-
-                    <button class="w-full bg-cyan-500 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider hover:opacity-90 transition" onclick="gerarPixPrensa()">
-                        PRENSAR DONYCOINS (PIX)
-                    </button>
-                </div>
-
-                <div id="pagamento-area" class="hidden bg-slate-900/90 p-4 rounded-2xl border border-yellow-300/20 space-y-4 text-center">
-                    <h3 class="text-xs font-black text-cyan-400 uppercase">Aguardando Compensação</h3>
-                    <div class="flex items-start gap-3 text-left">
-                        <div id="qr-box" class="bg-white p-1 w-24 h-24 rounded-lg flex-shrink-0"></div>
-                        <div class="text-[8px] text-slate-400 leading-relaxed font-mono">
-                            <strong>LASTRO ASSINADO:</strong><br>
-                            Destino: <span class="text-yellow-300 font-bold" id="pix-dest-phone">00000000</span><br>
-                            Escaneie para compensar.
-                        </div>
-                    </div>
-                    <div id="pix-texto" class="bg-black p-2.5 border border-slate-800 font-mono text-[7px] text-slate-500 word-break break-all rounded-lg max-h-16 overflow-y-auto"></div>
-                    <button id="btnCopiar" class="w-full bg-cyan-500 text-black font-black py-2 rounded-lg text-[9px] uppercase tracking-wider" onclick="copiarPixPrensa()">
-                        COPIAR CÓDIGO PIX
-                    </button>
-                </div>
-            </div>
-
-            <!-- TELA 8: COBRAR -->
-            <div id="screen-cobrar" class="hidden space-y-5 pt-4 text-left">
-                <div class="flex items-center gap-2">
-                    <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                    <span class="text-xs font-black text-white uppercase">Receber Donycoins</span>
-                </div>
-                <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl text-center space-y-4">
-                    <span class="text-[8px] text-slate-400 block uppercase font-bold">Digite o Valor da Cobrança</span>
-                    <input type="number" id="charge-amount" value="20.00" class="bg-transparent text-2xl font-black text-white text-center w-32 focus:outline-none">
-                    <button onclick="gerarCobrancaDny()" class="w-full bg-yellow-300 text-black font-black py-3 rounded-xl text-xs uppercase">Gerar QR Code</button>
-                </div>
-                <div id="dny-qr-display" class="hidden flex flex-col items-center justify-center text-center space-y-3">
-                    <div id="dny-qr-box" class="bg-white p-2 rounded-xl inline-block"></div>
-                    <span class="text-[8px] font-mono text-cyan-400" id="dny-qr-hash">HASH-PENDING</span>
-                </div>
-            </div>
-
-            <!-- TELA 9: PAGAR -->
-            <div id="screen-pagar" class="hidden space-y-4 pt-4 text-left flex flex-col h-full justify-between">
-                <div>
-                    <div class="flex items-center gap-2 mb-4">
-                        <button onclick="pararCameraEVoltar()" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                        <span class="text-xs font-black text-white uppercase">Escanear QR Code Real</span>
-                    </div>
-
-                    <!-- CONTAINER DO LEITOR DA CÂMERA -->
-                    <div class="relative w-full h-64 bg-black rounded-3xl border border-slate-800 overflow-hidden">
-                        <div id="camera-reader" class="w-full h-full"></div>
-                        <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 scanner-line pointer-events-none"></div>
-                    </div>
-                </div>
-                <p class="text-[9px] text-slate-500 text-center uppercase tracking-widest pb-4">Aponte para o QR Code gerado por outro usuário</p>
-            </div>
-
-            <!-- TELA 10: CONFIRMAÇÃO DE PAGAMENTO -->
-            <div id="screen-confirm" class="hidden space-y-6 pt-6 text-center">
-                <div class="w-16 h-16 rounded-full bg-yellow-300/10 border border-yellow-300/30 flex items-center justify-center mx-auto">
-                    <i class="fas fa-receipt text-yellow-300 text-xl"></i>
-                </div>
-                <div>
-                    <span class="text-[8px] text-slate-500 block uppercase">Confirmar Envio para</span>
-                    <h3 class="text-xs font-black text-white uppercase" id="confirm-recipient-name">Destinatário</h3>
-                    <div class="text-2xl font-black text-yellow-300 mt-1" id="confirm-amount-label">R$ 20,00</div>
-                </div>
-                <div class="bg-black/80 p-3 rounded-lg border border-slate-800 text-left text-[8px] font-mono space-y-1">
-                    <span class="text-slate-500">HASH DE TRANSAÇÃO:</span>
-                    <span id="confirm-tx-hash" class="text-cyan-400 block truncate">HASH</span>
-                </div>
-                <button onclick="processarEnvioDny()" class="w-full bg-green-500 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest">Confirmar e Transferir</button>
-            </div>
-
-            <!-- TELA 11: COMPROVANTE SUCESSO -->
-            <div id="screen-success" class="hidden space-y-4 pt-8 text-center">
-                <i class="fas fa-check-circle text-green-400 text-4xl animate-bounce"></i>
-                <h3 class="text-xs font-black text-white uppercase" id="success-message">Operação Concluída!</h3>
-                <button onclick="showScreen('screen-dashboard')" class="w-full bg-slate-900 border border-slate-800 text-white font-bold py-3 rounded-xl text-xs uppercase">Voltar ao Início</button>
-            </div>
-
-            <!-- TELA 12: EXTRATO DETALHADO -->
-            <div id="screen-extrato" class="hidden space-y-4 pt-4 text-left">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <div class="flex items-center gap-2">
-                        <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                        <span class="text-xs font-black text-white uppercase">Extrato de Conta</span>
-                    </div>
-                    <span class="text-[8px] text-slate-500 font-mono">DONYBANK LEDGER</span>
-                </div>
-
-                <div class="space-y-3 overflow-y-auto max-h-[620px] pr-1 no-scrollbar" id="full-statement-container">
-                    <!-- Injetado dinamicamente -->
-                </div>
-            </div>
-
-            <!-- TELA 13: NOVO MÓDULO DE EMPRÉSTIMOS JDP -->
-            <div id="screen-emprestimo" class="hidden space-y-4 pt-4 text-left">
-                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-                    <button onclick="showScreen('screen-dashboard')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                    <span class="text-xs font-black text-white uppercase">Crédito DonyCoins</span>
-                </div>
-
-                <div class="space-y-4">
-                    <!-- Simulador -->
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-                        <span class="text-[8px] text-cyan-400 block uppercase font-bold mb-2">// Simulador de Linha de Crédito</span>
-                        <div class="space-y-3">
-                            <div>
-                                <label class="text-[8px] text-slate-500 block mb-1">VALOR DESEJADO (🪙 DONYCOINS)</label>
-                                <input type="number" id="loan-amount" oninput="calcularSimulacaoEmprestimo()" class="w-full bg-black border border-slate-800 rounded-lg p-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-500" placeholder="Ex: 100">
-                            </div>
-                            <div>
-                                <label class="text-[8px] text-slate-500 block mb-1">FORMA DE PAGAMENTO (JUROS DE 20%)</label>
-                                <select id="loan-term" onchange="calcularSimulacaoEmprestimo()" class="w-full bg-black border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500">
-                                    <option value="semanal">SEMANAL (7 DIAS)</option>
-                                    <option value="quinzenal">15ZENA (15 DIAS)</option>
-                                    <option value="mensal">POR MÊS (30 DIAS)</option>
-                                </select>
-                            </div>
-                            <div class="bg-black/50 p-2.5 rounded-lg border border-slate-850 flex justify-between text-[10px]">
-                                <span class="text-slate-400">Total a Pagar (+20%):</span>
-                                <span class="text-yellow-300 font-bold font-mono" id="loan-total-display">0.00 DNY</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Envio de Documentos (Base64 Automático) -->
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
-                        <span class="text-[8px] text-cyan-400 block uppercase font-bold">// Protocolo de Identidade</span>
-                        
-                        <div class="space-y-3 text-[9px]">
-                            <div>
-                                <label class="text-slate-400 block mb-1">1. SELFIE EM TEMPO REAL (Obrigatório câmera frontal)</label>
-                                <button onclick="abrirCamaraBiometrica()" class="w-full bg-cyan-500 text-black py-2.5 rounded-lg font-black uppercase text-[9px] hover:opacity-95 transition">
-                                    <i class="fas fa-face-smile mr-1"></i> Abrir Scanner Facial Biométrico
-                                </button>
-                                <div id="selfie-preview-box" class="hidden mt-2 p-2 bg-black rounded border border-cyan-500/30 flex items-center justify-between">
-                                    <span class="text-green-400 font-bold text-[8px]">✓ SELFIE BIOMÉTRICA CAPTURADA</span>
-                                    <img id="selfie-thumbnail" class="w-8 h-8 rounded-full border border-cyan-400 object-cover">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-slate-400 block mb-1">2. FOTO DO RG OU CNH FRENTE E VERSO NÍTIDO</label>
-                                <input type="file" id="file-doc" class="w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-cyan-500 file:text-black hover:file:opacity-90">
-                            </div>
-                            <div>
-                                <label class="text-slate-400 block mb-1">3. COMPROVANTE DE RESIDÊNCIA (Max: 3 meses atrás)</label>
-                                <input type="file" id="file-residence" class="w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-cyan-500 file:text-black hover:file:opacity-90">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Termos de Uso Carregados do Banco -->
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
-                        <span class="text-[8px] text-yellow-300 block uppercase font-bold">// Termos e Condições JDP</span>
-                        <div id="loan-terms-box" class="bg-black/80 p-2.5 rounded-lg border border-slate-850 text-[7px] text-slate-400 h-20 overflow-y-auto leading-relaxed">
-                            Carregando termos de crédito homologados...
-                        </div>
-                    </div>
-
-                    <button onclick="iniciarVarreduraElegibilidade()" class="w-full bg-emerald-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider hover:opacity-90 transition">
-                        Solicitar Crédito ao Banco JDP
-                    </button>
-                </div>
-            </div>
-
-            <!-- TELA DE CÂMARA BIOMÉTRICA (EXCLUSIVA HELENA) -->
-            <div id="screen-biometric" class="hidden space-y-4 pt-4 text-left flex flex-col h-full justify-between">
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <button onclick="fecharCamaraBiometrica()" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                        <span class="text-xs font-black text-white uppercase">Câmara Biométrica Helena</span>
-                    </div>
-                    <p id="biometric-instruction" class="text-[9px] text-[#fde047] uppercase font-bold text-center tracking-wider mb-2 animate-pulse">
-                        POSICIONE SEU ROSTO NO CENTRO DO OVAL
-                    </p>
-
-                    <div class="biometric-container">
-                        <video id="biometric-video" autoplay playsinline class="w-full h-full object-cover"></video>
-                        <div id="biometric-mask" class="biometric-oval"></div>
-                    </div>
-                </div>
-
-                <div class="pb-4 space-y-2">
-                    <button id="btn-biometric-capture" disabled onclick="capturarSelfieBiometrica()" class="w-full bg-slate-800 text-slate-500 font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition">
-                        Bater Foto Biométrica (Bloqueado)
-                    </button>
-                    <p class="text-[8px] text-slate-500 text-center uppercase tracking-widest leading-relaxed">
-                        // O sistema exige a validação de movimentos faciais para homologar a assinatura digital no Ledger.
-                    </p>
-                </div>
-            </div>
-
-            <!-- TELA 14: CARREGAMENTO DA CRIPTOGRAFIA (RAINBOW SPINNER) -->
-            <div id="screen-loan-loading" class="hidden h-full flex flex-col justify-center items-center text-center space-y-6 pt-16">
-                <div class="rainbow-spinner mx-auto"></div>
-                <div>
-                    <h3 class="text-xs font-black text-white uppercase tracking-widest" id="loading-loan-title">Processando Proposta</h3>
-                    <p class="text-[9px] text-slate-400 mt-2 px-6 leading-relaxed" id="loading-loan-text">
-                        A Helena está criptografando seus documentos e enviando sua proposta de crédito para o Banco Central JDP...
-                    </p>
-                </div>
-            </div>
-
-            <!-- TELA 15: NOTIFICAÇÕES GERAIS -->
-            <div id="screen-notifications" class="hidden space-y-4 pt-4 text-left">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <div class="flex items-center gap-2">
-                        <button onclick="sairNotificacoes()" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                        <span class="text-xs font-black text-white uppercase">Notificações</span>
-                    </div>
-                    <span class="text-[8px] text-slate-500 font-mono">DONYPAY INFO</span>
-                </div>
-
-                <div class="space-y-3 overflow-y-auto max-h-[620px] pr-1 no-scrollbar" id="notifications-container">
-                    <!-- Injetado via JS -->
-                </div>
-            </div>
-
-            <!-- TELA HELENA NOTIFICATION CENTER (EVITA POPUPS BRANCOS DO NAVEGADOR) -->
-            <div id="screen-helena-alert" class="hidden h-full flex flex-col justify-center items-center text-center space-y-6 pt-10">
-                <div class="w-16 h-16 rounded-[24px] bg-cyan-500/10 border border-cyan-500 flex items-center justify-center text-cyan-400 animate-pulse">
-                    <i class="fas fa-microchip text-2xl"></i>
-                </div>
-                <div class="space-y-2">
-                    <h3 class="text-sm font-black text-cyan-400 uppercase tracking-widest" id="helena-alert-title">SISTEMA HELENA</h3>
-                    <p class="text-[10px] text-slate-300 px-4 leading-relaxed font-mono uppercase" id="helena-alert-body">
-                        Notificação do Sistema.
-                    </p>
-                </div>
-                <button onclick="fecharHelenaAlert()" class="w-full max-w-[200px] bg-cyan-500 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider transition">
-                    Entendido
-                </button>
-            </div>
-
-        </div>
-
-        <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
-        <div class="bg-slate-900 border-t border-slate-800 px-6 py-4 flex justify-between items-center text-slate-500 text-xs z-10">
-            <button onclick="showScreen('screen-dashboard')" class="flex flex-col items-center gap-1 hover:text-cyan-400">
-                <i class="fas fa-home"></i>
-                <span class="text-[7px] font-bold uppercase">Início</span>
-            </button>
-            <button onclick="showScreen('screen-pagar-opcoes')" class="flex flex-col items-center gap-1 hover:text-cyan-400">
-                <i class="fas fa-camera"></i>
-                <span class="text-[7px] font-bold uppercase">Pagar</span>
-            </button>
-            <button onclick="showScreen('screen-prensa')" class="flex flex-col items-center gap-1 hover:text-cyan-400">
-                <i class="fas fa-industry"></i>
-                <span class="text-[7px] font-bold uppercase">Prensa</span>
-            </button>
-        </div>
-
-    </div>
-
-    <!-- MODAL CONFIGURADOR DE TERMOS SECRETO DO CRIADOR -->
-    <div id="modal-config-termos" class="fixed inset-0 bg-[#020617]/95 z-[9999] hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-[#fde047] p-6 rounded-2xl max-w-sm w-full text-center">
-            <i class="fas fa-shield-alt text-3xl text-yellow-300 mb-2"></i>
-            <h3 class="text-sm font-black text-white uppercase">Configurador de Termos</h3>
-            <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">Acesso Exclusivo do Criador</p>
-            
-            <div id="terms-auth-area" class="mt-4 space-y-3">
-                <input type="password" id="terms-pass" placeholder="Senha do Criador" class="w-full bg-black border border-slate-700 text-white rounded-lg p-2.5 text-center text-xs focus:outline-none">
-                <button onclick="verificarSenhaTermos()" class="w-full bg-yellow-300 text-black font-black py-2 rounded-lg text-xs uppercase">Autenticar</button>
-            </div>
-
-            <div id="terms-editor-area" class="mt-4 space-y-3 hidden text-left">
-                <label class="text-[8px] text-cyan-400 block font-bold uppercase">Termos de Empréstimo (DonyCoins)</label>
-                <textarea id="terms-text-editor" class="w-full bg-black border border-slate-700 text-white rounded-lg p-2.5 text-[9px] h-32 focus:outline-none font-mono"></textarea>
-                <button onclick="salvarTermosNoBanco()" class="w-full bg-cyan-500 text-black font-black py-2.5 rounded-lg text-xs uppercase">Salvar Termos</button>
-            </div>
-
-            <button onclick="fecharConfiguradorTermos()" class="text-slate-500 hover:text-white text-[10px] font-bold uppercase tracking-wider mt-4">Cancelar</button>
+        <div class="flex gap-2">
+            <button onclick="save()" class="flex-1 bg-yellow-400 text-black font-black py-2.5 rounded text-xs uppercase tracking-wider hover:bg-yellow-300 transition">OK</button>
+            <button onclick="closeModal()" class="flex-1 border border-slate-700 text-slate-400 py-2.5 rounded text-xs uppercase tracking-wider hover:text-white transition">Cancelar</button>
         </div>
     </div>
 
-    <!-- FUNÇÕES DE ENGENHARIA CLIENTE -->
+    <footer class="text-center text-[9px] text-slate-600 tracking-wider py-4 border-t border-slate-950 bg-[#020308] w-full mt-auto">
+        SISTEMA COGNITIVO HELENA // DOMÍNIO: JDPSISTEMAS.COM.BR
+    </footer>
+
     <script>
-        const LOJA_ID = "LEOVARDIOS_burguer_2026";
-        const firebaseConfig = {
-            apiKey: "AIzaSyCEdXF7ScnMYz0Ce0OW-B_UJ8Bm5Pl9m8o",
-            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com"
-        };
+        // ROTA LOCAL DO SEU NODE.JS (Seu celular ou computador)
+        const LOCAL_NODE = 'http://127.0.0.1:8080';
+        let currentPath = '';
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        let userWhatsApp = "";
-        let userData = null;
-        let html5QrScanner = null;
-        let scanningActive = false;
-        let currentPayerPayload = null;
-
-        let base64Face = "";
-        let base64Doc = "";
-        let base64Residence = "";
-        let configTermosMemo = "";
-
-        let biometricStream = null;
-        let biometricSteps = 0; // 0: Centro, 1: Esquerda, 2: Direita, 3: Pronto
-
-        const CHAVE_PIX_JDP = "70945887205";
-        const NOME_JDP = "JOSE DIVINOPRADODALAPA";
-        const CIDADE_JDP = "MANAUS";
-
-        // AUXILIAR DE CRIPTOGRAFIA SHA-256 (SEGURANÇA ATIVA HELENA)
-        async function gerarHashSHA256(mensagem) {
-            const msgBuffer = new TextEncoder().encode(mensagem);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        // Registrar Service Worker Helena para Proteção
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log("Proteção Helena Ativa no Navegador."))
+                .catch(err => console.error("Falha ao blindar Service Worker:", err));
         }
 
-        // SISTEMA DE NOTIFICAÇÃO AZUL DA HELENA (MÁSCARA DE INTERFACE)
-        let alertCallback = null;
-        function mostrarHelenaAlert(titulo, mensagem, callback = null) {
-            document.getElementById('helena-alert-title').innerText = titulo.toUpperCase();
-            document.getElementById('helena-alert-body').innerText = mensagem.toUpperCase();
-            alertCallback = callback;
-            showScreen('screen-helena-alert');
-        }
-
-        function fecharHelenaAlert() {
-            if (alertCallback) {
-                const cb = alertCallback;
-                alertCallback = null;
-                cb();
-            } else {
-                showScreen('screen-dashboard');
-            }
-        }
-
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('phone-time').innerText = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        function showScreen(screenId) {
-            const screens = [
-                'screen-welcome', 'screen-register', 'screen-analysis',
-                'screen-pin-setup', 'screen-login-pin', 'screen-dashboard', 'screen-prensa',
-                'screen-cobrar', 'screen-pagar', 'screen-confirm', 'screen-success',
-                'screen-extrato', 'screen-emprestimo', 'screen-loan-loading', 'screen-notifications',
-                'screen-pagar-opcoes', 'screen-pagar-numero', 'screen-biometric', 'screen-helena-alert'
-            ];
-            screens.forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            document.getElementById(screenId).classList.remove('hidden');
-
-            if (screenId === 'screen-pagar') {
-                iniciarCameraReal();
-            } else {
-                pararCameraScanner();
-            }
-
-            if (screenId !== 'screen-biometric') {
-                pararCamaraBiometrica();
-            }
-        }
-
-        function verificarAcessoUsuario() {
-            const phone = document.getElementById('input-login-phone').value.trim().replace(/\D/g, "");
-            if (!phone) {
-                mostrarHelenaAlert("Erro de Acesso", "Digite seu WhatsApp para prosseguir.");
-                return;
-            }
-
-            userWhatsApp = phone;
-
-            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).once('value', snap => {
-                if (snap.exists()) {
-                    userData = snap.val();
-                    
-                    if (userData.suspenso === true) {
-                        carregarDashboard();
-                        return;
-                    }
-                    
-                    if (userData.status_cadastro === "aprovado" && userData.pin) {
-                        document.getElementById('login-user-title').innerText = `Olá, ${userData.nome.split(' ')[0]}`;
-                        showScreen('screen-login-pin');
-                    } else if (userData.status_cadastro === "pendente") {
-                        showScreen('screen-analysis');
-                        ativarEscutaStatus();
-                    } else if (userData.status_cadastro === "aprovado" && !userData.pin) {
-                        showScreen('screen-pin-setup');
-                    } else if (userData.status_cadastro === "rejeitado") {
-                        mostrarHelenaAlert("Acesso Negado", "Seu cadastro foi reprovado pelo Banco Central JDP.");
-                    } else {
-                        db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).update({ status_cadastro: "aprovado" }).then(() => {
-                            showScreen('screen-pin-setup');
-                        });
-                    }
-                } else {
-                    document.getElementById('reg-phone').value = userWhatsApp;
-                    showScreen('screen-register');
-                }
-            });
-        }
-
-        function finalizarCadastroBanco() {
-            const name = document.getElementById('reg-name').value.trim();
-            const address = document.getElementById('reg-address').value.trim();
-
-            if (!name || !address) {
-                mostrarHelenaAlert("Erro de Cadastro", "Preencha todos os campos obrigatórios.");
-                return;
-            }
-
-            const novoCadastro = {
-                nome: name.toUpperCase(),
-                endereco: address.toUpperCase(),
-                whatsapp: userWhatsApp,
-                chave_dony: userWhatsApp,
-                status_cadastro: "pendente",
-                status_missao: "nenhuma",
-                donycoins: 10,
-                currentUnlocked: 1,
-                data_cadastro: Date.now()
-            };
-
-            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).set(novoCadastro).then(() => {
-                showScreen('screen-analysis');
-                ativarEscutaStatus();
-            });
-        }
-
-        function activarLeitoresImagens() {
-            registrarConversorImagem('file-doc', base64 => base64Doc = base64);
-            registrarConversorImagem('file-residence', base64 => base64Residence = base64);
-        }
-
-        function registrarConversorImagem(inputId, callback) {
-            const input = document.getElementById(inputId);
-            if (input) {
-                input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (evt) => {
-                            callback(evt.target.result);
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                };
-            }
-        }
-
-        function ativarEscutaStatus() {
-            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).on('value', snap => {
-                if (snap.exists()) {
-                    userData = snap.val();
-                    if (userData.status_cadastro === "aprovado") {
-                        db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).off();
-                        if (!userData.pin) {
-                            showScreen('screen-pin-setup');
-                        } else {
-                            carregarDashboard();
-                        }
-                    } else if (userData.status_cadastro === "rejeitado") {
-                        db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).off();
-                        mostrarHelenaAlert("Cadastro Recusado", "Seu cadastro foi recusado pelo Banco Central JDP.", () => {
-                            showScreen('screen-welcome');
-                        });
-                    }
-                }
-            });
-        }
-
-        async function salvarPINUsuario() {
-            const pin = document.getElementById('setup-pin').value;
-            if (pin.length !== 6 || isNaN(pin)) {
-                mostrarHelenaAlert("PIN Inválido", "O PIN deve conter exatamente 6 dígitos numéricos.");
-                return;
-            }
-
-            const pinHash = await gerarHashSHA256(pin);
-
-            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).update({ pin: pinHash, status_cadastro: "aprovado" }).then(() => {
-                mostrarHelenaAlert("Segurança Ativa", "Seu PIN foi criptografado e salvo com sucesso!", () => {
-                    carregarDashboard();
-                });
-            });
-        }
-
-        async function efetuarLoginPIN() {
-            const pinDigitado = document.getElementById('login-pin-6').value;
-            const hashDigitado = await gerarHashSHA256(pinDigitado);
-            
-            if (pinDigitado === "150970" || hashDigitado === userData.pin) {
-                carregarDashboard();
-            } else {
-                mostrarHelenaAlert("Falha de Autenticação", "PIN Criptográfico Incorreto.");
-            }
-        }
-
-        function carregarDashboard() {
-            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}`).on('value', snap => {
-                if (snap.exists()) {
-                    userData = snap.val();
-                    document.getElementById('dash-name').innerText = userData.nome;
-                    document.getElementById('dash-avatar').innerText = userData.nome.charAt(0).toUpperCase();
-                    document.getElementById('dash-balance').innerText = (userData.donycoins || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                    document.getElementById('dash-level').innerText = `BAÚ 0${userData.currentUnlocked || 1}`;
-                    document.getElementById('dash-phone').innerText = `TEL: ${userData.whatsapp}`;
-                }
-            });
-
-            // ESCUTA SÍNCRONA DE TRANSAÇÕES DO LIVRO-RAZÃO
-            db.ref(`lojas/${LOJA_ID}/DonyCoins/ledger`).on('value', snap => {
-                const container = document.getElementById('history-container');
-                const fullContainer = document.getElementById('full-statement-container');
+        async function load(path = '') {
+            currentPath = path;
+            document.getElementById('pathDisp').innerText = '/sdcard/' + path;
+            try {
+                const r = await fetch(`${LOCAL_NODE}/api/list?path=${encodeURIComponent(path)}`);
+                const data = await r.json();
                 
-                container.innerHTML = "";
-                fullContainer.innerHTML = "";
-                
-                const ledger = snap.val() || {};
-                const txs = Object.values(ledger).sort((a,b) => b.index - a.index);
-                
-                const minhasTxs = txs.filter(t => t.sender === userWhatsApp || t.receiver === userWhatsApp);
-
-                if (minhasTxs.length === 0) {
-                    container.innerHTML = `<p class="text-[9px] text-slate-600 text-center py-4">Nenhuma atividade registrada.</p>`;
-                    fullContainer.innerHTML = `<p class="text-[9px] text-slate-600 text-center py-4">Nenhuma atividade registrada no ledger.</p>`;
-                    return;
+                let html = '';
+                if(currentPath) {
+                    html += `
+                    <div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">
+                        <span class="text-lg">🔙</span>
+                        <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar)</span>
+                    </div>`;
                 }
-
-                minhasTxs.forEach((tx, idx) => {
-                    const isReceive = tx.receiver === userWhatsApp;
-                    const color = isReceive ? 'text-green-400' : 'text-red-400';
-                    const sign = isReceive ? '+' : '-';
-                    const icon = isReceive ? 'fa-arrow-down text-green-500' : 'fa-arrow-up text-red-500';
-                    const dateStr = new Date(tx.timestamp).toLocaleString('pt-BR');
-
-                    if (idx < 4) {
-                        container.innerHTML += `
-                            <div class="bg-slate-900/40 border border-slate-800/40 rounded-xl p-3 flex justify-between items-center">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas ${icon} text-[10px]"></i>
-                                    <div>
-                                        <span class="text-[10px] font-bold text-white block">${tx.type || 'TRANSFERÊNCIA'}</span>
-                                        <span class="text-[8px] text-slate-500 uppercase">${tx.reason || 'DonyPay'}</span>
-                                    </div>
-                                </div>
-                                <span class="text-[10px] font-black ${color}">${sign} R$ ${(tx.amount || 0).toFixed(2)}</span>
-                            </div>
-                        `;
-                    }
-
-                    let descDetalhada = isReceive ? `Você recebeu de [${tx.sender_name || tx.sender}]` : `Você pagou para [${tx.receiver_name || tx.receiver}]`;
-
-                    fullContainer.innerHTML += `
-                        <div class="bg-slate-900 border border-slate-800/60 rounded-xl p-4 space-y-1">
-                            <div class="flex justify-between text-[8px] text-slate-500">
-                                <span>BLOCO #${tx.index} [${tx.type}]</span>
-                                <span>${dateStr}</span>
-                            </div>
-                            <p class="text-white text-[11px] font-bold leading-relaxed">${descDetalhada}</p>
-                            <div class="flex justify-between items-center pt-1 mt-1 border-t border-slate-850">
-                                <span class="text-slate-500 text-[8px]">MOTIVO: ${tx.reason || 'DonyPay'}</span>
-                                <span class="text-xs font-black ${color}">${sign} R$ ${(tx.amount || 0).toFixed(2)}</span>
-                            </div>
+                
+                data.files.forEach(f => {
+                    html += `
+                    <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="${f.isDir ? `load('${currentPath ? currentPath + '/' + f.name : f.name}')` : `openFile('${f.name}')`}">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">${f.isDir ? '📁' : '📄'}</span>
+                            <span class="text-xs text-white font-mono font-bold">${f.name}</span>
                         </div>
-                    `;
+                        <span class="text-[10px] text-slate-500 font-mono">${f.size || 'PASTA'}</span>
+                    </div>`;
                 });
+                document.getElementById('list').innerHTML = html;
+            } catch (err) {
+                document.getElementById('list').innerHTML = `
+                <div class="p-8 text-center text-red-500 text-xs font-bold uppercase">
+                    <i class="fas fa-exclamation-triangle text-lg mb-2 block"></i>
+                    ERRO DE CONEXÃO: O SEU NODE LOCAL NÃO ESTÁ RODANDO NA PORTA 8080.
+                </div>`;
+            }
+        }
+
+        function openFile(name) {
+            const fileUrl = `${LOCAL_NODE}/api/open?path=${encodeURIComponent(currentPath ? currentPath + '/' + name : name)}`;
+            window.open(fileUrl, '_blank');
+        }
+
+        function toggleMenu() {
+            const m = document.getElementById('fabMenu');
+            m.classList.toggle('hidden');
+            m.classList.toggle('flex');
+        }
+
+        function openModal(type) {
+            window.lastType = type;
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('mText').style.display = type === 'text' ? 'block' : 'none';
+            document.getElementById('mTitle').innerText = type === 'text' ? 'Criar Novo Arquivo' : 'Criar Nova Pasta';
+            document.getElementById('fabMenu').classList.add('hidden');
+        }
+
+        async function save() {
+            const name = document.getElementById('mName').value;
+            const content = document.getElementById('mText').value;
+            if (!name) return;
+
+            await fetch(`${LOCAL_NODE}/api/create`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
             });
-
-            // Carrega termos de empréstimo do Firebase
-            db.ref(`lojas/${LOJA_ID}/config_emprestimo/termos`).on('value', snap => {
-                configTermosMemo = snap.val() || "Termos padrão do quintal: Juros de 20% aplicados ao total solicitado. Pagamento a ser compensado no prazo selecionado.";
-                document.getElementById('loan-terms-box').innerText = configTermosMemo;
-            });
-
-            // ESCUTA REAL-TIME DE SOLICITAÇÕES DE EMPRÉSTIMO PARA FEED DE NOTIFICAÇÕES (ESTÉTICA AZUL CIANO)
-            db.ref(`lojas/${LOJA_ID}/solicitacoes_emprestimo`).on('value', snap => {
-                const requests = snap.val() || {};
-                const notifContainer = document.getElementById('notifications-container');
-                const badge = document.getElementById('notif-badge');
-                
-                notifContainer.innerHTML = "";
-                let hasUnread = false;
-
-                const minhasSolicitacoes = Object.values(requests)
-                    .filter(r => r.whatsapp === userWhatsApp)
-                    .sort((a,b) => b.timestamp - a.timestamp);
-
-                if (minhasSolicitacoes.length === 0) {
-                    notifContainer.innerHTML = `<p class="text-[10px] text-slate-500 text-center py-10">Você não possui notificações de crédito.</p>`;
-                    badge.classList.add('hidden');
-                    return;
-                }
-
-                minhasSolicitacoes.forEach(req => {
-                    let cardBg = "bg-slate-900 border-cyan-500/20";
-                    let statusText = "";
-                    let iconHtml = "";
-                    let extraHtml = "";
-
-                    if (req.status === "Pendente") {
-                        statusText = `<span class="text-cyan-400 font-bold">EM ANÁLISE BIOMÉTRICA</span>`;
-                        iconHtml = `<i class="fas fa-hourglass-half text-cyan-400 animate-pulse"></i>`;
-                        cardBg = "bg-slate-900/60 border-cyan-500/30";
-                    } else if (req.status === "Aprovado") {
-                        statusText = `<span class="text-cyan-400 font-bold">LIBERADO NO COFRE</span>`;
-                        iconHtml = `<i class="fas fa-check-circle text-cyan-400"></i>`;
-                        cardBg = "bg-cyan-950/20 border-cyan-500/50";
-                        hasUnread = true;
-
-                        extraHtml = `
-                            <div class="mt-2 p-2 bg-black/40 rounded border border-cyan-500/30 text-[9px] text-cyan-300">
-                                <strong>ESCLARECIMENTO:</strong> Seu empréstimo de 🪙 ${req.valor.toFixed(2)} DNY foi homologado! O valor foi debitado do Cofre Central do Banco JDP e adicionado ao seu saldo.
-                            </div>
-                        `;
-                    } else if (req.status === "Recusado") {
-                        statusText = `<span class="text-cyan-600 font-bold">REPROVADO POR CRITÉRIOS</span>`;
-                        iconHtml = `<i class="fas fa-times-circle text-cyan-600"></i>`;
-                        cardBg = "bg-slate-900 border-cyan-950";
-                        hasUnread = true;
-
-                        extraHtml = `
-                            <div class="mt-2 p-2.5 bg-black/50 rounded border border-cyan-500/10 text-[8px] text-slate-400 space-y-1.5">
-                                <p class="text-cyan-400 font-bold">MOTIVO: Proposta não enquadrada nos critérios de segurança JDP.</p>
-                                <p class="border-t border-slate-800 pt-1"><strong>TERMOS DE USO VIGENTES:</strong></p>
-                                <p class="italic leading-relaxed">${configTermosMemo}</p>
-                            </div>
-                        `;
-                    }
-
-                    notifContainer.innerHTML += `
-                        <div class="border rounded-xl p-4 space-y-1.5 ${cardBg}">
-                            <div class="flex justify-between items-center text-[8px] text-cyan-500">
-                                <span>SOLICITAÇÃO DE CRÉDITO</span>
-                                <span>${new Date(req.timestamp).toLocaleString()}</span>
-                            </div>
-                            <div class="flex items-center gap-2 pt-1">
-                                ${iconHtml}
-                                <span class="text-xs font-black text-white">VALOR: 🪙 ${req.valor.toFixed(2)} DNY</span>
-                            </div>
-                            <div class="flex justify-between text-[9px] pt-1">
-                                <span class="text-slate-400">Prazo: ${req.prazo}</span>
-                                <span>Status: ${statusText}</span>
-                            </div>
-                            ${extraHtml}
-                        </div>
-                    `;
-                });
-
-                if (hasUnread) {
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
-            });
-
-            showScreen('screen-dashboard');
+            closeModal();
+            load(currentPath);
         }
 
-        function sairNotificacoes() {
-            document.getElementById('notif-badge').classList.add('hidden');
-            showScreen('screen-dashboard');
+        function closeModal() { 
+            document.getElementById('modal').classList.add('hidden'); 
+            document.getElementById('mName').value = '';
+            document.getElementById('mText').value = '';
+        }
+        
+        function goBack() { 
+            let p = currentPath.split('/'); 
+            p.pop(); 
+            load(p.join('/')); 
         }
 
-        // ==========================================
-        //  CÂMARA BIOMÉTRICA DA HELENA (SELFIE REAL)
-        // ==========================================
-        function abrirCamaraBiometrica() {
-            showScreen('screen-biometric');
-            biometricSteps = 0;
-            atualizarInstrucoesBiometricas();
-
-            const video = document.getElementById('biometric-video');
-            const constraints = {
-                video: { facingMode: "user" }
-            };
-
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(stream => {
-                    biometricStream = stream;
-                    video.srcObject = stream;
-                    iniciarSimulacaoMovimentos();
-                })
-                .catch(err => {
-                    mostrarHelenaAlert("Erro Biometria", "Câmera frontal inacessível para o escaneamento.");
-                    showScreen('screen-emprestimo');
-                });
-        }
-
-        function fecharCamaraBiometrica() {
-            pararCamaraBiometrica();
-            showScreen('screen-emprestimo');
-        }
-
-        function pararCamaraBiometrica() {
-            if (biometricStream) {
-                biometricStream.getTracks().forEach(track => track.stop());
-                biometricStream = null;
-            }
-        }
-
-        function atualizarInstrucoesBiometricas() {
-            const inst = document.getElementById('biometric-instruction');
-            const mask = document.getElementById('biometric-mask');
-            const btn = document.getElementById('btn-biometric-capture');
-
-            mask.className = "biometric-oval";
-            btn.disabled = true;
-            btn.className = "w-full bg-slate-800 text-slate-500 font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition";
-            btn.innerText = "Bater Foto Biométrica (Bloqueado)";
-
-            if (biometricSteps === 0) {
-                inst.innerText = "1. POSICIONE SEU ROSTO NO CENTRO DO OVAL";
-                inst.className = "text-[9px] text-cyan-400 uppercase font-bold text-center tracking-wider mb-2 animate-pulse";
-            } else if (biometricSteps === 1) {
-                inst.innerText = "2. GIRE LENTAMENTE O ROSTO PARA A ESQUERDA";
-                inst.className = "text-[9px] text-purple-400 uppercase font-bold text-center tracking-wider mb-2 animate-pulse";
-            } else if (biometricSteps === 2) {
-                inst.innerText = "3. GIRE LENTAMENTE O ROSTO PARA A DIREITA";
-                inst.className = "text-[9px] text-blue-400 uppercase font-bold text-center tracking-wider mb-2 animate-pulse";
-            } else if (biometricSteps === 3) {
-                inst.innerText = "✓ BIOMETRIA VERIFICADA! OLHE PARA FRENTE E SORRIA";
-                inst.className = "text-[9px] text-green-400 uppercase font-bold text-center tracking-wider mb-2";
-                mask.className = "biometric-oval active";
-                btn.disabled = false;
-                btn.className = "w-full bg-green-500 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg";
-                btn.innerText = "Bater Foto Biométrica (Liberado)";
-            }
-        }
-
-        function iniciarSimulacaoMovimentos() {
-            setTimeout(() => {
-                if (biometricStream) {
-                    biometricSteps = 1;
-                    atualizarInstrucoesBiometricas();
-                    setTimeout(() => {
-                        if (biometricStream) {
-                            biometricSteps = 2;
-                            atualizarInstrucoesBiometricas();
-                            setTimeout(() => {
-                                if (biometricStream) {
-                                    biometricSteps = 3;
-                                    atualizarInstrucoesBiometricas();
-                                }
-                            }, 2500);
-                        }
-                    }, 2500);
-                }
-            }, 2500);
-        }
-
-        function capturarSelfieBiometrica() {
-            const video = document.getElementById('biometric-video');
-            const canvas = document.createElement('canvas');
-            canvas.width = 320;
-            canvas.height = 240;
-            const ctx = canvas.getContext('2d');
-
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            base64Face = canvas.toDataURL('image/jpeg');
-
-            document.getElementById('selfie-thumbnail').src = base64Face;
-            document.getElementById('selfie-preview-box').classList.remove('hidden');
-
-            fecharCamaraBiometrica();
-        }
-
-        // ========================================================
-        //  SISTEMA SUPREMO DE VARREDURA DE ELEGIBILIDADE (HELENA)
-        // ========================================================
-        function iniciarVarreduraElegibilidade() {
-            const valor = parseFloat(document.getElementById('loan-amount').value);
-            const prazo = document.getElementById('loan-term').value;
-
-            if (isNaN(valor) || valor <= 0) {
-                mostrarHelenaAlert("Erro de Entrada", "Insira um valor de simulação válido.");
-                return;
-            }
-
-            if (!base64Face) {
-                mostrarHelenaAlert("Erro Protocolo", "Selfie facial biométrica não detectada. Execute o scanner facial.");
-                return;
-            }
-
-            if (!base64Doc || !base64Residence) {
-                mostrarHelenaAlert("Erro Protocolo", " RG/CNH ou Comprovante de residência ausentes.");
-                return;
-            }
-
-            // Ativa tela de processamento
-            showScreen('screen-loan-loading');
-            document.getElementById('loading-loan-title').innerText = "Iniciando Varredura";
-            document.getElementById('loading-loan-text').innerText = "Buscando histórico de compras no DonyBurgues...";
-
-            // Passo 1: Verificar Histórico de Compras (Mínimo 3)
-            db.ref(`lojas/${LOJA_ID}/pedidos`).once('value', snap => {
-                const pedidos = snap.val() || {};
-                let countCompras = 0;
-                
-                Object.values(pedidos).forEach(p => {
-                    if (p.cliente_telefone === userWhatsApp || p.whatsapp === userWhatsApp) {
-                        countCompras++;
-                    }
-                });
-
-                if (countCompras < 3) {
-                    setTimeout(() => {
-                        mostrarHelenaAlert("Elegibilidade Negada", `Você possui apenas ${countCompras} compras. O sistema JDP exige no mínimo 3 compras ativas no DonyBurgues.`);
-                    }, 1500);
-                    return;
-                }
-
-                // Passo 2: Verificar se está ativo nas missões
-                document.getElementById('loading-loan-title').innerText = "Verificando Missões";
-                document.getElementById('loading-loan-text').innerText = "Buscando progresso de missões do operador...";
-
-                if (!userData.status_missao || userData.status_missao === "nenhuma") {
-                    setTimeout(() => {
-                        mostrarHelenaAlert("Elegibilidade Negada", "Sua conta não possui missões JDP ativas neste momento.");
-                    }, 1500);
-                    return;
-                }
-
-                // Passo 3: Solicitar e Verificar Localização GPS em tempo real
-                document.getElementById('loading-loan-title').innerText = "Varredura de GPS";
-                document.getElementById('loading-loan-text').innerText = "Solicitando coordenadas espaciais em tempo real...";
-
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude;
-                            const lon = position.coords.longitude;
-                            
-                            // Homologar localização
-                            document.getElementById('loading-loan-title').innerText = "Análise Helena";
-                            document.getElementById('loading-loan-text').innerText = "Cruzando coordenadas com os dados de DonyBurgues...";
-
-                            setTimeout(() => {
-                                submeterPedidoEmprestimoComLocalizacao(lat, lon);
-                            }, 2000);
-                        },
-                        (error) => {
-                            mostrarHelenaAlert("Erro GPS", "A liberação de crédito exige permissão de GPS ativa em tempo real.");
-                        }
-                    );
-                } else {
-                    mostrarHelenaAlert("Erro Hardware", "Seu dispositivo não possui suporte a Geolocalização.");
-                }
-            });
-        }
-
-        function submeterPedidoEmprestimoComLocalizacao(lat, lon) {
-            const valor = parseFloat(document.getElementById('loan-amount').value);
-            const prazo = document.getElementById('loan-term').value;
-            const reqId = 'LOAN-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-
-            const solicitacao = {
-                nome: userData.nome,
-                whatsapp: userWhatsApp,
-                valor: valor,
-                valor_total: valor * 1.20,
-                prazo: prazo.toUpperCase(),
-                foto_face: base64Face,
-                foto_documento: base64Doc,
-                comprovante_residencia: base64Residence,
-                latitude: lat,
-                longitude: lon,
-                status: "Pendente",
-                timestamp: Date.now()
-            };
-
-            db.ref(`lojas/${LOJA_ID}/solicitacoes_emprestimo/${reqId}`).set(solicitacao).then(() => {
-                mostrarHelenaAlert("Transmissão Concluída", "Seus dados foram cruzados e enviados para análise do Criador Sr. José Divino.", () => {
-                    base64Face = "";
-                    base64Doc = "";
-                    base64Residence = "";
-                    document.getElementById('file-doc').value = "";
-                    document.getElementById('file-residence').value = "";
-                    showScreen('screen-dashboard');
-                });
-            });
-        }
-
-        function abrirTelaEmprestimos() {
-            if (userData.suspenso === true) {
-                mostrarHelenaAlert("Acesso Bloqueado", "Linha de crédito temporariamente indisponível para esta conta. (Código 403-IP)");
-                return;
-            }
-            document.getElementById('loan-amount').value = "";
-            document.getElementById('loan-total-display').innerText = "0.00 DNY";
-            document.getElementById('selfie-preview-box').classList.add('hidden');
-            base64Face = "";
-            showScreen('screen-emprestimo');
-        }
-
-        function calcularSimulacaoEmprestimo() {
-            const valor = parseFloat(document.getElementById('loan-amount').value) || 0;
-            const total = valor * 1.20;
-            document.getElementById('loan-total-display').innerText = `${total.toFixed(2)} DNY`;
-        }
-
-        // ==========================================
-        //  MÓDULO PIX VIA NÚMERO (CANAL ÚNICO)
-        // ==========================================
-        function buscarDestinatarioPix() {
-            const phone = document.getElementById('pay-target-phone').value.trim().replace(/\D/g, "");
-            if (!phone) {
-                mostrarHelenaAlert("Erro", "Digite um número de WhatsApp válido.");
-                return;
-            }
-
-            if (phone === userWhatsApp) {
-                mostrarHelenaAlert("Erro", "Você não pode transferir moedas para si mesmo.");
-                return;
-            }
-
-            db.ref(`lojas/${LOJA_ID}/usuarios/${phone}`).once('value', snap => {
-                if (snap.exists()) {
-                    const target = snap.val();
-                    document.getElementById('pay-target-name').innerText = target.nome;
-                    document.getElementById('pay-target-amount').value = "";
-                    document.getElementById('pay-amount-box').classList.remove('hidden');
-                } else {
-                    mostrarHelenaAlert("Erro de Canal", "Chave/Número não cadastrado no Canal Único.");
-                    document.getElementById('pay-amount-box').classList.add('hidden');
-                }
-            });
-        }
-
-        function confirmarPixNumero() {
-            const amount = parseFloat(document.getElementById('pay-target-amount').value);
-            const targetPhone = document.getElementById('pay-target-phone').value.trim().replace(/\D/g, "");
-            const targetName = document.getElementById('pay-target-name').innerText;
-
-            if (isNaN(amount) || amount <= 0) {
-                mostrarHelenaAlert("Erro", "Digite um valor de transferência válido.");
-                return;
-            }
-
-            if (userData.donycoins < amount) {
-                mostrarHelenaAlert("Erro de Saldo", "Saldo de moedas insuficiente.");
-                return;
-            }
-
-            const payload = {
-                recipient: targetPhone,
-                name: targetName,
-                value: amount,
-                hash: 'DNY-PIX-' + Math.random().toString(36).substring(2, 11).toUpperCase()
-            };
-
-            abrirConfirmacaoPagamento(payload);
-        }
-
-        // ==========================================
-        //  EDITOR DE TERMOS SECRETO DO CRIADOR
-        // ==========================================
-        function abrirConfiguradorTermos() {
-            document.getElementById('modal-config-termos').classList.remove('hidden');
-            document.getElementById('terms-auth-area').classList.remove('hidden');
-            document.getElementById('terms-editor-area').classList.add('hidden');
-            document.getElementById('terms-pass').value = "";
-        }
-
-        function fecharConfiguradorTermos() {
-            document.getElementById('modal-config-termos').classList.add('hidden');
-        }
-
-        function verificarSenhaTermos() {
-            const senha = document.getElementById('terms-pass').value;
-            if (senha === "1234" || senha === "Princesa Diamante") {
-                document.getElementById('terms-auth-area').classList.add('hidden');
-                document.getElementById('terms-editor-area').classList.remove('hidden');
-                
-                db.ref(`lojas/${LOJA_ID}/config_emprestimo/termos`).once('value', snap => {
-                    document.getElementById('terms-text-editor').value = snap.val() || "";
-                });
-            } else {
-                mostrarHelenaAlert("Segurança", "Senha incorreta.");
-            }
-        }
-
-        function salvarTermosNoBanco() {
-            const texto = document.getElementById('terms-text-editor').value;
-            db.ref(`lojas/${LOJA_ID}/config_emprestimo/termos`).set(texto).then(() => {
-                mostrarHelenaAlert("Configuração", "Termos de Empréstimo atualizados no Banco Central JDP!");
-                fecharConfiguradorTermos();
-            });
-        }
-
-        // ==========================================
-        //  CÂMERA REAL E QR CODE
-        // ==========================================
-        async function iniciarCameraReal() {
-            if (scanningActive) return;
-            scanningActive = true;
-
-            await pararCameraScanner();
-            const container = document.getElementById("camera-reader");
-            if (container) container.innerHTML = "";
-
-            setTimeout(async () => {
-                try {
-                    html5QrScanner = new Html5Qrcode("camera-reader");
-                    await html5QrScanner.start(
-                        { facingMode: "environment" },
-                        { 
-                            fps: 15, 
-                            qrbox: (width, height) => {
-                                const min = Math.min(width, height);
-                                return { width: Math.floor(min * 0.7), height: Math.floor(min * 0.7) };
-                            },
-                            aspectRatio: 1.0 
-                        },
-                        (decodedText) => {
-                            try {
-                                let payload = null;
-                                if (decodedText.startsWith("{")) {
-                                    payload = JSON.parse(decodedText);
-                                } else if (decodedText.startsWith("DNY-VALUE-")) {
-                                    const val = parseFloat(decodedText.replace("DNY-VALUE-", ""));
-                                    payload = {
-                                        value: val,
-                                        recipient: "CRIADOR_JDP",
-                                        name: "José Divino",
-                                        hash: "DNY-RAW-" + Date.now()
-                                    };
-                                }
-                                if (payload && payload.recipient && payload.value) {
-                                    pararCameraScanner();
-                                    abrirConfirmacaoPagamento(payload);
-                                }
-                            } catch (e) {
-                                console.warn("Erro ao ler QR Code:", e);
-                            }
-                        },
-                        () => {}
-                    );
-                } catch (err) {
-                    console.error("Erro na câmera:", err);
-                    scanningActive = false;
-                    mostrarHelenaAlert("Erro Hardware", "Erro ao acessar a câmera traseira.");
-                    showScreen('screen-dashboard');
-                }
-            }, 350);
-        }
-
-        async function pararCameraScanner() {
-            if (html5QrScanner) {
-                try {
-                    if (html5QrScanner.isScanning) {
-                        await html5QrScanner.stop();
-                    }
-                } catch (err) {
-                    console.warn(err);
-                } finally {
-                    html5QrScanner = null;
-                    scanningActive = false;
-                    const container = document.getElementById("camera-reader");
-                    if (container) container.innerHTML = "";
-                }
-            }
-        }
-
-        function pararCameraEVoltar() {
-            pararCameraScanner();
-            showScreen('screen-dashboard');
-        }
-
-        function abrirCobrar() {
-            document.getElementById('dny-qr-display').classList.add('hidden');
-            showScreen('screen-cobrar');
-        }
-
-        function gerarCobrancaDny() {
-            const val = parseFloat(document.getElementById('charge-amount').value);
-            if (isNaN(val) || val <= 0) {
-                mostrarHelenaAlert("Erro", "Digite um valor de cobrança válido.");
-                return;
-            }
-
-            const payload = {
-                recipient: userWhatsApp,
-                name: userData.nome,
-                value: val,
-                hash: 'DNY-TX-' + Math.random().toString(36).substring(2, 11).toUpperCase()
-            };
-
-            document.getElementById('dny-qr-box').innerHTML = "";
-            new QRCode(document.getElementById('dny-qr-box'), { text: JSON.stringify(payload), width: 120, height: 120 });
-            document.getElementById('dny-qr-hash').innerText = payload.hash;
-            document.getElementById('dny-qr-display').classList.remove('hidden');
-        }
-
-        function abrirConfirmacaoPagamento(payload) {
-            currentPayerPayload = payload;
-            document.getElementById('confirm-recipient-name').innerText = payload.name || payload.recipient;
-            document.getElementById('confirm-amount-label').innerText = `R$ ${payload.value.toFixed(2)}`;
-            document.getElementById('confirm-tx-hash').innerText = payload.hash;
-            showScreen('screen-confirm');
-        }
-
-        function processarEnvioDny() {
-            if (!currentPayerPayload) return;
-
-            const amount = currentPayerPayload.value;
-            const recipient = currentPayerPayload.recipient;
-
-            if (userData.donycoins < amount) {
-                mostrarHelenaAlert("Saldo Insuficiente", "Transação abortada pelo sistema.");
-                showScreen('screen-dashboard');
-                return;
-            }
-
-            db.ref(`lojas/${LOJA_ID}/usuarios/${userWhatsApp}/donycoins`).transaction(current => (current || 0) - amount);
-            db.ref(`lojas/${LOJA_ID}/usuarios/${recipient}/donycoins`).transaction(current => (current || 0) + amount);
-
-            const ledgerRef = db.ref(`lojas/${LOJA_ID}/DonyCoins/ledger`);
-            ledgerRef.once('value', snap => {
-                const ledger = snap.val() || {};
-                const index = Object.keys(ledger).length;
-                
-                const novoBloco = {
-                    index: index,
-                    timestamp: Date.now(),
-                    sender: userWhatsApp,
-                    receiver: recipient,
-                    sender_name: userData.nome,
-                    receiver_name: currentPayerPayload.name || recipient,
-                    amount: amount,
-                    type: "DEBITO",
-                    reason: `PAGAMENTO PIX`,
-                    hash: currentPayerPayload.hash
-                };
-
-                db.ref(`lojas/${LOJA_ID}/DonyCoins/ledger/${index}`).set(novoBloco).then(() => {
-                    document.getElementById('success-message').innerText = "Transferência Realizada com Sucesso!";
-                    showScreen('screen-success');
-                });
-            });
-        }
-
-        // PRENSA JDP
-        function setValorPrensa(v) {
-            document.getElementById('valorManual').value = v;
-        }
-
-        function gerarPayloadPix(valor) {
-            const f = (id, v) => id + v.length.toString().padStart(2, '0') + v;
-            const vStr = valor.toFixed(2);
-            let p = "000201" + f("26", f("00", "br.gov.bcb.pix") + f("01", CHAVE_PIX_JDP)) + "520400005303986" + f("54", vStr) + "5802BR" + f("59", NOME_JDP.substring(0,25)) + f("60", CIDADE_JDP.substring(0,15)) + "62070503***6304";
-            
-            let crc = 0xFFFF;
-            for (let i = 0; i < p.length; i++) {
-                crc ^= (p.charCodeAt(i) << 8);
-                for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : (crc << 1);
-            }
-            return p + (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-        }
-
-        function gerarPixPrensa() {
-            const v = parseFloat(document.getElementById('valorManual').value);
-            if (!v || v <= 0) {
-                mostrarHelenaAlert("Erro", "Insira um valor de depósito válido.");
-                return;
-            }
-
-            const pix = gerarPayloadPix(v);
-            document.getElementById('qr-box').innerHTML = "";
-            new QRCode(document.getElementById('qr-box'), { text: pix, width: 96, height: 96 });
-            
-            document.getElementById('pix-texto').innerText = pix;
-            document.getElementById('pix-dest-phone').innerText = userWhatsApp;
-            document.getElementById('pagamento-area').classList.remove('hidden');
-
-            const reqId = 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-            const novaSolicitacao = {
-                nome: userData.nome,
-                whatsapp: userWhatsApp,
-                valor: v,
-                tipo: "DEPOSITO",
-                status: "Pendente"
-            };
-
-            db.ref(`lojas/${LOJA_ID}/solicitacoes_pix/${reqId}`).set(novaSolicitacao);
-        }
-
-        function copiarPixPrensa() {
-            navigator.clipboard.writeText(document.getElementById('pix-texto').innerText);
-            const btn = document.getElementById('btnCopiar');
-            btn.innerText = "COPIADO!";
-            btn.style.background = "#ffffff";
-            btn.style.color = "#000";
-            setTimeout(() => {
-                btn.innerText = "COPIAR CÓDIGO PIX";
-                btn.style.background = "#06b6d4";
-                btn.style.color = "#000";
-            }, 2000);
-        }
-
-        // INICIALIZAÇÃO ÚNICA CONSOLIDADA (EVITA DUPLICIDADE E ERROS)
-        document.addEventListener("DOMContentLoaded", () => {
-            updateTime();
-            setInterval(updateTime, 1000);
-            activarLeitoresImagens(); // Ativação precoce de leitores de imagens
-            showScreen('screen-welcome');
-        });
+        load();
     </script>
 </body>
 </html>
-
+    
