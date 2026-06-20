@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -10,36 +11,36 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
 
     <style>
-        :root { 
-            --gold: #fde047; 
-            --bg: #020617; 
-            --cyan: #06b6d4;
+        :root {
+             --gold: #fde047;
+             --bg: #020617;
+             --cyan: #06b6d4;
         }
-        body { 
-            margin: 0; 
-            background: var(--bg); 
-            color: var(--gold); 
-            font-family: 'JetBrains Mono', monospace; 
-            user-select: none;
-            -webkit-user-select: none;
+        body {
+             margin: 0;
+             background: var(--bg);
+             color: var(--gold);
+             font-family: 'JetBrains Mono', monospace;
+             user-select: none;
+             -webkit-user-select: none;
         }
-        .app-bar { 
-            background: #0f172a; 
-            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+        .app-bar {
+             background: #0f172a;
+             border-bottom: 1px solid rgba(6, 182, 212, 0.2);
         }
-        .file-item { 
-            border-bottom: 1px solid rgba(253, 224, 71, 0.05); 
-            transition: all 0.2s ease;
+        .file-item {
+             border-bottom: 1px solid rgba(253, 224, 71, 0.05);
+             transition: all 0.2s ease;
         }
         .file-item:hover {
-            background: rgba(6, 182, 212, 0.08);
-            border-left: 4px solid var(--cyan);
+             background: rgba(6, 182, 212, 0.08);
+             border-left: 4px solid var(--cyan);
         }
         .jdp-card {
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(6, 182, 212, 0.2);
-            backdrop-filter: blur(12px);
-            border-radius: 12px;
+             background: rgba(15, 23, 42, 0.95);
+             border: 1px solid rgba(6, 182, 212, 0.2);
+             backdrop-filter: blur(12px);
+             border-radius: 12px;
         }
     </style>
 </head>
@@ -84,36 +85,31 @@
         <h3 id="mTitle" class="text-white font-black text-sm uppercase tracking-wider mb-4">Criar Novo Item</h3>
         <input type="text" id="mName" placeholder="Nome..." class="w-full bg-black border border-yellow-500/40 rounded p-2 text-white text-xs font-mono mb-3 focus:outline-none focus:border-yellow-400">
         <textarea id="mText" placeholder="Conteúdo..." class="hidden w-full h-32 bg-black border border-cyan-500/40 rounded p-2 text-white text-xs font-mono mb-4 focus:outline-none focus:border-cyan-400"></textarea>
-        
+                 
         <div class="flex gap-2">
             <button onclick="save()" class="flex-1 bg-yellow-400 text-black font-black py-2.5 rounded text-xs uppercase tracking-wider hover:bg-yellow-300 transition">OK</button>
             <button onclick="closeModal()" class="flex-1 border border-slate-700 text-slate-400 py-2.5 rounded text-xs uppercase tracking-wider hover:text-white transition">Cancelar</button>
         </div>
     </div>
 
+    <!-- RODAPÉ INDUSTRIAL -->
     <footer class="text-center text-[9px] text-slate-600 tracking-wider py-4 border-t border-slate-950 bg-[#020308] w-full mt-auto">
         SISTEMA COGNITIVO HELENA // DOMÍNIO: JDPSISTEMAS.COM.BR
     </footer>
 
     <script>
-        // ROTA LOCAL DO SEU NODE.JS (Seu celular ou computador)
-        const LOCAL_NODE = 'https://jdp-sistema-backend.onrender.com/';
+        // ENDEREÇO DA SUA RENDER OFICIAL (Configurado e sem barra "/" no final)
+        const LOCAL_NODE = 'https://jdp-sistema-backend.onrender.com';
         let currentPath = '';
 
-        // Registrar Service Worker Helena para Proteção
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log("Proteção Helena Ativa no Navegador."))
-                .catch(err => console.error("Falha ao blindar Service Worker:", err));
-        }
-
+        // Carregar arquivos e pastas
         async function load(path = '') {
             currentPath = path;
             document.getElementById('pathDisp').innerText = '/sdcard/' + path;
             try {
                 const r = await fetch(`${LOCAL_NODE}/api/list?path=${encodeURIComponent(path)}`);
                 const data = await r.json();
-                
+                                 
                 let html = '';
                 if(currentPath) {
                     html += `
@@ -122,38 +118,49 @@
                         <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar)</span>
                     </div>`;
                 }
-                
-                data.files.forEach(f => {
+                                 
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(f => {
+                        html += `
+                        <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="${f.isDir ? `load('${currentPath ? currentPath + '/' + f.name : f.name}')` : `openFile('${f.name}')`}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-lg">${f.isDir ? '📁' : '📄'}</span>
+                                <span class="text-xs text-white font-mono font-bold">${f.name}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-mono">${f.size || 'PASTA'}</span>
+                        </div>`;
+                    });
+                } else {
                     html += `
-                    <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="${f.isDir ? `load('${currentPath ? currentPath + '/' + f.name : f.name}')` : `openFile('${f.name}')`}">
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">${f.isDir ? '📁' : '📄'}</span>
-                            <span class="text-xs text-white font-mono font-bold">${f.name}</span>
-                        </div>
-                        <span class="text-[10px] text-slate-500 font-mono">${f.size || 'PASTA'}</span>
+                    <div class="p-8 text-center text-slate-500 text-xs font-bold uppercase">
+                        <i class="fas fa-folder-open text-lg mb-2 block"></i>
+                        Esta pasta está vazia. Use o botão "+" para criar itens.
                     </div>`;
-                });
+                }
                 document.getElementById('list').innerHTML = html;
             } catch (err) {
                 document.getElementById('list').innerHTML = `
                 <div class="p-8 text-center text-red-500 text-xs font-bold uppercase">
                     <i class="fas fa-exclamation-triangle text-lg mb-2 block"></i>
-                    ERRO DE CONEXÃO: O SEU NODE LOCAL NÃO ESTÁ RODANDO NA PORTA 8080.
+                    ERRO DE CONEXÃO: O SEU SERVIDOR RENDER ESTÁ INICIALIZANDO OU FORA DO AR.
                 </div>`;
             }
         }
 
+        // Abrir arquivo de texto em uma nova aba
         function openFile(name) {
             const fileUrl = `${LOCAL_NODE}/api/open?path=${encodeURIComponent(currentPath ? currentPath + '/' + name : name)}`;
             window.open(fileUrl, '_blank');
         }
 
+        // Alternar menu flutuante (+)
         function toggleMenu() {
             const m = document.getElementById('fabMenu');
             m.classList.toggle('hidden');
             m.classList.toggle('flex');
         }
 
+        // Abrir modal de criação
         function openModal(type) {
             window.lastType = type;
             document.getElementById('modal').classList.remove('hidden');
@@ -162,34 +169,41 @@
             document.getElementById('fabMenu').classList.add('hidden');
         }
 
+        // Salvar nova pasta ou arquivo no servidor Render
         async function save() {
             const name = document.getElementById('mName').value;
             const content = document.getElementById('mText').value;
             if (!name) return;
 
-            await fetch(`${LOCAL_NODE}/api/create`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
-            });
-            closeModal();
-            load(currentPath);
+            try {
+                await fetch(`${LOCAL_NODE}/api/create`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
+                });
+                closeModal();
+                load(currentPath);
+            } catch (err) {
+                alert("Erro ao salvar o arquivo no servidor Render.");
+            }
         }
 
-        function closeModal() { 
-            document.getElementById('modal').classList.add('hidden'); 
-            document.getElementById('mName').value = '';
-            document.getElementById('mText').value = '';
+        // Fechar modal de criação
+        function closeModal() {
+             document.getElementById('modal').classList.add('hidden');
+             document.getElementById('mName').value = '';
+             document.getElementById('mText').value = '';
         }
-        
-        function goBack() { 
-            let p = currentPath.split('/'); 
-            p.pop(); 
-            load(p.join('/')); 
+                 
+        // Voltar um nível de diretório
+        function goBack() {
+             let p = currentPath.split('/');
+             p.pop();
+             load(p.join('/'));
         }
 
+        // Inicialização do sistema
         load();
     </script>
 </body>
 </html>
-    
