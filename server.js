@@ -35,9 +35,9 @@ app.use('/publico', express.static(ROOT));
 // ==========================================
 const storageConfig = multer.diskStorage({
     destination: (req, file, cb) => {
-        const relPath = req.body.path || '';
+        const relPath = req.query.path || req.body.path || '';
         const dest = path.join(ROOT, relPath);
-        fs.mkdirSync(dest, { recursive: true }); // Garante que a pasta de destino existe
+        fs.mkdirSync(dest, { recursive: true }); 
         cb(null, dest);
     },
     filename: (req, file, cb) => {
@@ -102,7 +102,7 @@ app.get('/api/open', (req, res) => {
 // ==========================================
 app.post('/api/create', (req, res) => {
     const { type, name, content, path: relPath } = req.body;
-    const fullPath = path.join(ROOT, relPath, name);
+    const fullPath = path.join(ROOT, relPath || '', name);
     
     if (!fullPath.startsWith(ROOT)) {
         return res.status(403).json({ error: "Acesso negado." });
@@ -122,13 +122,12 @@ app.post('/api/create', (req, res) => {
 
 
 // ==========================================
-// API: EXCLUIR ARQUIVO OU PASTA RECURSIVA (CORRIGIDO)
+// API: EXCLUIR ARQUIVO OU PASTA RECURSIVA
 // ==========================================
 app.post('/api/delete', (req, res) => {
     const { path: relPath } = req.body;
-    const fullPath = path.join(ROOT, relPath);
+    const fullPath = path.join(ROOT, relPath || '');
 
-    // Proteção de Diretório do Criador
     if (!fullPath.startsWith(ROOT) || fullPath === ROOT) {
         return res.status(403).json({ success: false, error: "Operação não permitida na raiz do sistema." });
     }
@@ -137,10 +136,8 @@ app.post('/api/delete', (req, res) => {
         if (fs.existsSync(fullPath)) {
             const stat = fs.lstatSync(fullPath);
             if (stat.isDirectory()) {
-                // Apaga pastas com tudo dentro (Recursivo)
                 fs.rmSync(fullPath, { recursive: true, force: true });
             } else {
-                // Apaga arquivos individuais
                 fs.unlinkSync(fullPath);
             }
             res.json({ success: true, message: "Item apagado com sucesso!" });
@@ -166,14 +163,22 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
 
 // ==========================================
-// API: COMPACTAR PARA ZIP (ZARCHIVER STYLE)
+// API: COMPACTAR PARA ZIP
 // ==========================================
 app.post('/api/zip', (req, res) => {
-    const { path: relPath, name } = req.body;
-    const targetPath = path.join(ROOT, relPath);
+    const { path: relPath } = req.body;
+    const targetPath = path.join(ROOT, relPath || '');
     const outputZip = targetPath + '.zip';
 
+    if (!targetPath.startsWith(ROOT)) {
+        return res.status(403).json({ error: "Acesso negado." });
+    }
+
     try {
+        if (!fs.existsSync(targetPath)) {
+            return res.status(404).json({ error: "Item alvo não encontrado." });
+        }
+
         const zip = new AdmZip();
         const stat = fs.statSync(targetPath);
 
@@ -196,10 +201,18 @@ app.post('/api/zip', (req, res) => {
 // ==========================================
 app.post('/api/unzip', (req, res) => {
     const { path: relPath } = req.body;
-    const targetPath = path.join(ROOT, relPath);
+    const targetPath = path.join(ROOT, relPath || '');
     const destDir = path.dirname(targetPath);
 
+    if (!targetPath.startsWith(ROOT)) {
+        return res.status(403).json({ error: "Acesso negado." });
+    }
+
     try {
+        if (!fs.existsSync(targetPath)) {
+            return res.status(404).json({ error: "Arquivo ZIP não encontrado." });
+        }
+
         const zip = new AdmZip(targetPath);
         zip.extractAllTo(destDir, true);
         res.json({ success: true });
@@ -214,10 +227,18 @@ app.post('/api/unzip', (req, res) => {
 // ==========================================
 app.post('/api/copy', (req, res) => {
     const { source, destination } = req.body;
-    const srcPath = path.join(ROOT, source);
-    const destPath = path.join(ROOT, destination);
+    const srcPath = path.join(ROOT, source || '');
+    const destPath = path.join(ROOT, destination || '');
+
+    if (!srcPath.startsWith(ROOT) || !destPath.startsWith(ROOT)) {
+        return res.status(403).json({ error: "Acesso negado fora do escopo." });
+    }
 
     try {
+        if (!fs.existsSync(srcPath)) {
+            return res.status(404).json({ error: "Item de origem não encontrado." });
+        }
+
         const stat = fs.statSync(srcPath);
         if (stat.isDirectory()) {
             fs.cpSync(srcPath, destPath, { recursive: true });
@@ -236,8 +257,12 @@ app.post('/api/copy', (req, res) => {
 // ==========================================
 app.post('/api/move', (req, res) => {
     const { source, destination } = req.body;
-    const srcPath = path.join(ROOT, source);
-    const destPath = path.join(ROOT, destination);
+    const srcPath = path.join(ROOT, source || '');
+    const destPath = path.join(ROOT, destination || '');
+
+    if (!srcPath.startsWith(ROOT) || !destPath.startsWith(ROOT)) {
+        return res.status(403).json({ error: "Acesso negado." });
+    }
 
     try {
         fs.renameSync(srcPath, destPath);
@@ -249,8 +274,12 @@ app.post('/api/move', (req, res) => {
 
 app.post('/api/rename', (req, res) => {
     const { source, destination } = req.body;
-    const srcPath = path.join(ROOT, source);
-    const destPath = path.join(ROOT, destination);
+    const srcPath = path.join(ROOT, source || '');
+    const destPath = path.join(ROOT, destination || '');
+
+    if (!srcPath.startsWith(ROOT) || !destPath.startsWith(ROOT)) {
+        return res.status(403).json({ error: "Acesso negado." });
+    }
 
     try {
         fs.renameSync(srcPath, destPath);
@@ -265,7 +294,6 @@ app.post('/api/rename', (req, res) => {
 // CENTRAL DE ROTEAMENTO SOBERANO - CLIENTES / REPOSITÓRIOS
 // ==========================================================
 
-// 1. Rota de Execução Limpa do Filho (Simula o GitHub Pages)
 app.get('/go/:repo', (req, res) => {
     const repo = req.params.repo.toLowerCase();
     const indexHtmlPath = path.join(__dirname, 'clientes', repo, 'www', 'index.html');
@@ -277,7 +305,6 @@ app.get('/go/:repo', (req, res) => {
     }
 });
 
-// 2. Rota de Entrega Limpa dos Assets do PWA (sw.js, manifest.json)
 app.get('/go/:repo/:file', (req, res) => {
     const { repo, file } = req.params;
     const filePath = path.join(__dirname, 'clientes', repo.toLowerCase(), 'www', file);
@@ -289,3 +316,7 @@ app.get('/go/:repo/:file', (req, res) => {
     }
 });
 
+// Inicialização do Servidor na porta 3000
+app.listen(3000, () => {
+    console.log("Servidor rodando perfeitamente na porta 3000.");
+});
