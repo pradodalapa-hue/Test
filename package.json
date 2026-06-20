@@ -1,0 +1,12 @@
+{
+  "name": "jdp-soberano-backend",
+  "version": "1.0.0",
+  "description": "Backend Helena para o Criador Sr. Jose",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
