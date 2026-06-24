@@ -114,116 +114,171 @@
             <button onclick="closeModal()" class="flex-1 border border-slate-700 text-slate-400 py-2.5 rounded text-xs uppercase tracking-wider hover:text-white transition">Cancelar</button>
         </div>
     </div>
+<script>
+    const LOCAL_NODE = 'https://jdp-sistema-backend.onrender.com';
+    let currentPath = '';
+    let currentFilesList = [];
+    let physicalDirectoryHandle = null; // Guardião de gravação física no HD
 
-    <!-- RODAPÉ INDUSTRIAL -->
-    <footer class="text-center text-[9px] text-slate-600 tracking-wider py-4 border-t border-slate-950 bg-[#020308] w-full mt-auto">
-        SISTEMA COGNITIVO HELENA // DOMÍNIO: JDPSISTEMAS.COM.BR // CRIADOR: SR. JOSÉ DIVINO PRADO DA LAPA
-    </footer>
+    // Registro do Service Worker Guardião da HELENA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => logHELENA("[GUARDIÃO SW]: Ativo e monitorando rotas de sobrevivência."))
+                .catch(err => logHELENA("[GUARDIÃO SW] Alerta de ativação: " + err.message));
+        });
+    }
 
-    <script>
-        // ENDEREÇO DA SUA RENDER OFICIAL
-        const LOCAL_NODE = 'https://jdp-sistema-backend.onrender.com';
-        let currentPath = '';
-        let currentFilesList = []; // Cache local para sincronização
+    function logHELENA(msg) {
+        const terminal = document.getElementById('terminalLogs');
+        const time = new Date().toLocaleTimeString();
+        terminal.innerHTML += `<br>[${time}] ${msg}`;
+        terminal.scrollTop = terminal.scrollHeight;
+    }
 
-        // Logger para o terminal da HELENA
-        function logHELENA(msg) {
-            const terminal = document.getElementById('terminalLogs');
-            const time = new Date().toLocaleTimeString();
-            terminal.innerHTML += `<br>[${time}] ${msg}`;
-            terminal.scrollTop = terminal.scrollHeight;
+    // ==========================================
+    // PROTOCOLO SUPREMO: GRAVAÇÃO DIRETA NO DISCO RIGIDO (PC/ANDROID CHROME)
+    // ==========================================
+    async function requestHardwareFolderPermission() {
+        try {
+            logHELENA("[SISTEMA]: Solicitando permissão de pasta física do dispositivo...");
+            // Abre o seletor de pastas nativo do seu sistema operacional/Android
+            physicalDirectoryHandle = await window.showDirectoryPicker();
+            logHELENA("[SUCESSO]: Conexão direta com o disco rígido estabelecida!");
+            document.getElementById('syncStatus').innerText = "Sincronizador: Disco Rígido Conectado";
+            document.getElementById('syncStatus').className = "text-[9px] text-green-400 font-mono font-bold animate-pulse";
+            
+            // Força a primeira gravação total
+            await forceBackupAll();
+        } catch (err) {
+            logHELENA("[AVISO]: Permissão de pasta física negada ou não suportada. Usando IndexedDB/Capacitor como contingência.");
         }
+    }
 
-        // Carregar arquivos e pastas
-        async function load(path = '') {
-            currentPath = path;
-            document.getElementById('pathDisp').innerText = '/sdcard/' + path;
-            try {
-                const r = await fetch(`${LOCAL_NODE}/api/list?path=${encodeURIComponent(path)}`);
-                const data = await r.json();
-                currentFilesList = data.files || [];                                                   
-                let html = '';
-                if(currentPath) {
-                    html += `
-                    <div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">
-                        <span class="text-lg">🔙</span>
-                        <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar)</span>
-                    </div>`;
-                }                                                                   
-                if (data.files && data.files.length > 0) {
-                    data.files.forEach(f => {
-                        const filePath = currentPath ? `${currentPath}/${f.name}` : f.name;
-                        const isHtml = f.name.endsWith('.html');
+    // Grava fisicamente os arquivos na pasta selecionada do seu computador/celular
+    async function writeToPhysicalDisk(filePath, content) {
+        if (!physicalDirectoryHandle) return;
+        try {
+            const pathParts = filePath.split('/');
+            let currentHandle = physicalDirectoryHandle;
 
-                        html += `
-                        <div class="file-item p-4 flex items-center justify-between cursor-pointer">
-                            <div class="flex items-center gap-3 flex-1" onclick="${f.isDir ? `load('${filePath}')` : `openFile('${f.name}')`}">
-                                <span class="text-lg">${f.isDir ? '📁' : '📄'}</span>
-                                <div>
-                                    <span class="text-xs text-white font-mono font-bold">${f.name}</span>
-                                    <span class="block text-[8px] text-slate-500">/${filePath}</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                ${isHtml ? `
-                                    <button onclick="runHtmlDirect('${filePath}')" class="bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/40 px-2 py-1 rounded text-[9px] font-bold transition">
-                                        ⚡ EXECUTAR
-                                    </button>
-                                ` : ''}
-                                <span class="text-[10px] text-slate-500 font-mono">${f.size || 'PASTA'}</span>
-                            </div>
-                        </div>`;
-                    });
-                                         
-                    // Sincronização automática no Android
-                    triggerAndroidMirroring();
-                } else {
-                    html += `
-                    <div class="p-8 text-center text-slate-500 text-xs font-bold uppercase">
-                        <i class="fas fa-folder-open text-lg mb-2 block"></i>
-                        Esta pasta está vazia. Use o botão "+" para criar itens.
-                    </div>`;
-                }
-                document.getElementById('list').innerHTML = html;
-            } catch (err) {
-                document.getElementById('list').innerHTML = `
-                <div class="p-8 text-center text-red-500 text-xs font-bold uppercase">
-                    <i class="fas fa-exclamation-triangle text-lg mb-2 block"></i>
-                    ERRO DE CONEXÃO: O SEU SERVIDOR RENDER ESTÁ INICIALIZANDO OU FORA DO AR.
+            // Navega e cria subpastas se necessário
+            for (let i = 0; i < pathParts.length - 1; i++) {
+                currentHandle = await currentHandle.getDirectoryHandle(pathParts[i], { create: true });
+            }
+
+            const fileName = pathParts[pathParts.length - 1];
+            const fileHandle = await currentHandle.getFileHandle(fileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+            logHELENA(`[DISCO RÍGIDO]: Gravado com sucesso -> /${filePath}`);
+        } catch (err) {
+            logHELENA(`[ERRO DISCO]: Falha ao gravar no HD: ${err.message}`);
+        }
+    }
+
+    // Carregar arquivos e pastas
+    async function load(path = '') {
+        currentPath = path;
+        document.getElementById('pathDisp').innerText = '/sdcard/' + path;
+        try {
+            const r = await fetch(`${LOCAL_NODE}/api/list?path=${encodeURIComponent(path)}`);
+            const data = await r.json();
+            currentFilesList = data.files || [];
+                                                               
+            let html = '';
+            if(currentPath) {
+                html += `
+                <div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">
+                    <span class="text-lg">🔙</span>
+                    <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar)</span>
                 </div>`;
-                logHELENA("ERRO: Falha ao conectar ao Render. Tentando ler cache local...");
-                loadLocalAndroidFallback();
+            }                                                                              
+
+            if (data.files && data.files.length > 0) {
+                data.files.forEach(f => {
+                    const filePath = currentPath ? `${currentPath}/${f.name}` : f.name;
+                    const isHtml = f.name.endsWith('.html');
+
+                    html += `
+                    <div class="file-item p-4 flex items-center justify-between cursor-pointer">
+                        <div class="flex items-center gap-3 flex-1" onclick="${f.isDir ? `load('${filePath}')` : `openFile('${f.name}')`}">
+                            <span class="text-lg">${f.isDir ? '📁' : '📄'}</span>
+                            <div>
+                                <span class="text-xs text-white font-mono font-bold">${f.name}</span>
+                                <span class="block text-[8px] text-slate-500">/${filePath}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${isHtml ? `
+                                <button onclick="runHtmlDirect('${filePath}')" class="bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/40 px-2 py-1 rounded text-[9px] font-bold transition">
+                                    ⚡ EXECUTAR
+                                </button>
+                            ` : ''}
+                            <span class="text-[10px] text-slate-500 font-mono">${f.size || 'PASTA'}</span>
+                        </div>
+                    </div>`;
+                });                                                           
+
+                // Executa espelhamento no Android/IndexedDB e Disco Rígido
+                triggerAndroidMirroring();
+            } else {
+                html += `
+                <div class="p-8 text-center text-slate-500 text-xs font-bold uppercase">
+                    <i class="fas fa-folder-open text-lg mb-2 block"></i>
+                    Esta pasta está vazia. Use o botão "+" para criar itens.
+                </div>`;
             }
+            document.getElementById('list').innerHTML = html;
+        } catch (err) {
+            document.getElementById('list').innerHTML = `
+            <div class="p-8 text-center text-red-500 text-xs font-bold uppercase">
+                <i class="fas fa-exclamation-triangle text-lg mb-2 block"></i>
+                ERRO DE CONEXÃO: O RENDER REINICIOU. RECUPERANDO DO COFRE LOCAL...
+            </div>`;
+            logHELENA("ERRO: Render offline. Ativando blindagem de cache local.");
+            loadLocalAndroidFallback();
         }
+    }
 
-        // Executa o arquivo HTML diretamente pela rota limpa do servidor
-        function runHtmlDirect(path) {
-            logHELENA(`[EXECUTANDO ROTA REAL]: /${path}`);
-            const cleanUrl = `${LOCAL_NODE}/${path}`;
-            window.open(cleanUrl, '_blank');
-        }
+    function runHtmlDirect(path) {
+        logHELENA(`[EXECUTANDO ROTA REAL]: /${path}`);
+        const cleanUrl = `${LOCAL_NODE}/${path}`;
+        window.open(cleanUrl, '_blank');
+    }
 
-        // PROTOCOLO DE ESPELHAMENTO HELENA (ANDROID STORAGE)
-        async function triggerAndroidMirroring() {
-            if (typeof Capacitor === 'undefined') {
-                logHELENA("[HELENA]: Executando fora do Android. Modo simulação de espelhamento.");
-                return;
-            }
-            const { Filesystem } = Capacitor.Plugins;
-            const Directory = { Documents: 'DOCUMENTS' };
+    // PROTOCOLO DE ESPELHAMENTO HELENA (ANDROID, INDEXEDDB E DISCO RÍGIDO)
+    async function triggerAndroidMirroring() {
+        document.getElementById('syncStatus').innerText = "Sincronizador: Espelhando...";
+        document.getElementById('syncStatus').className = "text-[9px] text-cyan-400 font-mono animate-pulse";
 
-            document.getElementById('syncStatus').innerText = "Sincronizador Android: Espelhando...";
-            document.getElementById('syncStatus').className = "text-[9px] text-cyan-400 font-mono animate-pulse";
+        for (let file of currentFilesList) {
+            if (!file.isDir) {
+                try {
+                    const filePath = currentPath ? `${currentPath}/${file.name}` : file.name;
+                    const response = await fetch(`${LOCAL_NODE}/${filePath}`);
+                    const content = await response.text();
 
-            for (let file of currentFilesList) {
-                if (!file.isDir) {
-                    try {
-                        const filePath = currentPath ? `${currentPath}/${file.name}` : file.name;
-                        // Baixa o conteúdo direto do servidor Render pela rota limpa
-                        const response = await fetch(`${LOCAL_NODE}/${filePath}`);
-                        const content = await response.text();
+                    // 1. Envia para o Service Worker guardar no IndexedDB do navegador
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'PRESERVE_FILE',
+                            path: filePath,
+                            content: content,
+                            isDir: false
+                        });
+                    }
 
-                        // Salva fisicamente no diretório do Android
+                    // 2. Grava no disco rígido físico se a permissão foi concedida
+                    if (physicalDirectoryHandle) {
+                        await writeToPhysicalDisk(filePath, content);
+                    }
+
+                    // 3. Grava no Android via Capacitor se estiver rodando no APK
+                    if (typeof Capacitor !== 'undefined') {
+                        const { Filesystem } = Capacitor.Plugins;
+                        const Directory = { Documents: 'DOCUMENTS' };
                         await Filesystem.writeFile({
                             path: `JDP_Sistemas_Backup/${filePath}`,
                             data: content,
@@ -231,170 +286,122 @@
                             encoding: 'utf8',
                             recursive: true
                         });
-                        logHELENA(`[OK] Espelhado: /Documents/JDP_Sistemas_Backup/${filePath}`);
-                    } catch (e) {
-                        logHELENA(`[ERRO ESPELHAMENTO]: Falha ao salvar localmente ${file.name}: ${e.message}`);
                     }
+
+                    logHELENA(`[OK COFRE]: Blindado em todas as camadas -> ${file.name}`);
+                } catch (e) {
+                    logHELENA(`[AVISO]: Falha ao blindar arquivo ${file.name}: ${e.message}`);
                 }
             }
-            document.getElementById('syncStatus').innerText = "Sincronizador Android: 100% Sincronizado";
-            document.getElementById('syncStatus').className = "text-[9px] text-green-400 font-mono";
         }
+        document.getElementById('syncStatus').innerText = "Sincronizador: 100% Blindado no Dispositivo";
+        document.getElementById('syncStatus').className = "text-[9px] text-green-400 font-mono font-bold";
+    }
 
-        // Caso o Render caia ou apague, lê os arquivos salvos localmente no Android
-        async function loadLocalAndroidFallback() {
-            if (typeof Capacitor === 'undefined') return;
-            const { Filesystem } = Capacitor.Plugins;
-            const Directory = { Documents: 'DOCUMENTS' };
+    // Carrega arquivos a partir do IndexedDB se o Render cair
+    async function loadLocalAndroidFallback() {
+        logHELENA("[EMERGÊNCIA]: Puxando do IndexedDB...");
+        const request = indexedDB.open('HELENA_DATABASE', 1);
+        
+        request.onsuccess = (event) => {
+            const db = event.target.result;
+            const transaction = db.transaction('files', 'readonly');
+            const store = transaction.objectStore('files');
+            const getAll = store.getAll();
 
-            try {
-                logHELENA("[MODO DE EMERGÊNCIA]: Carregando do armazenamento do Android...");
-                const result = await Filesystem.readdir({
-                    path: `JDP_Sistemas_Backup/${currentPath}`,
-                    directory: Directory.Documents
-                });
-
+            getAll.onsuccess = () => {
+                const files = getAll.result;
                 let html = '';
-                if(currentPath) {
-                    html += `
-                    <div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">
-                        <span class="text-lg">🔙</span>
-                        <span class="text-xs text-yellow-400 font-bold uppercase">.. (Voltar Local)</span>
-                    </div>`;
-                }
-
-                if (result.files && result.files.length > 0) {
-                    result.files.forEach(f => {
-                        const name = f.name || f;
-                        const isDir = f.type === 'directory';
+                if (files && files.length > 0) {
+                    files.forEach(f => {
                         html += `
-                        <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="${isDir ? `load('${currentPath ? currentPath + '/' + name : name}')` : `openLocalFile('${name}')`}">
+                        <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="alert('Conteúdo recuperado do cofre local:\\n\\n' + \`${f.content}\`)">
                             <div class="flex items-center gap-3">
-                                <span class="text-lg">${isDir ? '📁' : '📄'}</span>
-                                <span class="text-xs text-yellow-300 font-mono font-bold">${name} [LOCAL]</span>
+                                <span class="text-lg">🛡️</span>
+                                <div>
+                                    <span class="text-xs text-yellow-300 font-mono font-bold">${f.path}</span>
+                                    <span class="block text-[8px] text-cyan-400">RECUPERADO DO COFRE LOCAL</span>
+                                </div>
                             </div>
-                            <span class="text-[10px] text-slate-500 font-mono">OFFLINE</span>
                         </div>`;
                     });
                 } else {
-                    html += `<div class="p-8 text-center text-yellow-500 text-xs font-bold uppercase">Nenhum backup local encontrado.</div>`;
+                    html += `<div class="p-8 text-center text-yellow-500 text-xs font-bold uppercase">Cofre local vazio. Aguardando sincronização do Render.</div>`;
                 }
                 document.getElementById('list').innerHTML = html;
-            } catch (err) {
-                logHELENA("[ERRO CRÍTICO]: Sem conexão e sem backup local ainda.");
-            }
-        }
+            };
+        };
+    }
 
-        // Abre arquivo local se estiver offline
-        async function openLocalFile(name) {
-            if (typeof Capacitor === 'undefined') return;
-            const { Filesystem } = Capacitor.Plugins;
-            const Directory = { Documents: 'DOCUMENTS' };
-            try {
-                const filePath = currentPath ? `JDP_Sistemas_Backup/${currentPath}/${name}` : `JDP_Sistemas_Backup/${name}`;
-                const contents = await Filesystem.readFile({
-                    path: filePath,
-                    directory: Directory.Documents,
-                    encoding: 'utf8'
-                });
-                alert(`[CONTEÚDO BACKUP LOCAL - ${name}]:\n\n${contents.data}`);
-            } catch (e) {
-                alert("Não foi possível abrir o arquivo local.");
-            }
-        }
+    function forceBackupAll() {
+        logHELENA("[COMANDO CRIADOR]: Sincronização forçada inicializada...");
+        triggerAndroidMirroring();
+    }
 
-        // Forçar Backup Completo Manualmente
-        function forceBackupAll() {
-            logHELENA("[COMANDO CRIADOR]: Sincronização forçada inicializada...");
-            triggerAndroidMirroring();
-            toggleMenu();
-        }
+    function openFile(name) {
+        const filePath = currentPath ? currentPath + '/' + name : name;
+        const fileUrl = `${LOCAL_NODE}/${filePath}`;
+        window.open(fileUrl, '_blank');
+    }
 
-        // Abrir arquivo usando rota direta (Servidor)
-        function openFile(name) {
-            const filePath = currentPath ? currentPath + '/' + name : name;
-            const fileUrl = `${LOCAL_NODE}/${filePath}`;
-            window.open(fileUrl, '_blank');
-        }
+    function toggleMenu() {
+        const m = document.getElementById('fabMenu');
+        m.classList.toggle('hidden');
+        m.classList.toggle('flex');
+    }
 
-        // Alternar menu flutuante (+)
-        function toggleMenu() {
-            const m = document.getElementById('fabMenu');
-            m.classList.toggle('hidden');
-            m.classList.toggle('flex');
-        }
+    function openModal(type) {
+        window.lastType = type;
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('mText').style.display = type === 'text' ? 'block' : 'none';
+        document.getElementById('mTitle').innerText = type === 'text' ? 'Criar Novo Arquivo' : 'Criar Nova Pasta';
+        document.getElementById('fabMenu').classList.add('hidden');
+    }
 
-        // Abrir modal de criação
-        function openModal(type) {
-            window.lastType = type;
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('mText').style.display = type === 'text' ? 'block' : 'none';
-            document.getElementById('mTitle').innerText = type === 'text' ? 'Criar Novo Arquivo' : 'Criar Nova Pasta';
-            document.getElementById('fabMenu').classList.add('hidden');
-        }
+    async function save() {
+        const name = document.getElementById('mName').value;
+        const content = document.getElementById('mText').value;
+        if (!name) return;
 
-        // Salvar nova pasta ou arquivo no servidor Render
-        async function save() {
-            const name = document.getElementById('mName').value;
-            const content = document.getElementById('mText').value;
-            if (!name) return;
-
-            try {
-                logHELENA(`Enviando ${name} para o Render...`);
-                const response = await fetch(`${LOCAL_NODE}/api/create`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
-                });
+        try {
+            logHELENA(`Enviando ${name} para o Render...`);
+            const response = await fetch(`${LOCAL_NODE}/api/create`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
+            });
+            closeModal();
+            load(currentPath);
+        } catch (err) {
+            logHELENA("Erro ao salvar no Render. Salvando no disco do dispositivo...");
+            if (physicalDirectoryHandle) {
+                const filePath = currentPath ? `${currentPath}/${name}` : name;
+                await writeToPhysicalDisk(filePath, content);
                 closeModal();
-                load(currentPath); // Recarrega o diretório
-            } catch (err) {
-                logHELENA("Erro ao salvar no Render. Tentando salvar apenas localmente no Android...");
-                saveLocalEmergency(name, content);
+                load(currentPath);
             }
         }
+    }
 
-        // Salvamento de Emergência direto no Android
-        async function saveLocalEmergency(name, content) {
-            if (typeof Capacitor === 'undefined') {
-                alert("Erro ao conectar com o servidor.");
-                return;
-            }
-            const { Filesystem } = Capacitor.Plugins;
-            const Directory = { Documents: 'DOCUMENTS' };
-            try {
-                const filePath = currentPath ? `JDP_Sistemas_Backup/${currentPath}/${name}` : `JDP_Sistemas_Backup/${name}`;
-                await Filesystem.writeFile({
-                    path: filePath,
-                    data: content || '',
-                    directory: Directory.Documents,
-                    encoding: 'utf8',
-                    recursive: true
-                });
-                logHELENA(`[EMERGÊNCIA SALVA LOCALMENTE]: ${name}`);
-                closeModal();
-                loadLocalAndroidFallback();
-            } catch (e) {
-                logHELENA(`Falha crítica ao gravar localmente: ${e.message}`);
-            }
-        }
+    function closeModal() {
+         document.getElementById('modal').classList.add('hidden');
+         document.getElementById('mName').value = '';
+         document.getElementById('mText').value = '';
+    }
 
-        // Fechar modal de criação
-        function closeModal() {
-             document.getElementById('modal').classList.add('hidden');
-             document.getElementById('mName').value = '';
-             document.getElementById('mText').value = '';
-        }
+    function goBack() {
+         let p = currentPath.split('/');
+         p.pop();
+         load(p.join('/'));
+    }
 
-        // Voltar um nível de diretório
-        function goBack() {
-             let p = currentPath.split('/');
-             p.pop();
-             load(p.join('/'));
-        }
+    // Inicialização do sistema e pedido de pasta do dispositivo
+    window.addEventListener('click', function initFolder() {
+        requestHardwareFolderPermission();
+        window.removeEventListener('click', initFolder);
+    }, { once: true });
 
-        // Inicialização do sistema
-        load();
-    </script>
+    load();
+    </script>                
 </body>
     </html>
