@@ -13,10 +13,14 @@ app.use(express.json());
 const ROOT = path.join(__dirname, 'storage');
 if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
 
-// 1. INTERFACE PRINCIPAL DO GERENCIADOR (index.html na raiz)
-app.get('/', (req, res) => {
+// 1. INTERFACE PRINCIPAL DO GERENCIADOR (Proteção total contra maiúsculas/minúsculas)
+const servePainelPrincipal = (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
-});
+};
+
+app.get('/', servePainelPrincipal);
+app.get('/index.html', servePainelPrincipal);
+app.get('/Index.html', servePainelPrincipal); // Captura o desvio com "I" maiúsculo
 
 // 2. CONTROLE DE DIRETÓRIOS E CRIAÇÃO (APIs)
 app.get('/api/list', (req, res) => {
@@ -61,9 +65,10 @@ app.post('/api/create', (req, res) => {
 // 3. ROTA SUPREMA DE DIRETÓRIOS VIVOS (Caminhos Limpos e Permanentes)
 app.get('/:caminho(*)', (req, res, next) => {
     const caminhoSolicitado = req.params.caminho;
+    const caminhoLower = caminhoSolicitado.toLowerCase();
 
-    // Ignora chamadas de API do sistema, favicon e o próprio index do gerenciador
-    if (caminhoSolicitado.startsWith('api/') || caminhoSolicitado === 'favicon.ico' || caminhoSolicitado === 'index.html') {
+    // Ignora chamadas de API do sistema, favicon e qualquer variação de index.html do painel principal
+    if (caminhoSolicitado.startsWith('api/') || caminhoSolicitado === 'favicon.ico' || caminhoLower === 'index.html') {
         return next();
     }
 
@@ -93,7 +98,7 @@ app.get('/:caminho(*)', (req, res, next) => {
         }
     }
 
-    // Console de Erro Industrial HELENA caso o arquivo não exista fisicamente
+    // Console de Erro Industrial HELENA caso o arquivo não exista fisicamente no storage/
     res.status(404).set('Content-Type', 'text/html; charset=utf-8').send(`
         <div style="background:#020617; color:#fde047; font-family:'JetBrains Mono', monospace; padding:40px; min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
             <h1 style="color:#06b6d4; font-size:2rem; margin-bottom:10px;">[HELENA CORE] ROTA INDISPONÍVEL</h1>
