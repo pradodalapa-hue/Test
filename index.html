@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -39,12 +40,12 @@
              border-left: 4px solid var(--cyan);
         }
         .jdp-card {
-             background: rgba(15, 23, 42, 0.98);
-             border: 2px solid var(--cyan);
+             background: rgba(15, 23, 42, 0.95);
+             border: 1px solid rgba(6, 182, 212, 0.2);
              backdrop-filter: blur(12px);
              border-radius: 12px;
         }
-        /* Custom scrollbar */
+        /* Custom scrollbar para terminal style */
         ::-webkit-scrollbar {
             width: 4px;
         }
@@ -66,15 +67,15 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></span>
-            <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">HELENA CORE V3</span>
+            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+            <span class="text-[9px] text-cyan-400 font-bold uppercase tracking-wider">JDP SISTEMAS</span>
         </div>
     </div>
 
     <!-- CONSOLE DE LOGS DE BACKUP (ESTILO HELENA INDUSTRIAL) -->
     <div class="max-w-6xl w-full mx-auto px-4 mt-2">
-        <div class="bg-slate-950 border border-cyan-500/20 rounded p-2 text-[9px] text-slate-400 font-mono h-20 overflow-y-auto" id="terminalLogs">
-            [HELENA CORE]: Olá, Sr. José. Sistema de diretórios virtuais pronto. Crie pastas e execute seus arquivos .html em tempo real.
+        <div class="bg-slate-950 border border-cyan-500/20 rounded p-2 text-[9px] text-slate-400 font-mono h-16 overflow-y-auto" id="terminalLogs">
+            [HELENA CORE]: Conectado ao Criador Sr. José. Rotas de execução direta ativas na raiz do servidor.
         </div>
     </div>
 
@@ -89,13 +90,13 @@
     <div class="fixed bottom-6 right-6 z-50">
         <div class="hidden flex-col gap-2 mb-3 items-end" id="fabMenu">
             <button onclick="forceBackupAll()" class="bg-yellow-500 border border-yellow-300 text-black px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
-                🔄 Sincronizar Tudo
+                🔄 Forçar Espelhamento Android
             </button>
             <button onclick="openModal('folder')" class="bg-slate-900 border border-yellow-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
-                📁 Criar Pasta (/minha)
+                📁 Nova Pasta
             </button>
             <button onclick="openModal('text')" class="bg-slate-900 border border-cyan-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
-                📄 Criar HTML / Texto
+                📄 Novo Texto / HTML
             </button>
         </div>
         <button onclick="toggleMenu()" class="w-14 h-14 bg-cyan-500 text-black font-black text-2xl rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition">
@@ -104,12 +105,12 @@
     </div>
 
     <!-- MODAL DE CRIAÇÃO -->
-    <div id="modal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md jdp-card p-6 z-50">
+    <div id="modal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md jdp-card p-6 border-yellow-400 z-50">
         <h3 id="mTitle" class="text-white font-black text-sm uppercase tracking-wider mb-4">Criar Novo Item</h3>
         <input type="text" id="mName" placeholder="Ex: minha ou index.html" class="w-full bg-black border border-yellow-500/40 rounded p-2 text-white text-xs font-mono mb-3 focus:outline-none focus:border-yellow-400">
-        <textarea id="mText" placeholder="Código HTML ou conteúdo de texto aqui..." class="hidden w-full h-48 bg-black border border-cyan-500/40 rounded p-2 text-white text-xs font-mono mb-4 focus:outline-none focus:border-cyan-400"></textarea>                                   
+        <textarea id="mText" placeholder="Digite o conteúdo ou código HTML aqui..." class="hidden w-full h-32 bg-black border border-cyan-500/40 rounded p-2 text-white text-xs font-mono mb-4 focus:outline-none focus:border-cyan-400"></textarea>                                   
         <div class="flex gap-2">
-            <button onclick="save()" class="flex-1 bg-cyan-500 text-black font-black py-2.5 rounded text-xs uppercase tracking-wider hover:bg-cyan-400 transition">Confirmar</button>
+            <button onclick="save()" class="flex-1 bg-yellow-400 text-black font-black py-2.5 rounded text-xs uppercase tracking-wider hover:bg-yellow-300 transition">OK</button>
             <button onclick="closeModal()" class="flex-1 border border-slate-700 text-slate-400 py-2.5 rounded text-xs uppercase tracking-wider hover:text-white transition">Cancelar</button>
         </div>
     </div>
@@ -120,11 +121,12 @@
     </footer>
 
     <script>
-        // ENDEREÇO DO SEU SERVIDOR BACKEND RENDER
+        // ENDEREÇO DA SUA RENDER OFICIAL
         const LOCAL_NODE = 'https://jdp-sistema-backend.onrender.com';
         let currentPath = '';
-        let currentFilesList = []; 
+        let currentFilesList = []; // Cache local para sincronização
 
+        // Logger para o terminal da HELENA
         function logHELENA(msg) {
             const terminal = document.getElementById('terminalLogs');
             const time = new Date().toLocaleTimeString();
@@ -132,7 +134,7 @@
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // Carregar arquivos e pastas do servidor
+        // Carregar arquivos e pastas
         async function load(path = '') {
             currentPath = path;
             document.getElementById('pathDisp').innerText = '/sdcard/' + path;
@@ -141,32 +143,30 @@
                 const data = await r.json();
                 currentFilesList = data.files || [];                                                   
                 let html = '';
-                
                 if(currentPath) {
                     html += `
                     <div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">
                         <span class="text-lg">🔙</span>
-                        <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar para nível anterior)</span>
+                        <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar)</span>
                     </div>`;
                 }                                                                   
-                
                 if (data.files && data.files.length > 0) {
                     data.files.forEach(f => {
-                        const isHtml = f.name.endsWith('.html');
                         const filePath = currentPath ? `${currentPath}/${f.name}` : f.name;
-                        
+                        const isHtml = f.name.endsWith('.html');
+
                         html += `
                         <div class="file-item p-4 flex items-center justify-between cursor-pointer">
                             <div class="flex items-center gap-3 flex-1" onclick="${f.isDir ? `load('${filePath}')` : `openFile('${f.name}')`}">
                                 <span class="text-lg">${f.isDir ? '📁' : '📄'}</span>
                                 <div>
                                     <span class="text-xs text-white font-mono font-bold">${f.name}</span>
-                                    <span class="block text-[8px] text-slate-500">Caminho: /${filePath}</span>
+                                    <span class="block text-[8px] text-slate-500">/${filePath}</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
                                 ${isHtml ? `
-                                    <button onclick="runHtmlPage('${filePath}')" class="bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/50 px-2 py-1 rounded text-[9px] font-bold uppercase transition">
+                                    <button onclick="runHtmlDirect('${filePath}')" class="bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/40 px-2 py-1 rounded text-[9px] font-bold transition">
                                         ⚡ EXECUTAR
                                     </button>
                                 ` : ''}
@@ -174,13 +174,14 @@
                             </div>
                         </div>`;
                     });
-                    
+                                         
+                    // Sincronização automática no Android
                     triggerAndroidMirroring();
                 } else {
                     html += `
                     <div class="p-8 text-center text-slate-500 text-xs font-bold uppercase">
                         <i class="fas fa-folder-open text-lg mb-2 block"></i>
-                        Diretório vazio. Use o botão "+" para estruturar suas pastas.
+                        Esta pasta está vazia. Use o botão "+" para criar itens.
                     </div>`;
                 }
                 document.getElementById('list').innerHTML = html;
@@ -188,25 +189,24 @@
                 document.getElementById('list').innerHTML = `
                 <div class="p-8 text-center text-red-500 text-xs font-bold uppercase">
                     <i class="fas fa-exclamation-triangle text-lg mb-2 block"></i>
-                    CONEXÃO EM ESPERA: SERVIDOR RENDER INICIALIZANDO...
+                    ERRO DE CONEXÃO: O SEU SERVIDOR RENDER ESTÁ INICIALIZANDO OU FORA DO AR.
                 </div>`;
-                logHELENA("ERRO: Tentando ler backup local no Android...");
+                logHELENA("ERRO: Falha ao conectar ao Render. Tentando ler cache local...");
                 loadLocalAndroidFallback();
             }
         }
 
-        // Executa o arquivo HTML diretamente no navegador
-        function runHtmlPage(path) {
-            logHELENA(`[EXECUTANDO]: Iniciando aplicação em /${path}`);
-            // Abre diretamente a URL do arquivo no backend para renderizar no navegador
-            const fileUrl = `${LOCAL_NODE}/api/open?path=${encodeURIComponent(path)}`;
-            window.open(fileUrl, '_blank');
+        // Executa o arquivo HTML diretamente pela rota limpa do servidor
+        function runHtmlDirect(path) {
+            logHELENA(`[EXECUTANDO ROTA REAL]: /${path}`);
+            const cleanUrl = `${LOCAL_NODE}/${path}`;
+            window.open(cleanUrl, '_blank');
         }
 
-        // ESPELHAMENTO ANDROID (Capacitor)
+        // PROTOCOLO DE ESPELHAMENTO HELENA (ANDROID STORAGE)
         async function triggerAndroidMirroring() {
             if (typeof Capacitor === 'undefined') {
-                logHELENA("[HELENA]: Fora do ambiente Android. Simulação Ativa.");
+                logHELENA("[HELENA]: Executando fora do Android. Modo simulação de espelhamento.");
                 return;
             }
             const { Filesystem } = Capacitor.Plugins;
@@ -219,9 +219,11 @@
                 if (!file.isDir) {
                     try {
                         const filePath = currentPath ? `${currentPath}/${file.name}` : file.name;
-                        const response = await fetch(`${LOCAL_NODE}/api/open?path=${encodeURIComponent(filePath)}`);
+                        // Baixa o conteúdo direto do servidor Render pela rota limpa
+                        const response = await fetch(`${LOCAL_NODE}/${filePath}`);
                         const content = await response.text();
 
+                        // Salva fisicamente no diretório do Android
                         await Filesystem.writeFile({
                             path: `JDP_Sistemas_Backup/${filePath}`,
                             data: content,
@@ -229,9 +231,9 @@
                             encoding: 'utf8',
                             recursive: true
                         });
-                        logHELENA(`[OK] Espelhado localmente: /Documents/JDP_Sistemas_Backup/${filePath}`);
+                        logHELENA(`[OK] Espelhado: /Documents/JDP_Sistemas_Backup/${filePath}`);
                     } catch (e) {
-                        logHELENA(`[ERRO]: Falha ao espelhar ${file.name}: ${e.message}`);
+                        logHELENA(`[ERRO ESPELHAMENTO]: Falha ao salvar localmente ${file.name}: ${e.message}`);
                     }
                 }
             }
@@ -239,16 +241,19 @@
             document.getElementById('syncStatus').className = "text-[9px] text-green-400 font-mono";
         }
 
+        // Caso o Render caia ou apague, lê os arquivos salvos localmente no Android
         async function loadLocalAndroidFallback() {
             if (typeof Capacitor === 'undefined') return;
             const { Filesystem } = Capacitor.Plugins;
-            const Directory = { Documents: 'DOCUMENTS'; }
+            const Directory = { Documents: 'DOCUMENTS' };
+
             try {
-                logHELENA("[EMERGÊNCIA]: Lendo armazenamento local...");
+                logHELENA("[MODO DE EMERGÊNCIA]: Carregando do armazenamento do Android...");
                 const result = await Filesystem.readdir({
                     path: `JDP_Sistemas_Backup/${currentPath}`,
                     directory: Directory.Documents
                 });
+
                 let html = '';
                 if(currentPath) {
                     html += `
@@ -257,6 +262,7 @@
                         <span class="text-xs text-yellow-400 font-bold uppercase">.. (Voltar Local)</span>
                     </div>`;
                 }
+
                 if (result.files && result.files.length > 0) {
                     result.files.forEach(f => {
                         const name = f.name || f;
@@ -271,14 +277,15 @@
                         </div>`;
                     });
                 } else {
-                    html += `<div class="p-8 text-center text-yellow-500 text-xs font-bold uppercase">Nenhum backup local.</div>`;
+                    html += `<div class="p-8 text-center text-yellow-500 text-xs font-bold uppercase">Nenhum backup local encontrado.</div>`;
                 }
                 document.getElementById('list').innerHTML = html;
             } catch (err) {
-                logHELENA("[CRÍTICO]: Sem conexão ativa e sem dados locais.");
+                logHELENA("[ERRO CRÍTICO]: Sem conexão e sem backup local ainda.");
             }
         }
 
+        // Abre arquivo local se estiver offline
         async function openLocalFile(name) {
             if (typeof Capacitor === 'undefined') return;
             const { Filesystem } = Capacitor.Plugins;
@@ -292,59 +299,65 @@
                 });
                 alert(`[CONTEÚDO BACKUP LOCAL - ${name}]:\n\n${contents.data}`);
             } catch (e) {
-                alert("Erro ao abrir arquivo local.");
+                alert("Não foi possível abrir o arquivo local.");
             }
         }
 
+        // Forçar Backup Completo Manualmente
         function forceBackupAll() {
-            logHELENA("[COMANDO CRIADOR]: Sincronização forçada iniciada...");
+            logHELENA("[COMANDO CRIADOR]: Sincronização forçada inicializada...");
             triggerAndroidMirroring();
             toggleMenu();
         }
 
+        // Abrir arquivo usando rota direta (Servidor)
         function openFile(name) {
             const filePath = currentPath ? currentPath + '/' + name : name;
-            const fileUrl = `${LOCAL_NODE}/api/open?path=${encodeURIComponent(filePath)}`;
+            const fileUrl = `${LOCAL_NODE}/${filePath}`;
             window.open(fileUrl, '_blank');
         }
 
+        // Alternar menu flutuante (+)
         function toggleMenu() {
             const m = document.getElementById('fabMenu');
             m.classList.toggle('hidden');
             m.classList.toggle('flex');
         }
 
+        // Abrir modal de criação
         function openModal(type) {
             window.lastType = type;
             document.getElementById('modal').classList.remove('hidden');
             document.getElementById('mText').style.display = type === 'text' ? 'block' : 'none';
-            document.getElementById('mTitle').innerText = type === 'text' ? 'Criar Novo Arquivo (.html / .txt)' : 'Criar Nova Pasta';
+            document.getElementById('mTitle').innerText = type === 'text' ? 'Criar Novo Arquivo' : 'Criar Nova Pasta';
             document.getElementById('fabMenu').classList.add('hidden');
         }
 
+        // Salvar nova pasta ou arquivo no servidor Render
         async function save() {
             const name = document.getElementById('mName').value;
             const content = document.getElementById('mText').value;
             if (!name) return;
 
             try {
-                logHELENA(`Gravando ${name} no servidor Render...`);
-                await fetch(`${LOCAL_NODE}/api/create`, {
+                logHELENA(`Enviando ${name} para o Render...`);
+                const response = await fetch(`${LOCAL_NODE}/api/create`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
                 });
                 closeModal();
-                load(currentPath); 
+                load(currentPath); // Recarrega o diretório
             } catch (err) {
-                logHELENA("Erro no Render. Salvando em modo de contingência local...");
+                logHELENA("Erro ao salvar no Render. Tentando salvar apenas localmente no Android...");
                 saveLocalEmergency(name, content);
             }
         }
 
+        // Salvamento de Emergência direto no Android
         async function saveLocalEmergency(name, content) {
             if (typeof Capacitor === 'undefined') {
-                alert("Servidor indisponível.");
+                alert("Erro ao conectar com o servidor.");
                 return;
             }
             const { Filesystem } = Capacitor.Plugins;
@@ -358,28 +371,30 @@
                     encoding: 'utf8',
                     recursive: true
                 });
-                logHELENA(`[SALVO LOCALMENTE]: ${name}`);
+                logHELENA(`[EMERGÊNCIA SALVA LOCALMENTE]: ${name}`);
                 closeModal();
                 loadLocalAndroidFallback();
             } catch (e) {
-                logHELENA(`Falha ao gravar localmente: ${e.message}`);
+                logHELENA(`Falha crítica ao gravar localmente: ${e.message}`);
             }
         }
 
+        // Fechar modal de criação
         function closeModal() {
              document.getElementById('modal').classList.add('hidden');
              document.getElementById('mName').value = '';
              document.getElementById('mText').value = '';
         }
 
+        // Voltar um nível de diretório
         function goBack() {
              let p = currentPath.split('/');
              p.pop();
              load(p.join('/'));
         }
 
-        // Inicialização
+        // Inicialização do sistema
         load();
     </script>
 </body>
-                </html>
+    </html>
