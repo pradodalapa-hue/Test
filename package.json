@@ -1,15 +1,15 @@
-
 {
-  "name": "jdp-sistema-backend",
-  "version": "1.0.0",
-  "description": "Sistema de Gerenciamento de Arquivos JDP - Helena Core",
+  "name": "jdp-sistemas-backend",
+  "version": "2.0.0",
+  "description": "HELENA Core - Sistema de Preservação Suprema do Criador Sr. José",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "express": "^4.19.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "mongodb": "^6.5.0"
   },
   "engines": {
     "node": ">=18.0.0"
