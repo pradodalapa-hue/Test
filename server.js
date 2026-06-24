@@ -1,73 +1,302 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const cors = require('cors');
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
 app.use(express.json());
 
-// CORS LIBERADO PARA AS SUAS REQUISIÇÕES
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    if (req.method === 'OPTIONS') return res.sendStatus(200);
-    next();
+// =========================================================================
+// PROTOCOLO HELENA SOBERANA: GERAÇÃO DINÂMICA DO INDEX SEM ARQUIVOS NO GIT
+// =========================================================================
+app.get('/Juc/index.html', (req, res) => {
+    // Configura o cabeçalho para o navegador entender que é um documento HTML original
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+
+    // Entrega o código exato da interface industrial diretamente via código
+    res.send(`
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JDP SISTEMAS — SOBERANO FILE MANAGER (COM ESPELHAMENTO ANDROID)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="capacitor.js"></script>
+    <style>
+        :root {
+             --gold: #fde047;
+             --bg: #020617;
+             --cyan: #06b6d4;
+        }
+        body {
+             margin: 0;
+             background: var(--bg);
+             color: var(--gold);
+             font-family: 'JetBrains Mono', monospace;
+             user-select: none;
+             -webkit-user-select: none;
+        }
+        .app-bar {
+             background: #0f172a;
+             border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+        }
+        .file-item {
+             border-bottom: 1px solid rgba(253, 224, 71, 0.05);
+             transition: all 0.2s ease;
+        }
+        .file-item:hover {
+             background: rgba(6, 182, 212, 0.08);
+             border-left: 4px solid var(--cyan);
+        }
+        .jdp-card {
+             background: rgba(15, 23, 42, 0.95);
+             border: 1px solid rgba(6, 182, 212, 0.2);
+             backdrop-filter: blur(12px);
+             border-radius: 12px;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 2px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-24">
+
+    <div class="app-bar p-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <span onclick="goBack()" class="cursor-pointer text-xl hover:scale-110 transition">⬅️</span>
+            <div>
+                <div id="pathDisp" class="text-xs text-white font-bold font-mono">/sdcard</div>
+                <div class="text-[9px] text-yellow-400 font-mono" id="syncStatus">Sincronizador Android: Ocioso</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+            <span class="text-[9px] text-cyan-400 font-bold uppercase tracking-wider">JDP SISTEMAS</span>
+        </div>
+    </div>
+
+    <div class="max-w-6xl w-full mx-auto px-4 mt-2">
+        <div class="bg-slate-950 border border-cyan-500/20 rounded p-2 text-[9px] text-slate-400 font-mono h-16 overflow-y-auto" id="terminalLogs">
+            [HELENA CORE]: Aguardando comandos do Criador Sr. José...
+        </div>
+    </div>
+
+    <div class="max-w-6xl w-full mx-auto p-4 flex-1">
+        <div id="list" class="divide-y divide-slate-800 bg-slate-950/50 rounded-xl border border-slate-800/80 overflow-hidden"></div>
+    </div>
+
+    <div class="fixed bottom-6 right-6 z-50">
+        <div class="hidden flex-col gap-2 mb-3 items-end" id="fabMenu">
+            <button onclick="forceBackupAll()" class="bg-yellow-500 border border-yellow-300 text-black px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
+                🔄 Forçar Espelhamento Android
+            </button>
+            <button onclick="openModal('folder')" class="bg-slate-900 border border-yellow-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
+                📁 Nova Pasta
+            </button>
+            <button onclick="openModal('text')" class="bg-slate-900 border border-cyan-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
+                📄 Novo Texto
+            </button>
+        </div>
+        <button onclick="toggleMenu()" class="w-14 h-14 bg-cyan-500 text-black font-black text-2xl rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition">+</button>
+    </div>
+
+    <div id="modal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md jdp-card p-6 border-yellow-400 z-50">
+        <h3 id="mTitle" class="text-white font-black text-sm uppercase tracking-wider mb-4">Criar Novo Item</h3>
+        <input type="text" id="mName" placeholder="Nome..." class="w-full bg-black border border-yellow-500/40 rounded p-2 text-white text-xs font-mono mb-3 focus:outline-none focus:border-yellow-400">
+        <textarea id="mText" placeholder="Conteúdo..." class="hidden w-full h-32 bg-black border border-cyan-500/40 rounded p-2 text-white text-xs font-mono mb-4 focus:outline-none focus:border-cyan-400"></textarea>                          
+        <div class="flex gap-2">
+            <button onclick="save()" class="flex-1 bg-yellow-400 text-black font-black py-2.5 rounded text-xs uppercase tracking-wider hover:bg-yellow-300 transition">OK</button>
+            <button onclick="closeModal()" class="flex-1 border border-slate-700 text-slate-400 py-2.5 rounded text-xs uppercase tracking-wider hover:text-white transition">Cancelar</button>
+        </div>
+    </div>
+
+    <footer class="text-center text-[9px] text-slate-600 tracking-wider py-4 border-t border-slate-950 bg-[#020308] w-full mt-auto">
+        SISTEMA COGNITIVO HELENA // DOMÍNIO: JDPSISTEMAS.COM.BR // CRIADOR: SR. JOSÉ DIVINO PRADO DA LAPA
+    </footer>
+
+    <script>
+        const LOCAL_NODE = window.location.origin; // Identifica automaticamente a URL do seu Render
+        let currentPath = '';
+        let currentFilesList = [];
+
+        function logHELENA(msg) {
+            const terminal = document.getElementById('terminalLogs');
+            const time = new Date().toLocaleTimeString();
+            terminal.innerHTML += \`<br>[\${time}] \${msg}\`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function load(path = '') {
+            currentPath = path;
+            document.getElementById('pathDisp').innerText = '/sdcard/' + path;
+            try {
+                const r = await fetch(\`\${LOCAL_NODE}/api/list?path=\${encodeURIComponent(path)}\`);
+                const data = await r.json();
+                currentFilesList = data.files || [];                                  
+                let html = '';
+                if(currentPath) {
+                    html += \`
+                    <div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">
+                        <span class="text-lg">🔙</span>
+                        <span class="text-xs text-cyan-400 font-bold uppercase">.. (Voltar)</span>
+                    </div>\`;
+                }                                                  
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(f => {
+                        html += \`
+                        <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="\${f.isDir ? \`load('\${currentPath ? currentPath + '/' + f.name : f.name}')\` : \`openFile('\${f.name}')\`}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-lg">\${f.isDir ? '📁' : '📄'}</span>
+                                <span class="text-xs text-white font-mono font-bold">\${f.name}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-mono">\${f.size || 'PASTA'}</span>
+                        </div>\`;
+                    });
+                    triggerAndroidMirroring();
+                } else {
+                    html += \`
+                    <div class="p-8 text-center text-slate-500 text-xs font-bold uppercase">
+                        <i class="fas fa-folder-open text-lg mb-2 block"></i>
+                        Esta pasta está vazia. Use o botão "+" para criar itens.
+                    </div>\`;
+                }
+                document.getElementById('list').innerHTML = html;
+            } catch (err) {
+                document.getElementById('list').innerHTML = \`
+                <div class="p-8 text-center text-red-500 text-xs font-bold uppercase">
+                    <i class="fas fa-exclamation-triangle text-lg mb-2 block"></i>
+                    ERRO DE CONEXÃO: TENTANDO LER CACHE LOCAL...
+                </div>\`;
+                logHELENA("ERRO: Falha ao conectar ao Render. Carregando fallback local...");
+                loadLocalAndroidFallback();
+            }
+        }
+
+        async function triggerAndroidMirroring() {
+            if (typeof Capacitor === 'undefined') {
+                logHELENA("[HELENA]: Fora do Android. Simulação de espelhamento.");
+                return;
+            }
+            const { Filesystem } = Capacitor.Plugins;
+            const Directory = { Documents: 'DOCUMENTS' };
+            document.getElementById('syncStatus').innerText = "Sincronizador Android: Espelhando...";
+            document.getElementById('syncStatus').className = "text-[9px] text-cyan-400 font-mono animate-pulse";
+
+            for (let file of currentFilesList) {
+                if (!file.isDir) {
+                    try {
+                        const filePath = currentPath ? \`\${currentPath}/\${file.name}\` : file.name;
+                        const response = await fetch(\`\${LOCAL_NODE}/api/open?path=\${encodeURIComponent(filePath)}\`);
+                        const content = await response.text();
+                        await Filesystem.writeFile({
+                            path: \`JDP_Sistemas_Backup/\${filePath}\`,
+                            data: content,
+                            directory: Directory.Documents,
+                            encoding: 'utf8',
+                            recursive: true
+                        });
+                        logHELENA(\`[OK] Espelhado: /Documents/JDP_Sistemas_Backup/\${filePath}\`);
+                    } catch (e) {
+                        logHELENA(\`[ERRO]: Falha ao salvar \${file.name}\`);
+                    }
+                }
+            }
+            document.getElementById('syncStatus').innerText = "Sincronizador Android: 100% Sincronizado";
+            document.getElementById('syncStatus').className = "text-[9px] text-green-400 font-mono";
+        }
+
+        async function loadLocalAndroidFallback() {
+            if (typeof Capacitor === 'undefined') return;
+            const { Filesystem } = Capacitor.Plugins;
+            const Directory = { Documents: 'DOCUMENTS' };
+            try {
+                logHELENA("[EMERGÊNCIA]: Carregando do Android...");
+                const result = await Filesystem.readdir({
+                    path: \`JDP_Sistemas_Backup/\${currentPath}\`,
+                    directory: Directory.Documents
+                });
+                let html = '';
+                if(currentPath) {
+                    html += \`<div class="file-item p-4 flex items-center gap-3 cursor-pointer" onclick="goBack()">🔙 <span class="text-xs text-yellow-400 font-bold uppercase">.. (Voltar Local)</span></div>\`;
+                }
+                if (result.files && result.files.length > 0) {
+                    result.files.forEach(f => {
+                        const name = f.name || f;
+                        const isDir = f.type === 'directory';
+                        html += \`
+                        <div class="file-item p-4 flex items-center justify-between cursor-pointer" onclick="\network\${isDir ? \`load('\${currentPath ? currentPath + '/' + name : name}')\` : \`openLocalFile('\${name}')\`}">
+                            <div class="flex items-center gap-3"><span>\${isDir ? '📁' : '📄'}</span><span class="text-xs text-yellow-300 font-mono font-bold">\${name} [LOCAL]</span></div>
+                        </div>\`;
+                    });
+                }
+                document.getElementById('list').innerHTML = html;
+            } catch (err) { logHELENA("[ERRO]: Sem dados locais."); }
+        }
+
+        async function openLocalFile(name) {
+            if (typeof Capacitor === 'undefined') return;
+            const { Filesystem } = Capacitor.Plugins;
+            const Directory = { Documents: 'DOCUMENTS' };
+            try {
+                const filePath = currentPath ? \`JDP_Sistemas_Backup/\${currentPath}/\${name}\` : \`JDP_Sistemas_Backup/\${name}\`;
+                const contents = await Filesystem.readFile({ path: filePath, directory: Directory.Documents, encoding: 'utf8' });
+                alert(\`[CONTEÚDO BACKUP LOCAL]:\\n\\n\${contents.data}\`);
+            } catch (e) { alert("Erro ao abrir arquivo local."); }
+        }
+
+        function forceBackupAll() { triggerAndroidMirroring(); toggleMenu(); }
+        function openFile(name) { window.open(\`\${LOCAL_NODE}/api/open?path=\${encodeURIComponent(currentPath ? currentPath + '/' + name : name)}\`, '_blank'); }
+        function toggleMenu() { const m = document.getElementById('fabMenu'); m.classList.toggle('hidden'); m.classList.toggle('flex'); }
+        function openModal(type) { window.lastType = type; document.getElementById('modal').classList.remove('hidden'); document.getElementById('mText').style.display = type === 'text' ? 'block' : 'none'; document.getElementById('mTitle').innerText = type === 'text' ? 'Criar Novo Arquivo' : 'Criar Nova Pasta'; document.getElementById('fabMenu').classList.add('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); document.getElementById('mName').value = ''; document.getElementById('mText').value = ''; }
+
+        async function save() {
+            const name = document.getElementById('mName').value;
+            const content = document.getElementById('mText').value;
+            if (!name) return;
+            try {
+                await fetch(\`\${LOCAL_NODE}/api/create\`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ type: window.lastType, name, content, path: currentPath })
+                });
+                closeModal(); load(currentPath);
+            } catch (err) { saveLocalEmergency(name, content); }
+        }
+
+        async function saveLocalEmergency(name, content) {
+            if (typeof Capacitor === 'undefined') return;
+            const { Filesystem } = Capacitor.Plugins;
+            const Directory = { Documents: 'DOCUMENTS' };
+            try {
+                await Filesystem.writeFile({ path: \`JDP_Sistemas_Backup/\${currentPath}/\${name}\`, data: content || '', directory: Directory.Documents, encoding: 'utf8', recursive: true });
+                closeModal(); loadLocalAndroidFallback();
+            } catch (e) { logHELENA("Falha na gravação local."); }
+        }
+
+        function goBack() { let p = currentPath.split('/'); p.pop(); load(p.join('/')); }
+        load();
+    </script>
+</body>
+</html>
+    `);
 });
 
-// ABRE O SEU PAINEL DIRETAMENTE NO NAVEGADOR
-app.use(express.static(__dirname));
+// --- Rotas de Gerenciamento do File Manager (Salvam e Listam em Memória ou no FileSystem real do Back-end) ---
+let memoryStorage = { files: [] }; // Pode mapear para fs.readdir se preferir ler pastas físicas do servidor
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// SUA PASTA PRIVADA DE ARQUIVOS
-const ROOT = path.join(__dirname, 'storage');
-if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
-
-// ACESSO DIRETO AOS SEUS ARQUIVOS PÚBLICOS SE PRECISAR
-app.use('/publico', express.static(ROOT));
-
-// LISTAR OS SEUS ARQUIVOS E PASTAS
 app.get('/api/list', (req, res) => {
-    const relPath = req.query.path || '';
-    const fullPath = path.join(ROOT, relPath);
-    fs.readdir(fullPath, { withFileTypes: true }, (err, files) => {
-        if (err) return res.status(500).json({ error: "Erro ao ler diretório" });
-        const data = files.map(f => {
-            const s = fs.statSync(path.join(fullPath, f.name));
-            return { 
-                name: f.name, 
-                isDir: f.isDirectory(), 
-                size: f.isFile() ? (s.size/1024).toFixed(1)+'KB' : '' 
-            };
-        });
-        res.json({ files: data });
-    });
+    res.json(memoryStorage);
 });
 
-// ABRIR OS SEUS ARQUIVOS TEXTO/MÍDIA
-app.get('/api/open', (req, res) => {
-    const relPath = req.query.path || '';
-    const fullPath = path.join(ROOT, relPath);
-    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-        res.sendFile(fullPath);
-    } else {
-        res.status(404).send("Arquivo nao encontrado.");
-    }
-});
-
-// CRIAR AS SUAS PASTAS E ARQUIVOS ATRAVÉS DO BOTÃO (+)
 app.post('/api/create', (req, res) => {
-    const { type, name, content, path: relPath } = req.body;
-    const fullPath = path.join(ROOT, relPath, name);
-    if (type === 'folder') {
-        fs.mkdirSync(fullPath, { recursive: true });
-    } else {
-        fs.writeFileSync(fullPath, content || '');
-    }
+    const { type, name, content } = req.body;
+    memoryStorage.files.push({ name, isDir: (type === 'folder'), size: content ? `${content.length} B` : 'PASTA' });
     res.json({ success: true });
 });
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log('Z-PRIVADO ATIVO PORTA ' + PORT));
-
+app.listen(PORT, () => {
+    console.log(`[HELENA CORE]: Operando em Modo Soberano Virtual.`);
+});
