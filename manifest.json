@@ -1,0 +1,20 @@
+{
+    "name": "@claudiamelgueiro",
+    "short_name": "@claudiamelgueiro",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#050506",
+    "theme_color": "#bf953f",
+    "icons": [
+        {
+            "src": "https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1782285558672_1001254228.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1782285589574_1001254229.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}}
