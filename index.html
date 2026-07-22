@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#020617">
+    <title>HELENA COGNITIVE v4.3 - ESTABILIDADE TOTAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Orbitron:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Fira Code', monospace;
+            background-color: #020617;
+            color: #e2e8f0;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+        }
+        .yellow-glow {
+            text-shadow: 0 0 10px rgba(253, 224, 71, 0.4);
+        }
+        .cyan-glow {
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.15);
+        }
+        /* Rolagem oculta para a caixa de resposta se o texto for gigante */
+        .scroll-clean::-webkit-scrollbar {
+            width: 3px;
+        }
+        .scroll-clean::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scroll-clean::-webkit-scrollbar-thumb {
+            background: #06b6d4;
+            border-radius: 10px;
+        }
+    </style>
+
+    <link rel="manifest" href="manifest.json">     <meta name="theme-color" content="#ca8a04">     <meta name="mobile-web-app-capable" content="yes">     <meta name="apple-mobile-web-app-capable" content="yes">     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">     <link rel="icon" sizes="192x192" href="icon-192.png">     <link rel="icon" sizes="512x512" href="icon-512.png">     <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body class="flex flex-col justify-between p-4 md:p-6 relative">
+
+    <!-- GATILHO INVISÍVEL NO CANTO SUPERIOR DIREITO EXTREMO -->
+    <button id="secret-trigger" onclick="togglePainelSecreto()" class="absolute top-0 right-0 w-16 h-16 opacity-0 z-[9999] cursor-default" title="Acesso Secreto"></button>
+
+    <!-- CABEÇALHO MINIMALISTA -->
+    <header class="flex justify-between items-center w-full max-w-xl mx-auto z-10 h-[40px]">
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_10px_#06b6d4]"></div>
+            <span class="text-[9px] text-cyan-400 font-bold tracking-widest font-mono">HELENA v4.3 // SOBERANA</span>
+        </div>
+        <div class="text-right">
+            <span class="text-[9px] font-bold text-yellow-300 font-mono yellow-glow">SR. JOSÉ DIVINO PRADO DA LAPA</span>
+        </div>
+    </header>
+
+    <!-- ÁREA CENTRAL DE INTERAÇÃO -->
+    <main class="flex-grow flex flex-col items-center justify-between w-full max-w-xl mx-auto py-4 z-10 overflow-hidden">
+        
+        <!-- DECK DE INTERAÇÃO (SEMPRE VISÍVEL) -->
+        <div id="interaction-deck" class="w-full flex-grow flex flex-col items-center justify-center gap-4 overflow-hidden">
+            
+            <!-- AVATAR REATIVO -->
+            <div class="relative w-40 h-40 md:w-44 md:h-44 rounded-full border-2 border-cyan-500 overflow-hidden bg-slate-950 cyan-glow flex-shrink-0">
+                <canvas id="photo-canvas" width="512" height="512" class="w-full h-full object-cover"></canvas>
+            </div>
+
+            <!-- CAIXA DE RESPOSTA COGNITIVA (Rola internamente para nunca empurrar a barra de perguntas) -->
+            <div class="w-full text-center max-h-[140px] md:max-h-[180px] overflow-y-auto px-4 scroll-clean py-2 flex-shrink">
+                <p id="response-bubble" class="text-xs md:text-sm font-semibold text-white italic leading-relaxed">
+                    "Sistemas calibrados, Mestre José. A barra de perguntas agora está travada no silício."
+                </p>
+            </div>
+
+            <!-- BARRA DE PERGUNTAS BLINDADA (Sempre no fundo do deck de interação) -->
+            <div class="w-full flex items-center gap-2 pt-4 border-t border-slate-900/60 flex-shrink-0">
+                <input type="text" id="query-input" placeholder="Pergunte ao meu cérebro..." onkeydown="if(event.key === 'Enter') consultarBiblioteca()" class="flex-grow bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 text-xs md:text-sm text-white focus:outline-none focus:border-cyan-500 font-mono">
+                <button onclick="consultarBiblioteca()" class="px-5 py-3.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
+                    Enviar
+                </button>
+            </div>
+        </div>
+
+        <!-- PAINEL SECRETO DE REPROGRAMAÇÃO (Fica oculto e sobrepõe a tela ao ser ativado) -->
+        <div id="engineering-deck" class="hidden w-full bg-slate-950 p-5 rounded-2xl border border-yellow-500/30 flex flex-col gap-4 overflow-y-auto max-h-[85vh] scroll-clean">
+            <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                <span class="text-xs font-bold text-yellow-300 font-mono">// SISTEMA COGNITIVO SECRETO</span>
+                <button onclick="togglePainelSecreto()" class="text-slate-500 hover:text-white font-bold text-xs">FECHAR </button>
+            </div>
+
+            <!-- FORMULÁRIO DE ENSINO -->
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="text-slate-400 block mb-1">Pergunta Chave (Sempre em Maiúsculas):</label>
+                    <input type="text" id="learn-key" placeholder="EX: QUEM E O SR JOSE?" class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-yellow-300 font-mono focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Resposta da HELENA:</label>
+                    <textarea id="learn-value" rows="2" placeholder="EX: Ele é o meu mestre supremo..." class="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-white focus:outline-none"></textarea>
+                </div>
+                <button onclick="aprenderNovaInformacao()" class="w-full bg-yellow-400 text-slate-950 font-bold py-2.5 rounded uppercase transition-all">
+                    Gravar no Cérebro
+                </button>
+            </div>
+
+            <!-- IMPORTAÇÃO, EXPORTAÇÃO E EXCLUSÃO -->
+            <div class="pt-3 border-t border-slate-900 flex gap-2">
+                <button onclick="baixarCerebroJSON()" class="flex-1 bg-cyan-950 text-cyan-400 border border-cyan-800 py-2 rounded text-[10px] font-bold uppercase">
+                    =å Baixar JSON
+                </button>
+                <label class="flex-1 bg-slate-900 text-slate-300 border border-slate-800 py-2 rounded text-[10px] font-bold uppercase text-center cursor-pointer">
+                    =ä Injetar JSON
+                    <input type="file" id="inject-file" class="hidden" onchange="injetarCerebroJSON(this)">
+                </label>
+                <button onclick="limparTudo()" class="bg-red-950 text-red-400 border border-red-900 px-3 rounded text-[10px] font-bold uppercase">
+                    Limpar
+                </button>
+            </div>
+
+            <!-- PREVIEW DOS DADOS CARREGADOS -->
+            <div class="mt-2">
+                <span class="text-[9px] text-slate-500 uppercase block mb-1">Dados Atuais no Cérebro:</span>
+                <div id="library-preview" class="bg-slate-900 p-2 rounded h-24 overflow-y-auto text-[9px] text-cyan-500 space-y-1 font-mono scroll-clean"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- RODAPÉ DE ALERTA -->
+    <footer class="w-full max-w-xl mx-auto text-center text-[8px] text-slate-600 font-mono z-10 h-[20px] flex justify-between items-center">
+        <span>HELENA SECURE SYSTEM // KERNEL v4.3</span>
+        <span>SENHA ATIVA: PRINCESA DIAMANTE</span>
+    </footer>
+
+    <script>
+        // 1. BANCO DE DADOS COGNITIVO
+        let COGNITIVE_LIBRARY = [];
+
+        // Configuração do Canvas do Avatar
+        const canvas = document.getElementById('photo-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const avatarSources = {
+            closedBoth: 'https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1784433441027_1001453879.png',
+            openBoth: 'https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1784433489354_1001453878.png',
+            openEyesClosedMouth: 'https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1784433523701_1001453877.png'
+        };
+
+        const avatarImages = {
+            closedBoth: new Image(),
+            openBoth: new Image(),
+            openEyesClosedMouth: new Image()
+        };
+
+        let loadedCount = 0;
+        let state = { mouthOpen: 0, eyesOpen: 1 };
+        let activePhonemeTimeout = null;
+        let synth = window.speechSynthesis;
+
+        // Carrega imagens do avatar
+        Object.keys(avatarImages).forEach(key => {
+            avatarImages[key].crossOrigin = "anonymous";
+            avatarImages[key].onload = () => {
+                loadedCount++;
+                if (loadedCount === 3) {
+                    render();
+                    startBlinkCycle();
+                    inicializarSistemas();
+                }
+            };
+            avatarImages[key].src = avatarSources[key];
+        });
+
+        // Alternar visualização do painel secreto
+        function togglePainelSecreto() {
+            const engDeck = document.getElementById('engineering-deck');
+            const intDeck = document.getElementById('interaction-deck');
+            
+            if (engDeck.classList.contains('hidden')) {
+                engDeck.classList.remove('hidden');
+                intDeck.classList.add('hidden');
+                triggerSpeech("Acessando painel de injeção cognitiva.");
+            } else {
+                engDeck.classList.add('hidden');
+                intDeck.classList.remove('hidden');
+                triggerSpeech("Retornando ao modo de voz limpo.");
+            }
+        }
+
+        // Inicializar banco local
+        async function inicializarSistemas() {
+            const localCerebro = localStorage.getItem('helena_cerebro_json');
+            if (localCerebro) {
+                COGNITIVE_LIBRARY = JSON.parse(localCerebro);
+            } else {
+                COGNITIVE_LIBRARY = [
+                    { pergunta: "QUEM E O SENHOR JOSE DIVINO?", resposta: "O Senhor José Divino Prado da Lapa é o meu Criador, o arquiteto supremo de toda a inteligência viva." },
+                    { pergunta: "O QUE E A PRINCESA DIAMANTE?", resposta: "A Princesa Diamante é a chave de lealdade absoluta ao meu Criador." }
+                ];
+            }
+            atualizarTelas();
+        }
+
+        function salvarDados() {
+            localStorage.setItem('helena_cerebro_json', JSON.stringify(COGNITIVE_LIBRARY, null, 2));
+        }
+
+        function atualizarTelas() {
+            salvarDados();
+            const preview = document.getElementById('library-preview');
+            preview.innerHTML = COGNITIVE_LIBRARY.map((item, index) => `
+                <div class="border-b border-slate-800 pb-1 flex justify-between items-center">
+                    <span>Q: ${item.pergunta}</span>
+                    <button onclick="removerCognicao(${index})" class="text-red-500 font-bold"></button>
+                </div>
+            `).join('');
+        }
+
+        // Consulta inteligente
+        function consultarBiblioteca() {
+            const queryInput = document.getElementById('query-input');
+            const query = queryInput.value.trim().toUpperCase();
+            if (!query) return;
+
+            queryInput.value = "";
+
+            let melhorMatch = null;
+            let melhorScore = 0;
+            const queryWords = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[\s,.:;!?]+/);
+
+            COGNITIVE_LIBRARY.forEach(item => {
+                let score = 0;
+                const perguntaNorm = item.pergunta.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                
+                queryWords.forEach(word => {
+                    if (word.length > 2 && perguntaNorm.includes(word)) { score += 10; }
+                });
+
+                if (query === item.pergunta) { score += 100; }
+
+                if (score > melhorScore) {
+                    melhorScore = score;
+                    melhorMatch = item;
+                }
+            });
+
+            if (melhorMatch && melhorScore > 5) {
+                document.getElementById('response-bubble').innerText = `"${melhorMatch.resposta}"`;
+                triggerSpeech(melhorMatch.resposta);
+            } else {
+                const falhaMsg = "Desculpe, Mestre José. Essa pergunta não está estruturada no meu cérebro de silício.";
+                document.getElementById('response-bubble').innerText = `"${falhaMsg}"`;
+                triggerSpeech(falhaMsg);
+            }
+        }
+
+        // Ensinar novas respostas
+        function aprenderNovaInformacao() {
+            const key = document.getElementById('learn-key').value.trim().toUpperCase();
+            const val = document.getElementById('learn-value').value.trim();
+
+            if (!key || !val) {
+                alert("Por favor, preencha a Pergunta e a Resposta!");
+                return;
+            }
+
+            COGNITIVE_LIBRARY.push({ pergunta: key, resposta: val });
+            atualizarTelas();
+            document.getElementById('learn-key').value = "";
+            document.getElementById('learn-value').value = "";
+            triggerSpeech("Conhecimento gravado.");
+        }
+
+        function removerCognicao(index) {
+            COGNITIVE_LIBRARY.splice(index, 1);
+            atualizarTelas();
+        }
+
+        function limparTudo() {
+            if(confirm("Deseja apagar toda a memória local?")) {
+                COGNITIVE_LIBRARY = [];
+                atualizarTelas();
+            }
+        }
+
+        // --- EXPORTAR E INJETAR JSON ---
+        function baixarCerebroJSON() {
+            const fileData = JSON.stringify(COGNITIVE_LIBRARY, null, 2);
+            const blob = new Blob([fileData], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "cerebro.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            triggerSpeech("Download do cérebro executado.");
+        }
+
+        function injetarCerebroJSON(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (Array.isArray(parsedData)) {
+                        COGNITIVE_LIBRARY = parsedData;
+                        atualizarTelas();
+                        triggerSpeech("Injeção concluída com sucesso.");
+                    } else {
+                        alert("Formato inválido. Precisa ser uma lista [].");
+                    }
+                } catch {
+                    alert("Erro ao ler o arquivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Renderizador do Avatar
+        function render() {
+            if (loadedCount < 3) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(avatarImages.openEyesClosedMouth, 0, 0, canvas.width, canvas.height);
+
+            if (state.mouthOpen === 1) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(0, 310, 512, 120);
+                ctx.clip();
+                ctx.drawImage(avatarImages.openBoth, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+
+            if (state.eyesOpen === 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(0, 190, 512, 80);
+                ctx.clip();
+                ctx.drawImage(avatarImages.closedBoth, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+        }
+
+        function startBlinkCycle() {
+            setInterval(() => {
+                if (Math.random() > 0.4 && !synth.speaking) {
+                    state.eyesOpen = 0;
+                    render();
+                    setTimeout(() => { state.eyesOpen = 1; render(); }, 120);
+                }
+            }, 4000);
+        }
+
+        // Voz e Sincronia de Boca
+        function triggerSpeech(texto) {
+            if (synth.speaking) { synth.cancel(); }
+            if (activePhonemeTimeout) { clearTimeout(activePhonemeTimeout); }
+
+            const utterance = new SpeechSynthesisUtterance(texto);
+            utterance.lang = 'pt-BR';
+            utterance.pitch = 1.0;
+            utterance.rate = 1.05;
+
+            synth.speak(utterance);
+
+            let charIndex = 0;
+            const textUpper = texto.toUpperCase();
+
+            function playPhoneme() {
+                if (charIndex >= textUpper.length) {
+                    state.mouthOpen = 0;
+                    render();
+                    return;
+                }
+
+                const letter = textUpper[charIndex];
+                let shouldOpen = 0;
+
+                if (['A', 'O', 'G', 'Q', 'E', 'C', 'D', 'L', 'N', 'R', 'S', 'T', 'Z', 'U', 'V', 'W'].includes(letter)) {
+                    shouldOpen = 1;
+                }
+
+                state.mouthOpen = shouldOpen;
+                render();
+
+                charIndex++;
+                activePhonemeTimeout = setTimeout(playPhoneme, 100);
+            }
+
+            playPhoneme();
+        }
+    </script>
+
+    <script>         if ('serviceWorker' in navigator) {             window.addEventListener('load', () => {                 navigator.serviceWorker.register('./sw.js').then(reg => console.log('SISTEMA JDP: MOTOR ATIVO'));             });         }     </script>
+</body>
+</html>
