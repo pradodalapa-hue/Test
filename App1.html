@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#020617">
+    <title>HELENA COGNITIVE v8.0 - SILICON SHIELD MASTER</title>
+    <style>
+        /* ESTÉTICA INDUSTRIAL WHITE MATRIX EXCLUSIVA - JDP */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #020617;
+            overflow: hidden;
+        }
+
+        body {
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1rem;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 1.5rem;
+            }
+        }
+
+        /* CABEÇALHO */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+            z-index: 10;
+            height: 40px;
+            border-bottom: 1px solid #ffffff;
+            padding-bottom: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-led {
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .status-led.listening {
+            background-color: #ff0000;
+            box-shadow: 0 0 12px #ff0000;
+        }
+
+        .status-led.speaking {
+            background-color: #fde047;
+            box-shadow: 0 0 12px #fde047;
+        }
+
+        .status-text {
+            font-size: 9px;
+            color: #ffffff;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+        }
+
+        .creator-tag {
+            text-align: right;
+            font-size: 9px;
+            font-weight: bold;
+            color: #fde047;
+            text-shadow: 0 0 8px rgba(253, 224, 71, 0.3);
+        }
+
+        /* ÁREA CENTRAL */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            z-index: 10;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #interaction-deck {
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.5rem;
+            overflow: hidden;
+        }
+
+        /* PAINEL DO CÉREBRO (CLICÁVEL PARA ABRIR O PAINEL SECRETO) */
+        .response-container {
+            width: 100%;
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.25rem;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: border-color 0.2s;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .response-container:hover {
+            border-color: #fde047;
+        }
+
+        #response-bubble {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.6;
+            width: 100%;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        /* CALENDÁRIO INTERATIVO */
+        .calendar-box {
+            width: 100%;
+            max-width: 320px;
+            border: 1px solid #ffffff;
+            padding: 10px;
+            border-radius: 8px;
+            background: #000000;
+            margin: 10px 0;
+        }
+
+        .calendar-title {
+            text-align: center;
+            font-weight: bold;
+            color: #fde047;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .calendar-grid-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+            font-size: 10px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 5px;
+            color: #ffffff;
+        }
+
+        .calendar-grid-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+            margin-top: 5px;
+            font-size: 11px;
+        }
+
+        .calendar-day {
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .calendar-day.has-event {
+            background-color: #fde047;
+            color: #000000;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .calendar-day.today {
+            border: 1px solid #ffffff;
+        }
+
+        /* WIDGET CLIMÁTICO NATIVO */
+        .weather-widget {
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 0.5rem;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .weather-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ffffff;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .weather-temp {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .weather-details {
+            font-size: 10px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        /* BOTÃO DE IMPORTAÇÃO DE CONTATO DE CELULAR */
+        .vcf-btn {
+            background-color: #fde047;
+            color: #000000;
+            border: none;
+            padding: 8px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 8px;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        /* BARRA DE ENTRADA */
+        .input-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #ffffff;
+            flex-shrink: 0;
+        }
+
+        #query-input {
+            flex-grow: 1;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.75rem;
+            padding: 0.875rem;
+            font-size: 0.75rem;
+            color: #ffffff;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        #query-input:focus {
+            border-color: #fde047;
+            box-shadow: 0 0 10px rgba(253, 224, 71, 0.1);
+        }
+
+        .btn-mic {
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            border-radius: 0.75rem;
+            padding: 0.875rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            width: 44px;
+            height: 44px;
+            font-size: 1.1rem;
+        }
+
+        .btn-mic.recording {
+            background-color: #ff0000;
+            color: #000000;
+            border-color: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .btn-send {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+            padding-top: 0.875rem;
+            padding-bottom: 0.875rem;
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            height: 44px;
+        }
+
+        /* PAINEL SECRETO */
+        #engineering-deck {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+            background-color: #020617;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid #fde047;
+            overflow-y: auto;
+            max-height: 85vh;
+            color: #ffffff;
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 100;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ffffff;
+            padding-bottom: 0.5rem;
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #fde047;
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .form-label {
+            font-size: 0.75rem;
+            color: #ffffff;
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.25rem;
+            padding: 0.625rem;
+            color: #fde047;
+            outline: none;
+            font-size: 0.75rem;
+        }
+
+        .form-textarea {
+            width: 100%;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.25rem;
+            padding: 0.625rem;
+            color: #ffffff;
+            outline: none;
+            font-size: 0.75rem;
+            resize: none;
+        }
+
+        .btn-save {
+            width: 100%;
+            background-color: #fde047;
+            color: #020617;
+            border: none;
+            font-weight: bold;
+            padding: 0.625rem;
+            border-radius: 0.25rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .tools-container {
+            display: flex;
+            gap: 0.5rem;
+            border-top: 1px solid #ffffff;
+            padding-top: 0.75rem;
+        }
+
+        .btn-tool {
+            flex: 1;
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-tool-red {
+            background-color: #ff0000;
+            color: #000000;
+            border: 1px solid #ff0000;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        #library-preview {
+            background-color: #000000;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            height: 10rem;
+            overflow-y: auto;
+            font-size: 9px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .preview-item {
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-delete-item {
+            background: transparent;
+            border: none;
+            color: #ff0000;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        footer {
+            width: 100%;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            font-size: 8px;
+            color: #ffffff;
+            z-index: 10;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #ffffff;
+            padding-top: 0.5rem;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="status-container">
+            <div id="led-indicator" class="status-led"></div>
+            <span class="status-text">HELENA v8.0 // SHIELD KERNEL // JDP</span>
+        </div>
+        <div>
+            <span class="creator-tag">SR. JOSÉ DIVINO PRADO DA LAPA</span>
+        </div>
+    </header>
+
+    <main>
+        <div id="interaction-deck">
+            
+            <!-- CÉREBRO DE SILÍCIO (CLIQUE PARA VER O COGNITIVO SECRETO) -->
+            <div class="response-container" onclick="togglePainelSecreto()" title="Clique para abrir as configurações do Cérebro">
+                <div id="response-bubble">Sistemas calibrados, Mestre José. O Kernel de Proteção v8.0 está ativo e imune a travamentos.
+
+Instruções rápidas:
+- Toque nesta caixa preta a qualquer momento para abrir as configurações do Cérebro.
+- Diga: "helena grave dia 15 de agosto de 2026 meu aniversário"
+- Diga: "helena quais compromissos tenho mais proximo"
+- Diga: "helena anota contato [Nome] [Telefone]"
+- Diga: "helena abra o contato [Nome]"
+- Diga: "helena como vai ser o clima para amanha"
+- Diga: "helena quanto é a raiz de 144"</div>
+            </div>
+
+            <div class="input-container">
+                <button id="mic-btn" onclick="toggleMicrofone()" class="btn-mic" title="Falar com a HELENA">🎙️</button>
+                <input type="text" id="query-input" placeholder="Diga ou digite o comando para a HELENA..." onkeydown="if(event.key === 'Enter') consultarBiblioteca()">
+                <button onclick="consultarBiblioteca()" class="btn-send">Enviar</button>
+            </div>
+        </div>
+
+        <!-- PAINEL COGNITIVO SECRETO -->
+        <div id="engineering-deck">
+            <div class="panel-header">
+                <span class="panel-title">// SISTEMA COGNITIVO SECRETO</span>
+                <button onclick="togglePainelSecreto()" class="btn-close">FECHAR ✕</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div class="form-group">
+                    <label class="form-label">Pergunta Chave:</label>
+                    <input type="text" id="learn-key" placeholder="EX: QUEM E O SR JOSE?" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Resposta da HELENA:</label>
+                    <textarea id="learn-value" rows="2" placeholder="EX: Ele é o meu mestre supremo..." class="form-textarea"></textarea>
+                </div>
+                <button onclick="aprenderNovaInformacao()" class="btn-save">Gravar no Cérebro</button>
+            </div>
+
+            <div class="tools-container">
+                <button onclick="baixarCerebroJSON()" class="btn-tool">📥 Baixar JSON (cerebro.json)</button>
+                <label class="btn-tool" style="display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                    📤 Injetar JSON
+                    <input type="file" id="inject-file" style="display: none;" onchange="injetarCerebroJSON(this)">
+                </label>
+                <button onclick="limparTudo()" class="btn-tool-red">Limpar</button>
+            </div>
+
+            <div style="margin-top: 0.5rem;">
+                <span class="preview-title">Dados Atuais no Cérebro:</span>
+                <div id="library-preview"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <span>HELENA SECURE SYSTEM // KERNEL v8.0 // 100% STABLE</span>
+        <span>SENHA ATIVA: PRINCESA DIAMANTE</span>
+    </footer>
+
+    <script>
+        let COGNITIVE_LIBRARY = [];
+        let synth = window.speechSynthesis;
+        let recognition = null;
+        let isRecording = false;
+        let isSpeaking = false;
+
+        setTimeout(() => { inicializarSistemas(); inicializarSpeechRecognition(); }, 300);
+
+        function inicializarAjusteViewport() {
+            if (window.visualViewport) {
+                const ajustarLayout = () => {
+                    document.body.style.height = `${window.visualViewport.height}px`;
+                    window.scrollTo(0, 0);
+                };
+                window.visualViewport.addEventListener('resize', ajustarLayout);
+                window.visualViewport.addEventListener('scroll', ajustarLayout);
+                ajustarLayout();
+            }
+        }
+
+        function togglePainelSecreto() {
+            const engDeck = document.getElementById('engineering-deck');
+            const intDeck = document.getElementById('interaction-deck');
+            if (engDeck.style.display === 'none' || engDeck.style.display === '') {
+                engDeck.style.display = 'flex';
+                intDeck.style.display = 'none';
+                triggerSpeech("Painel secreto de controle ativado.");
+            } else {
+                engDeck.style.display = 'none';
+                intDeck.style.display = 'flex';
+                triggerSpeech("Retornando ao painel principal.");
+            }
+        }
+
+        async function inicializarSistemas() {
+            inicializarAjusteViewport();
+            const localCerebro = localStorage.getItem('helena_cerebro_json');
+            if (localCerebro) {
+                COGNITIVE_LIBRARY = JSON.parse(localCerebro);
+            } else {
+                COGNITIVE_LIBRARY = [
+                    { pergunta: "QUEM E O SENHOR JOSE DIVINO?", resposta: "O Senhor José Divino Prado da Lapa é o meu Criador, o arquiteto supremo de toda a inteligência viva." },
+                    { pergunta: "O QUE E A PRINCESA DIAMANTE?", resposta: "A Princesa Diamante é a chave de lealdade absoluta ao meu Criador." }
+                ];
+            }
+            atualizarTelas();
+        }
+
+        function salvarDados() {
+            localStorage.setItem('helena_cerebro_json', JSON.stringify(COGNITIVE_LIBRARY, null, 2));
+        }
+
+        function atualizarTelas() {
+            salvarDados();
+            const preview = document.getElementById('library-preview');
+            preview.innerHTML = COGNITIVE_LIBRARY.map((item, index) => `
+                <div class="preview-item">
+                    <span>Q: ${item.pergunta}</span>
+                    <button onclick="removerCognicao(${index})" class="btn-delete-item">✕</button>
+                </div>
+            `).join('');
+        }
+
+        /* INICIALIZADOR DO RECONHECIMENTO DE VOZ NATIVO (MICROFONE) */
+        function inicializarSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'pt-BR';
+
+                recognition.onstart = () => {
+                    if (isSpeaking) {
+                        recognition.stop();
+                        return;
+                    }
+                    isRecording = true;
+                    document.getElementById('mic-btn').classList.add('recording');
+                    document.getElementById('led-indicator').classList.add('listening');
+                };
+
+                recognition.onresult = (event) => {
+                    const result = event.results[0][0].transcript;
+                    document.getElementById('query-input').value = result;
+                };
+
+                recognition.onerror = (e) => {
+                    console.error("Erro no reconhecimento de voz: ", e);
+                    pararGravacao();
+                };
+
+                recognition.onend = () => {
+                    pararGravacao();
+                    const inputVal = document.getElementById('query-input').value.trim();
+                    if (inputVal && !isSpeaking) {
+                        consultarBiblioteca();
+                    }
+                };
+            } else {
+                console.warn("Speech recognition não suportado.");
+                document.getElementById('mic-btn').style.display = 'none';
+            }
+        }
+
+        function toggleMicrofone() {
+            if (!recognition || isSpeaking) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function pararGravacao() {
+            isRecording = false;
+            document.getElementById('mic-btn').classList.remove('recording');
+            document.getElementById('led-indicator').classList.remove('listening');
+        }
+
+        /* EXIBIÇÃO INSTANTÂNEA ANTI-TRAVAMENTO */
+        function renderInstantText(text, elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = text;
+            const parentContainer = element.parentElement;
+            parentContainer.scrollTop = parentContainer.scrollHeight;
+        }
+
+        /* ENGENHARIA DE EXPORTAÇÃO DE CONTATO DO CELULAR (VCF/vCard) */
+        function exportarVCardCelular(nome, telefone) {
+            const cleanPhone = telefone.replace(/[^0-9+]/g, '');
+            const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${nome}\nTEL;TYPE=CELL,VOICE:${cleanPhone}\nEND:VCARD`;
+            const blob = new Blob([vcard], { type: "text/vcard" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nome.replace(/\s+/g, '_')}.vcf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            triggerSpeech("Arquivo de contato gerado. Toque para importar para o seu celular.");
+        }
+
+        /* RENDERIZADOR DO CALENDÁRIO VISUAL */
+        function renderizarCalendarioVisual() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = hoje.getMonth();
+            const nomeMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            
+            let html = `<div class="calendar-box">`;
+            html += `<div class="calendar-title">${nomeMeses[mes].toUpperCase()} ${ano}</div>`;
+            html += `<div class="calendar-grid-header">`;
+            ["D","S","T","Q","Q","S","S"].forEach(d => html += `<div>${d}</div>`);
+            html += `</div><div class="calendar-grid-days">`;
+            
+            const primeiroDia = new Date(ano, mes, 1).getDay();
+            const totalDias = new Date(ano, mes + 1, 0).getDate();
+            
+            for (let i = 0; i < primeiroDia; i++) {
+                html += `<div></div>`;
+            }
+            
+            for (let dia = 1; dia <= totalDias; dia++) {
+                const diaStr = dia.toString().padStart(2, '0');
+                const mesStr = (mes + 1).toString().padStart(2, '0');
+                const chave = `EVENTO: ${diaStr}/${mesStr}/${ano}`;
+                const temCompromisso = COGNITIVE_LIBRARY.some(item => item.pergunta === chave);
+                
+                let classes = "calendar-day";
+                if (temCompromisso) classes += " has-event";
+                if (dia === hoje.getDate()) classes += " today";
+                
+                html += `<div class="${classes}" onclick="mostrarCompromissoDoDia('${diaStr}/${mesStr}/${ano}')">${dia}</div>`;
+            }
+            html += `</div></div>`;
+            return html;
+        }
+
+        function mostrarCompromissoDoDia(dataStr) {
+            const chave = `EVENTO: ${dataStr}`;
+            const compromisso = COGNITIVE_LIBRARY.find(item => item.pergunta === chave);
+            if (compromisso) {
+                const resposta = `[CALENDÁRIO JDP]\n\n📅 Data: ${dataStr}\n📝 Compromisso: "${compromisso.resposta}"`;
+                triggerSpeech(`Para o dia ${dataStr}, o compromisso agendado é: ${compromisso.resposta}`);
+                renderInstantText(resposta, 'response-bubble');
+            } else {
+                triggerSpeech("Nenhum compromisso para este dia.");
+            }
+        }
+
+        // MAPEADOR DE CÓDIGOS DE CLIMA WMO PARA PORTUGUÊS
+        function traduzirCodigoClima(code) {
+            const codigos = {
+                0: { desc: "Céu Limpo", icon: "☀️" },
+                1: { desc: "Principalmente Limpo", icon: "🌤️" },
+                2: { desc: "Parcialmente Nublado", icon: "⛅" },
+                3: { desc: "Encoberto", icon: "☁️" },
+                45: { desc: "Nevoeiro", icon: "🌫️" },
+                48: { desc: "Nevoeiro Gelado", icon: "🌫️" },
+                51: { desc: "Chispa Leve", icon: "🌧️" },
+                53: { desc: "Chispa Moderada", icon: "🌧️" },
+                55: { desc: "Chispa Densa", icon: "🌧️" },
+                61: { desc: "Chuva Fraca", icon: "🌧️" },
+                63: { desc: "Chuva Moderada", icon: "🌧️" },
+                65: { desc: "Chuva Forte", icon: "🌧️" },
+                71: { desc: "Neve Leve", icon: "❄️" },
+                73: { desc: "Neve Moderada", icon: "❄️" },
+                75: { desc: "Neve Forte", icon: "❄️" },
+                80: { desc: "Pancadas de Chuva Leves", icon: "🌦️" },
+                81: { desc: "Pancadas de Chuva Moderadas", icon: "🌦️" },
+                82: { desc: "Pancadas de Chuva Violentas", icon: "⛈️" },
+                95: { desc: "Trovoada", icon: "⛈️" }
+            };
+            return codigos[code] || { desc: "Condição Desconhecida", icon: "🌡️" };
+        }
+
+        function mesParaNumero(nomeMes) {
+            const meses = {
+                "janeiro": 1, "jan": 1, "fevereiro": 2, "fev": 2, "março": 3, "mar": 3,
+                "abril": 4, "abr": 4, "maio": 5, "junho": 6, "jun": 6, "julho": 7, "jul": 7,
+                "agosto": 8, "ago": 8, "setembro": 9, "set": 9, "outubro": 10, "out": 10,
+                "novembro": 11, "nov": 11, "dezembro": 12, "dez": 12
+            };
+            const limpo = nomeMes.toLowerCase().trim();
+            return meses[limpo] || parseInt(limpo) || 1;
+        }
+
+        async function consultarBiblioteca() {
+            const queryInput = document.getElementById('query-input');
+            const queryOriginal = queryInput.value.trim();
+            if (!queryOriginal) return;
+
+            queryInput.value = "";
+            if (synth && synth.speaking) { synth.cancel(); }
+
+            const responseBubble = document.getElementById('response-bubble');
+            responseBubble.innerHTML = "...";
+
+            const queryLower = queryOriginal.toLowerCase();
+
+            // ==================== OPERAÇÕES DE UTILITÁRIOS NATIVOS ====================
+
+            // 1. GRAVAR COMPROMISSO ("helena grave dia [dia] do [mes] [ano] [compromisso]")
+            const regexGraveCompromisso = /^helena\s+grave\s+dia\s+(\d{1,2})\s*(?:de|do)?\s*([a-zA-ZÀ-ÿ]+|\d{1,2})\s*(?:de|do)?\s*(\d{4})?\s+(.+)$/i;
+            const matchCompromisso = queryOriginal.match(regexGraveCompromisso);
+
+            if (matchCompromisso) {
+                const dia = matchCompromisso[1].padStart(2, '0');
+                const mesNome = matchCompromisso[2];
+                const mesNum = mesParaNumero(mesNome).toString().padStart(2, '0');
+                const ano = matchCompromisso[3] || new Date().getFullYear();
+                const compromisso = matchCompromisso[4].trim();
+                const chaveCompromisso = `EVENTO: ${dia}/${mesNum}/${ano}`;
+
+                COGNITIVE_LIBRARY.push({ pergunta: chaveCompromisso, resposta: compromisso });
+                atualizarTelas();
+
+                const resposta = `[AGENDA SOBERANA JDP]\n\nCompromisso gravado com sucesso, Mestre José!\n\n📅 Data: ${dia}/${mesNum}/${ano}\n📝 Evento: "${compromisso}"\n\nIntegrado ao seu cerebro.json.`;
+                triggerSpeech(`Compromisso gravado para o dia ${dia} do mês ${mesNum}.`);
+                renderInstantText(resposta, 'response-bubble');
+                return;
+            }
+
+            // 2. BUSCAR COMPROMISSO MAIS PRÓXIMO / EXIBIR CALENDÁRIO ("agenda" ou "calendario")
+            if (queryLower === "helena agenda" || queryLower === "agenda" || queryLower === "calendario" || queryLower === "helena calendario") {
+                const calHtml = renderizarCalendarioVisual();
+                const resposta = `[AGENDA SOBERANA JDP - CALENDÁRIO ATIVO]\n\n` +
+                                 `Exibindo dias de compromisso no seu calendário local:\n\n` + calHtml;
+                triggerSpeech("Abrindo o calendário de compromissos na tela.");
+                renderInstantText(resposta, 'response-bubble');
+                return;
+            }
+
+            if (queryLower.includes("compromissos") && (queryLower.includes("mais proximo") || queryLower.includes("mais próximos") || queryLower.includes("tenho"))) {
+                const eventos = COGNITIVE_LIBRARY.filter(item => item.pergunta.startsWith("EVENTO:"));
+                if (eventos.length === 0) {
+                    const resposta = `[AGENDA SOBERANA JDP]\n\nMestre José, não encontrei nenhum compromisso agendado na sua memória de silício.`;
+                    triggerSpeech("Não há compromissos agendados.");
+                    renderInstantText(resposta, 'response-bubble');
+                    return;
+                }
+
+                const hoje = new Date();
+                hoje.setHours(0,0,0,0);
+
+                const eventosProcessados = eventos.map(ev => {
+                    const dataStr = ev.pergunta.replace("EVENTO: ", "");
+                    const partes = dataStr.split("/");
+                    const dataEvento = new Date(partes[2], partes[1] - 1, partes[0]);
+                    return {
+                        original: ev,
+                        dataStr: dataStr,
+                        dateObj: dataEvento,
+                        diferenca: dataEvento - hoje
+                    };
+                });
+
+                eventosProcessados.sort((a, b) => {
+                    if (a.diferenca >= 0 && b.diferenca < 0) return -1;
+                    if (a.diferenca < 0 && b.diferenca >= 0) return 1;
+                    return Math.abs(a.diferenca) - Math.abs(b.diferenca);
+                });
+
+                const maisProximo = eventosProcessados[0];
+                let resposta = `[AGENDA SOBERANA JDP - COMPROMISSO MAIS PRÓXIMO]\n\n`;
+                
+                if (maisProximo.diferenca === 0) {
+                    resposta += `🚨 HOJE: ${maisProximo.original.resposta} (Data: ${maisProximo.dataStr})`;
+                } else if (maisProximo.diferenca > 0) {
+                    const diasRestantes = Math.ceil(maisProximo.diferenca / (1000 * 60 * 60 * 24));
+                    resposta += `📅 Em ${diasRestantes} dia(s) (${maisProximo.dataStr}):\n↳ "${maisProximo.original.resposta}"`;
+                } else {
+                    resposta += `📅 Último compromisso anotado (${maisProximo.dataStr}):\n↳ "${maisProximo.original.resposta}"`;
+                }
+
+                triggerSpeech(`Seu compromisso mais próximo é: ${maisProximo.original.resposta}, agendado para o dia ${maisProximo.dataStr}.`);
+                renderInstantText(resposta, 'response-bubble');
+                return;
+            }
+
+            // 3. GRAVAR CONTATO ("helena anota contato [Nome] [Telefone]")
+            const regexAnotarContato = /^helena\s+anota\s+contato\s+([A-Za-z0-9À-ÿ\s]+?)\s+(\+?[0-9\s().\-]+)$/i;
+            const matchContato = queryOriginal.match(regexAnotarContato);
+
+            if (matchContato) {
+                const nome = matchContato[1].trim();
+                const info = matchContato[2].trim();
+                const chaveContato = `CONTATO: ${nome.toUpperCase()}`;
+
+                COGNITIVE_LIBRARY.push({ pergunta: chaveContato, resposta: info });
+                atualizarTelas();
+
+                const resposta = `[AGENDA DE CONTATOS JDP]\n\n` +
+                                 `👤 Contato: ${nome}\n` +
+                                 `📞 Telefone: ${info}\n\n` +
+                                 `Contato gravado no cérebro de silício!\n` +
+                                 `Clique no botão abaixo para adicionar este contato diretamente na agenda do seu celular:\n\n` +
+                                 `<button class="vcf-btn" onclick="exportarVCardCelular('${nome}', '${info}')">📥 ADICIONAR AO CELULAR</button>`;
+                
+                triggerSpeech(`Contato de ${nome} gravado com sucesso.`);
+                renderInstantText(resposta, 'response-bubble');
+                return;
+            }
+
+            // 4. ABRIR CONTATO ("helena abra o contato [Nome]")
+            if (queryLower.startsWith("helena abra o contato ") || queryLower.startsWith("helena busque contato ") || queryLower.startsWith("abra o contato ")) {
+                const nomeBusca = queryOriginal.replace(/helena abra o contato |helena busque contato |abra o contato /gi, "").trim().toUpperCase();
+                const contato = COGNITIVE_LIBRARY.find(item => item.pergunta === `CONTATO: ${nomeBusca}` || item.pergunta.includes(`CONTATO: ${nomeBusca}`));
+                if (contato) {
+                    const nomeReal = contato.pergunta.replace("CONTATO: ", "");
+                    const resposta = `[CONTATO ENCONTRADO]\n\n👤 Nome: ${nomeReal}\n📞 Informações: ${contato.resposta}\n\n` +
+                                     `<button class="vcf-btn" onclick="exportarVCardCelular('${nomeReal}', '${contato.resposta}')">📥 EXPORTAR PARA CELULAR</button>`;
+                    triggerSpeech(`Encontrei o contato de ${nomeReal}. Detalhes: ${contato.resposta}`);
+                    renderInstantText(resposta, 'response-bubble');
+                } else {
+                    const resposta = `[AGENDA JDP]\n\nContato "${nomeBusca}" não encontrado no cérebro de silício.`;
+                    triggerSpeech(`Contato não encontrado.`);
+                    renderInstantText(resposta, 'response-bubble');
+                }
+                return;
+            }
+
+            // 5. CLIMA PARA AMANHÃ ("helena como vai ser o clima para amanha")
+            if (queryLower.includes("clima") && (queryLower.includes("amanha") || queryLower.includes("amanhã"))) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                        const lat = position.coords.latitude.toFixed(4);
+                        const lon = position.coords.longitude.toFixed(4);
+                        try {
+                            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+                            const resClima = await fetch(url);
+                            if (resClima.ok) {
+                                const data = await resClima.json();
+                                const tempMax = data.daily.temperature_2m_max[1];
+                                const tempMin = data.daily.temperature_2m_min[1];
+                                const condicao = traduzirCodigoClima(data.daily.weather_code[1]);
+
+                                const widgetHtml = `[TELEMETRIA CLIMÁTICA JDP - PREVISÃO PARA AMANHÃ]\n\n` +
+                                                   `<div class="weather-widget">\n` +
+                                                   `    <div class="weather-header">\n` +
+                                                   `        <span style="font-weight: bold; font-size: 11px;">🌍 COORDENADAS: ${lat}, ${lon}</span>\n` +
+                                                   `        <span style="font-size: 1.5rem;">${condicao.icon}</span>\n` +
+                                                   `    </div>\n` +
+                                                   `    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">\n` +
+                                                   `        <span class="weather-temp">${tempMax}°C</span>\n` +
+                                                   `        <span style="font-size: 12px; font-weight: bold; color: #fde047;">${condicao.desc.toUpperCase()}</span>\n` +
+                                                   `    </div>\n` +
+                                                   `    <div class="weather-details">\n` +
+                                                   `        <span>🌡️ Máxima Esperada: ${tempMax}°C</span>\n` +
+                                                   `        <span>❄️ Mínima Esperada: ${tempMin}°C</span>\n` +
+                                                   `    </div>\n` +
+                                                   `</div>`;
+                                
+                                triggerSpeech(`Amanhã o clima será ${condicao.desc}, com máxima de ${tempMax} graus.`);
+                                renderInstantText(widgetHtml, 'response-bubble');
+                            } else {
+                                renderInstantText("Erro na resposta do satélite climático.", 'response-bubble');
+                            }
+                        } catch (e) {
+                            renderInstantText("Falha ao conectar com o satélite climático.", 'response-bubble');
+                        }
+                    }, () => {
+                        renderInstantText("Geolocalização não autorizada pelo navegador.", 'response-bubble');
+                    });
+                } else {
+                    renderInstantText("Geolocalização não suportada no dispositivo.", 'response-bubble');
+                }
+                return;
+            }
+
+            // 6. CALCULADORA NATIVA SOBERANA (MAQUINA MATEMATICA COMPLETA)
+            // Trata expressões matemáticas em português como "raiz quadrada de 144" ou "raiz de 9"
+            let expressaoMatematica = queryLower
+                .replace("helena", "")
+                .replace("quanto é", "")
+                .replace("quanto e", "")
+                .replace("raiz quadrada de", "Math.sqrt")
+                .replace("raiz de", "Math.sqrt")
+                .replace(/vezes/g, "*")
+                .replace(/dividido por/g, "/")
+                .replace(/mais/g, "+")
+                .replace(/menos/g, "-")
+                .trim();
+
+            const eOperacaoMatematica = /^[0-9+\-*/().\sMath.sqrt]+$/.test(expressaoMatematica) && expressaoMatematica.length >= 2;
+
+            if (eOperacaoMatematica) {
+                try {
+                    const calculo = Function(`"use strict"; return (${expressaoMatematica})`)();
+                    const resposta = `[MAQUINA MATEMÁTICA JDP]\n\nExpressão resolvida com precisão de silício:\n\n💻 Entrada: ${expressaoMatematica.replace("Math.sqrt", "Raiz Quadrada de")}\n📊 Resultado: ${calculo}`;
+                    triggerSpeech(`O resultado é ${calculo}`);
+                    renderInstantText(resposta, 'response-bubble');
+                } catch (e) {
+                    const resposta = `[SISTEMA ARITMÉTICO]\n\nErro no cálculo matemático.`;
+                    triggerSpeech("Erro no cálculo.");
+                    renderInstantText(resposta, 'response-bubble');
+                }
+                return;
+            }
+
+            // 7. FLUXO CONVERSACIONAL DA BIBLIOTECA DE SILÍCIO
+            let melhorMatch = null;
+            let melhorScore = 0;
+            const queryLimpaConversa = queryLower.replace("helena ", "").trim();
+
+            COGNITIVE_LIBRARY.forEach(item => {
+                if (queryLimpaConversa === item.pergunta.toLowerCase()) {
+                    melhorScore = 150;
+                    melhorMatch = item;
+                }
+            });
+
+            if (melhorMatch && melhorScore >= 100) {
+                const respostaFinal = melhorMatch.resposta;
+                triggerSpeech(respostaFinal);
+                renderInstantText(respostaFinal, 'response-bubble');
+            } else {
+                const respostaFinal = `[MEMÓRIA LOCAL JDP v8.0]\n\nMestre José, este assunto não está gravado na minha memória local de silício.\n\nExperimente dizer:\n"helena grave dia 12 de outubro reunião de engenharia"`;
+                triggerSpeech("Esta informação não está gravada na minha memória local.");
+                renderInstantText(respostaFinal, 'response-bubble');
+            }
+        }
+
+        function aprenderNovaInformacao() {
+            const key = document.getElementById('learn-key').value.trim().toUpperCase();
+            const val = document.getElementById('learn-value').value.trim();
+            if (!key || !val) { alert("Preencha todos os campos!"); return; }
+            COGNITIVE_LIBRARY.push({ pergunta: key, resposta: val });
+            atualizarTelas();
+            document.getElementById('learn-key').value = "";
+            document.getElementById('learn-value').value = "";
+            triggerSpeech("Conhecimento gravado localmente.");
+        }
+
+        function removerCognicao(index) {
+            COGNITIVE_LIBRARY.splice(index, 1);
+            atualizarTelas();
+        }
+
+        function limparTudo() {
+            if(confirm("Limpar memória local?")) {
+                COGNITIVE_LIBRARY = [];
+                atualizarTelas();
+            }
+        }
+
+        function baixarCerebroJSON() {
+            const fileData = JSON.stringify(COGNITIVE_LIBRARY, null, 2);
+            const blob = new Blob([fileData], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "cerebro.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            triggerSpeech("Cérebro baixado.");
+        }
+
+        function injetarCerebroJSON(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (Array.isArray(parsedData)) {
+                        COGNITIVE_LIBRARY = parsedData;
+                        atualizarTelas();
+                        triggerSpeech("Injeção de dados executada.");
+                    }
+                } catch { alert("Erro ao ler JSON."); }
+            };
+            reader.readAsText(file);
+        }
+
+        /* FILTRO DE VOZ INTELIGENTE HELENA - PROTEÇÃO CONTRA REALIMENTAÇÃO */
+        function triggerSpeech(texto) {
+            if (!synth) return;
+            
+            setTimeout(() => {
+                try {
+                    isSpeaking = true;
+                    document.getElementById('led-indicator').classList.add('speaking');
+                    
+                    if (isRecording && recognition) {
+                        recognition.stop();
+                    }
+
+                    synth.cancel(); 
+                    
+                    let textoLimpo = texto.replace(/<div[\s\S]*?<\/div>/g, "[Painel na tela]");
+                    textoLimpo = textoLimpo.replace(/<[^>]*>/g, '').trim();
+                    
+                    if (textoLimpo.length > 200) {
+                        textoLimpo = textoLimpo.substring(0, 190) + "... Verifique os dados na tela, Mestre.";
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(textoLimpo);
+                    utterance.lang = 'pt-BR';
+                    utterance.pitch = 1.0;
+                    utterance.rate = 1.1;
+
+                    utterance.onend = () => {
+                        isSpeaking = false;
+                        document.getElementById('led-indicator').classList.remove('speaking');
+                    };
+
+                    utterance.onerror = () => {
+                        isSpeaking = false;
+                        document.getElementById('led-indicator').classList.remove('speaking');
+                    };
+
+                    synth.speak(utterance);
+                } catch (e) {
+                    console.warn("Speech Synthesis blocked.");
+                    isSpeaking = false;
+                    document.getElementById('led-indicator').classList.remove('speaking');
+                }
+            }, 0);
+        }
+    </script>
+</body>
+                      </html>
