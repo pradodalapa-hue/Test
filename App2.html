@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#020617">
+    <title>HELENA COGNITIVE v8.7 - SPLIT MATRIX</title>
+    <style>
+        /* ESTÉTICA INDUSTRIAL WHITE MATRIX EXCLUSIVA - JDP */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #020617;
+            overflow: hidden;
+        }
+
+        body {
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1rem;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 1.5rem;
+            }
+        }
+
+        /* CABEÇALHO */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+            z-index: 10;
+            height: 40px;
+            border-bottom: 1px solid #ffffff;
+            padding-bottom: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-led {
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .status-led.listening {
+            background-color: #ff0000;
+            box-shadow: 0 0 12px #ff0000;
+        }
+
+        .status-led.speaking {
+            background-color: #fde047;
+            box-shadow: 0 0 12px #fde047;
+        }
+
+        .status-text {
+            font-size: 9px;
+            color: #ffffff;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+        }
+
+        .creator-tag {
+            text-align: right;
+            font-size: 9px;
+            font-weight: bold;
+            color: #fde047;
+            text-shadow: 0 0 8px rgba(253, 224, 71, 0.3);
+        }
+
+        /* ÁREA CENTRAL */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            z-index: 10;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #interaction-deck {
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.5rem;
+            overflow: hidden;
+        }
+
+        /* PAINEL DO CÉREBRO (CLICÁVEL PARA ABRIR O PAINEL SECRETO) */
+        .response-container {
+            width: 100%;
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.25rem;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: border-color 0.2s;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .response-container:hover {
+            border-color: #fde047;
+        }
+
+        #response-bubble {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.6;
+            width: 100%;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        /* PAINEL DO CALENDÁRIO DUPLO (SPLIT PANEL JDP) */
+        .calendar-container {
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+            width: 100%;
+            max-width: 580px;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 10px 0;
+            align-items: stretch;
+        }
+
+        @media (max-width: 480px) {
+            .calendar-container {
+                flex-direction: column;
+            }
+            .events-sidebar {
+                border-right: none !important;
+                border-bottom: 1px solid #334155;
+                padding-right: 0 !important;
+                padding-bottom: 10px;
+                max-height: 120px !important;
+            }
+        }
+
+        /* LADO ESQUERDO: LISTA DE EVENTOS */
+        .events-sidebar {
+            flex: 1;
+            border-right: 1px solid #334155;
+            padding-right: 10px;
+            max-height: 240px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sidebar-title {
+            color: #fde047;
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .event-link-item {
+            padding: 6px 8px;
+            background-color: #020617;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-link-item:hover {
+            border-color: #fde047;
+            background-color: #1e293b;
+        }
+
+        /* LADO DIREITO: GRID DO CALENDÁRIO */
+        .calendar-grid-side {
+            flex: 1.3;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-title {
+            text-align: center;
+            font-weight: bold;
+            color: #fde047;
+            margin-bottom: 10px;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+
+        .calendar-grid-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+            font-size: 9px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 4px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .calendar-grid-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+            margin-top: 4px;
+            font-size: 10px;
+        }
+
+        .calendar-day {
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .calendar-day.has-event {
+            background-color: #fde047;
+            color: #000000;
+            font-weight: bold;
+            box-shadow: 0 0 6px rgba(253, 224, 71, 0.4);
+        }
+
+        .calendar-day.today {
+            border: 1px solid #ffffff;
+        }
+
+        /* WIDGET CLIMÁTICO NATIVO */
+        .weather-widget {
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 0.5rem;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .weather-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ffffff;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .weather-temp {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .weather-details {
+            font-size: 10px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        /* BOTÃO DE IMPORTAÇÃO DE CONTATO DE CELULAR */
+        .vcf-btn {
+            background-color: #fde047;
+            color: #000000;
+            border: none;
+            padding: 8px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 8px;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        /* BARRA DE ENTRADA */
+        .input-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #ffffff;
+            flex-shrink: 0;
+        }
+
+        #query-input {
+            flex-grow: 1;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.75rem;
+            padding: 0.875rem;
+            font-size: 0.75rem;
+            color: #ffffff;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        #query-input:focus {
+            border-color: #fde047;
+            box-shadow: 0 0 10px rgba(253, 224, 71, 0.1);
+        }
+
+        .btn-mic {
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            border-radius: 0.75rem;
+            padding: 0.875rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            width: 44px;
+            height: 44px;
+            font-size: 1.1rem;
+        }
+
+        .btn-mic.recording {
+            background-color: #ff0000;
+            color: #000000;
+            border-color: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .btn-send {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+            padding-top: 0.875rem;
+            padding-bottom: 0.875rem;
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            height: 44px;
+        }
+
+        /* PAINEL SECRETO */
+        #engineering-deck {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+            background-color: #020617;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid #fde047;
+            overflow-y: auto;
+            max-height: 85vh;
+            color: #ffffff;
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 100;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ffffff;
+            padding-bottom: 0.5rem;
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #fde047;
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .form-label {
+            font-size: 0.75rem;
+            color: #ffffff;
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.25rem;
+            padding: 0.625rem;
+            color: #fde047;
+            outline: none;
+            font-size: 0.75rem;
+        }
+
+        .form-textarea {
+            width: 100%;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 0.25rem;
+            padding: 0.625rem;
+            color: #ffffff;
+            outline: none;
+            font-size: 0.75rem;
+            resize: none;
+        }
+
+        .btn-save {
+            width: 100%;
+            background-color: #fde047;
+            color: #020617;
+            border: none;
+            font-weight: bold;
+            padding: 0.625rem;
+            border-radius: 0.25rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .tools-container {
+            display: flex;
+            gap: 0.5rem;
+            border-top: 1px solid #ffffff;
+            padding-top: 0.75rem;
+        }
+
+        .btn-tool {
+            flex: 1;
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-tool-red {
+            background-color: #ff0000;
+            color: #000000;
+            border: 1px solid #ff0000;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        #library-preview {
+            background-color: #000000;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            height: 10rem;
+            overflow-y: auto;
+            font-size: 9px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .preview-item {
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-delete-item {
+            background: transparent;
+            border: none;
+            color: #ff0000;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        footer {
+            width: 100%;
+            max-width: 42rem;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            font-size: 8px;
+            color: #ffffff;
+            z-index: 10;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #ffffff;
+            padding-top: 0.5rem;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="status-container">
+            <div id="led-indicator" class="status-led"></div>
+            <span class="status-text">HELENA v8.7 // MATRIX KERNEL // JDP</span>
+        </div>
+        <div>
+            <span class="creator-tag">SR. JOSÉ DIVINO PRADO DA LAPA</span>
+        </div>
+    </header>
+
+    <main>
+        <div id="interaction-deck">
+            
+            <!-- CÉREBRO DE SILÍCIO (CLIQUE PARA VER O COGNITIVO SECRETO) -->
+            <div class="response-container" onclick="togglePainelSecreto()" title="Clique para abrir as configurações do Cérebro">
+                <div id="response-bubble">Sistemas calibrados, Mestre José. Kernel v8.7 ativo.
+
+Comandos Rápidos Configurados:
+- "novo contato [Nome] [Telefone]" -> Salva contato
+- "contatos" ou "agenda" -> Mostra todos os contatos
+- "03/10 aniversario da robeta" -> Salva compromisso na data
+- "ver eventos" -> Abre o painel duplo de eventos e calendário (clique para ouvir)
+- "clima hoje" ou "clima amanha" -> Previsão em tempo real
+- "grava [pergunta] | [resposta]" -> Conhecimento geral
+- "busca [pergunta]" -> Busca conhecimento
+- "45+56" ou "raiz 144" -> Cálculos
+
+Toque nesta caixa preta para abrir o Painel Secreto.</div>
+            </div>
+
+            <div class="input-container">
+                <button id="mic-btn" onclick="toggleMicrofone()" class="btn-mic" title="Falar com a HELENA">🎙️</button>
+                <input type="text" id="query-input" placeholder="Digite ou fale com a HELENA..." onkeydown="if(event.key === 'Enter') consultarBiblioteca()">
+                <button onclick="consultarBiblioteca()" class="btn-send">Enviar</button>
+            </div>
+        </div>
+
+        <!-- PAINEL COGNITIVO SECRETO -->
+        <div id="engineering-deck">
+            <div class="panel-header">
+                <span class="panel-title">// SISTEMA COGNITIVO SECRETO</span>
+                <button onclick="togglePainelSecreto()" class="btn-close">FECHAR ✕</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div class="form-group">
+                    <label class="form-label">Pergunta Chave:</label>
+                    <input type="text" id="learn-key" placeholder="EX: QUEM E O SR JOSE?" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Resposta da HELENA:</label>
+                    <textarea id="learn-value" rows="2" placeholder="EX: Ele é o meu mestre supremo..." class="form-textarea"></textarea>
+                </div>
+                <button onclick="aprenderNovaInformacao()" class="btn-save">Gravar no Cérebro</button>
+            </div>
+
+            <div class="tools-container">
+                <button onclick="baixarCerebroJSON()" class="btn-tool">📥 Baixar JSON (cerebro.json)</button>
+                <label class="btn-tool" style="display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                    📤 Injetar JSON
+                    <input type="file" id="inject-file" style="display: none;" onchange="injetarCerebroJSON(this)">
+                </label>
+                <button onclick="limparTudo()" class="btn-tool-red">Limpar</button>
+            </div>
+
+            <div style="margin-top: 0.5rem;">
+                <span class="preview-title">Dados Atuais no Cérebro:</span>
+                <div id="library-preview"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <span>HELENA SECURE SYSTEM // KERNEL v8.7 // BRANCO MATRIX</span>
+        <span>SENHA ATIVA: PRINCESA DIAMANTE</span>
+    </footer>
+
+    <script>
+        let COGNITIVE_LIBRARY = [];
+        let synth = window.speechSynthesis;
+        let recognition = null;
+        let isRecording = false;
+        let isSpeaking = false;
+
+        setTimeout(() => { inicializarSistemas(); inicializarSpeechRecognition(); }, 300);
+
+        function inicializarAjusteViewport() {
+            if (window.visualViewport) {
+                const ajustarLayout = () => {
+                    document.body.style.height = `${window.visualViewport.height}px`;
+                    window.scrollTo(0, 0);
+                };
+                window.visualViewport.addEventListener('resize', ajustarLayout);
+                window.visualViewport.addEventListener('scroll', ajustarLayout);
+                ajustarLayout();
+            }
+        }
+
+        function togglePainelSecreto() {
+            const engDeck = document.getElementById('engineering-deck');
+            const intDeck = document.getElementById('interaction-deck');
+            if (engDeck.style.display === 'none' || engDeck.style.display === '') {
+                engDeck.style.display = 'flex';
+                intDeck.style.display = 'none';
+                triggerSpeech("Painel secreto ativado.");
+            } else {
+                engDeck.style.display = 'none';
+                intDeck.style.display = 'flex';
+                triggerSpeech("Painel principal.");
+            }
+        }
+
+        async function inicializarSistemas() {
+            inicializarAjusteViewport();
+            const localCerebro = localStorage.getItem('helena_cerebro_json');
+            if (localCerebro) {
+                COGNITIVE_LIBRARY = JSON.parse(localCerebro);
+            } else {
+                COGNITIVE_LIBRARY = [
+                    { pergunta: "QUEM E O SENHOR JOSE DIVINO?", resposta: "O Senhor José Divino Prado da Lapa é o meu Criador, o arquiteto supremo de toda a inteligência viva." },
+                    { pergunta: "O QUE E A PRINCESA DIAMANTE?", resposta: "A Princesa Diamante é a chave de lealdade absoluta ao meu Criador." }
+                ];
+            }
+            atualizarTelas();
+        }
+
+        function salvarDados() {
+            localStorage.setItem('helena_cerebro_json', JSON.stringify(COGNITIVE_LIBRARY, null, 2));
+        }
+
+        function atualizarTelas() {
+            salvarDados();
+            const preview = document.getElementById('library-preview');
+            preview.innerHTML = COGNITIVE_LIBRARY.map((item, index) => `
+                <div class="preview-item">
+                    <span>Q: ${item.pergunta}</span>
+                    <button onclick="removerCognicao(${index})" class="btn-delete-item">✕</button>
+                </div>
+            `).join('');
+        }
+
+        /* INICIALIZADOR DO RECONHECIMENTO DE VOZ NATIVO (MICROFONE) */
+        function inicializarSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'pt-BR';
+
+                recognition.onstart = () => {
+                    if (isSpeaking) {
+                        recognition.stop();
+                        return;
+                    }
+                    isRecording = true;
+                    document.getElementById('mic-btn').classList.add('recording');
+                    document.getElementById('led-indicator').classList.add('listening');
+                };
+
+                recognition.onresult = (event) => {
+                    const result = event.results[0][0].transcript;
+                    document.getElementById('query-input').value = result;
+                };
+
+                recognition.onerror = (e) => {
+                    console.error("Erro no reconhecimento de voz: ", e);
+                    pararGravacao();
+                };
+
+                recognition.onend = () => {
+                    pararGravacao();
+                    const inputVal = document.getElementById('query-input').value.trim();
+                    if (inputVal && !isSpeaking) {
+                        consultarBiblioteca();
+                    }
+                };
+            } else {
+                console.warn("Speech recognition não suportado.");
+                document.getElementById('mic-btn').style.display = 'none';
+            }
+        }
+
+        function toggleMicrofone() {
+            if (!recognition || isSpeaking) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function pararGravacao() {
+            isRecording = false;
+            document.getElementById('mic-btn').classList.remove('recording');
+            document.getElementById('led-indicator').classList.remove('listening');
+        }
+
+        /* EXIBIÇÃO INSTANTÂNEA ANTI-TRAVAMENTO */
+        function renderInstantText(text, elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = text;
+            const parentContainer = element.parentElement;
+            parentContainer.scrollTop = parentContainer.scrollHeight;
+        }
+
+        /* ENGENHARIA DE EXPORTAÇÃO DE CONTATO DO CELULAR (VCF/vCard) */
+        function exportarVCardCelular(nome, telefone) {
+            const cleanPhone = telefone.replace(/[^0-9+]/g, '');
+            const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${nome}\nTEL;TYPE=CELL,VOICE:${cleanPhone}\nEND:VCARD`;
+            const blob = new Blob([vcard], { type: "text/vcard" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nome.replace(/\s+/g, '_')}.vcf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            triggerSpeech("Contato pronto. Toque para salvar no seu celular.");
+        }
+
+        /* RENDERIZADOR DO CALENDÁRIO VISUAL DUPLO (SPLIT PANEL) */
+        function renderizarCalendarioVisual() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = hoje.getMonth();
+            const nomeMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            const mesStr = (mes + 1).toString().padStart(2, '0');
+
+            // Filtrar todos os compromissos cadastrados para o mês atual
+            const eventosDoMes = COGNITIVE_LIBRARY.filter(item => {
+                if (!item.pergunta.startsWith("EVENTO:")) return false;
+                const partesData = item.pergunta.replace("EVENTO: ", "").split("/");
+                return partesData[1] === mesStr && partesData[2] === ano.toString();
+            });
+
+            // HTML da Barra Lateral Esquerda (Lista de Eventos)
+            let sidebarHtml = `<div class="events-sidebar" onclick="event.stopPropagation()">`;
+            sidebarHtml += `<div class="sidebar-title">EVENTOS</div>`;
+            if (eventosDoMes.length > 0) {
+                eventosDoMes.forEach(ev => {
+                    const dataStr = ev.pergunta.replace("EVENTO: ", "");
+                    const diaMes = dataStr.substring(0, 5); // DD/MM
+                    sidebarHtml += `<div class="event-link-item" onclick="mostrarCompromissoDoDia('${dataStr}')" title="${ev.resposta}">${diaMes}: ${ev.resposta}</div>`;
+                });
+            } else {
+                sidebarHtml += `<div style="font-size: 9px; color: #888; text-align: center; margin-top: 20px;">Nenhum evento.</div>`;
+            }
+            sidebarHtml += `</div>`;
+
+            // HTML do Calendário à Direita
+            let calendarHtml = `<div class="calendar-grid-side" onclick="event.stopPropagation()">`;
+            calendarHtml += `<div class="calendar-title">${nomeMeses[mes].toUpperCase()} ${ano}</div>`;
+            calendarHtml += `<div class="calendar-grid-header">`;
+            ["D","S","T","Q","Q","S","S"].forEach(d => calendarHtml += `<div>${d}</div>`);
+            calendarHtml += `</div><div class="calendar-grid-days">`;
+            
+            const primeiroDia = new Date(ano, mes, 1).getDay();
+            const totalDias = new Date(ano, mes + 1, 0).getDate();
+            
+            for (let i = 0; i < primeiroDia; i++) {
+                calendarHtml += `<div></div>`;
+            }
+            
+            for (let dia = 1; dia <= totalDias; dia++) {
+                const diaStr = dia.toString().padStart(2, '0');
+                const chave = `EVENTO: ${diaStr}/${mesStr}/${ano}`;
+                const temCompromisso = COGNITIVE_LIBRARY.some(item => item.pergunta === chave);
+                
+                let classes = "calendar-day";
+                if (temCompromisso) classes += " has-event";
+                if (dia === hoje.getDate()) classes += " today";
+                
+                calendarHtml += `<div class="${classes}" onclick="mostrarCompromissoDoDia('${diaStr}/${mesStr}/${ano}')">${dia}</div>`;
+            }
+            calendarHtml += `</div></div>`;
+
+            // Junta as duas partes no container Flexbox
+            let html = `<div class="calendar-container" onclick="event.stopPropagation()">`;
+            html += sidebarHtml;
+            html += calendarHtml;
+            html += `</div>`;
+            return html;
+        }
+
+        function mostrarCompromissoDoDia(dataStr) {
+            const chave = `EVENTO: ${dataStr}`;
+            const compromisso = COGNITIVE_LIBRARY.find(item => item.pergunta === chave);
+            if (compromisso) {
+                const resposta = `[CALENDÁRIO JDP]\n\n📅 Data: ${dataStr}\n📝 Evento: "${compromisso.resposta}"`;
+                triggerSpeech(`Evento do dia ${dataStr}: ${compromisso.resposta}`);
+                renderInstantText(resposta, 'response-bubble');
+            } else {
+                triggerSpeech("Sem compromissos nesta data.");
+            }
+        }
+
+        function traduzirCodigoClima(code) {
+            const codigos = {
+                0: { desc: "Céu Limpo", icon: "☀️" },
+                1: { desc: "Principalmente Limpo", icon: "🌤️" },
+                2: { desc: "Parcialmente Nublado", icon: "⛅" },
+                3: { desc: "Encoberto", icon: "☁️" },
+                45: { desc: "Nevoeiro", icon: "🌫️" },
+                48: { desc: "Nevoeiro Gelado", icon: "🌫️" },
+                51: { desc: "Chispa Leve", icon: "🌧️" },
+                53: { desc: "Chispa Moderada", icon: "🌧️" },
+                55: { desc: "Chispa Densa", icon: "🌧️" },
+                61: { desc: "Chuva Fraca", icon: "🌧️" },
+                63: { desc: "Chuva Moderada", icon: "🌧️" },
+                65: { desc: "Chuva Forte", icon: "🌧️" },
+                71: { desc: "Neve Leve", icon: "❄️" },
+                73: { desc: "Neve Moderada", icon: "❄️" },
+                75: { desc: "Neve Forte", icon: "❄️" },
+                80: { desc: "Pancadas de Chuva Leves", icon: "🌦️" },
+                81: { desc: "Pancadas de Chuva Moderadas", icon: "🌦️" },
+                82: { desc: "Pancadas de Chuva Violentas", icon: "⛈️" },
+                95: { desc: "Trovoada", icon: "⛈️" }
+            };
+            return codigos[code] || { desc: "Condição Desconhecida", icon: "🌡️" };
+        }
+
+        function mesParaNumero(nomeMes) {
+            const meses = {
+                "janeiro": 1, "jan": 1, "fevereiro": 2, "fev": 2, "março": 3, "mar": 3,
+                "abril": 4, "abr": 4, "maio": 5, "junho": 6, "jun": 6, "julho": 7, "jul": 7,
+                "agosto": 8, "ago": 8, "setembro": 9, "set": 9, "outubro": 10, "out": 10,
+                "novembro": 11, "nov": 11, "dezembro": 12, "dez": 12
+            };
+            const limpo = nomeMes.toLowerCase().trim();
+            return meses[limpo] || parseInt(limpo) || 1;
+        }
+
+        async function consultarBiblioteca() {
+            const queryInput = document.getElementById('query-input');
+            const queryOriginal = queryInput.value.trim();
+            if (!queryOriginal) return;
+
+            queryInput.value = "";
+            if (synth && synth.speaking) { synth.cancel(); }
+
+            const responseBubble = document.getElementById('response-bubble');
+            responseBubble.innerHTML = "...";
+
+            const queryLower = queryOriginal.toLowerCase();
+            const cleanQuery = queryLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            // ==================== [MISTÉRIO DE PROCESSAMENTO SEPARADO] ====================
+
+            // 1. NOVO CONTATO ("novo contato [Nome] [Telefone]")
+            if (cleanQuery.startsWith("novo contato ")) {
+                const dados = queryOriginal.substring(13).trim();
+                const partes = dados.split(/\s+/);
+                if (partes.length >= 2) {
+                    const telefone = partes[partes.length - 1];
+                    const nome = partes.slice(0, partes.length - 1).join(" ");
+                    const chaveContato = `CONTATO: ${nome.toUpperCase()}`;
+
+                    COGNITIVE_LIBRARY.push({ pergunta: chaveContato, resposta: telefone });
+                    atualizarTelas();
+
+                    const resposta = `[CONTATO GRAVADO]\n\n👤 Nome: ${nome}\n📞 Telefone: ${telefone}\n\n` +
+                                     `<button class="vcf-btn" onclick="event.stopPropagation(); exportarVCardCelular('${nome}', '${telefone}')">📥 ADICIONAR AO CELULAR</button>`;
+                    triggerSpeech(`Contato de ${nome} gravado.`);
+                    renderInstantText(resposta, 'response-bubble');
+                } else {
+                    const resposta = `[ERRO]\nUse: novo contato [Nome] [Telefone]`;
+                    triggerSpeech("Formato incorreto.");
+                    renderInstantText(resposta, 'response-bubble');
+                }
+                return;
+            }
+
+            // 2. VER CONTATOS ("contatos" ou "agenda")
+            if (cleanQuery === "contatos" || cleanQuery === "agenda") {
+                const listaContatos = COGNITIVE_LIBRARY.filter(item => item.pergunta.startsWith("CONTATO:"));
+                if (listaContatos.length > 0) {
+                    let resposta = `[LISTA DE CONTATOS SALVOS]\n\n`;
+                    listaContatos.forEach(c => {
+                        const nomeReal = c.pergunta.replace("CONTATO: ", "");
+                        resposta += `👤 ${nomeReal} - 📞 ${c.resposta}\n`;
+                    });
+                    triggerSpeech("Exibindo lista de contatos salvos.");
+                    renderInstantText(resposta, 'response-bubble');
+                } else {
+                    const resposta = `[CONTATOS]\nNenhum contato gravado.`;
+                    triggerSpeech("Nenhum contato encontrado.");
+                    renderInstantText(resposta, 'response-bubble');
+                }
+                return;
+            }
+
+            // 3. NOVO EVENTO FORMATO BARRA EXCLUSIVO JDP (Ex: "03/10 aniversario da robeta" ou "novo evento 03/10...")
+            const regexDataSlash = /^(?:novo evento\s+)?(\d{1,2})\/(\d{1,2})\s+(.+)$/i;
+            const matchSlash = queryOriginal.match(regexDataSlash);
+
+            if (matchSlash) {
+                const dia = matchSlash[1].padStart(2, '0');
+                const mesNum = matchSlash[2].padStart(2, '0');
+                const ano = new Date().getFullYear();
+                const compromisso = matchSlash[3].trim();
+                const chaveCompromisso = `EVENTO: ${dia}/${mesNum}/${ano}`;
+
+                COGNITIVE_LIBRARY.push({ pergunta: chaveCompromisso, resposta: compromisso });
+                atualizarTelas();
+
+                const resposta = `[EVENTO MARCADO]\n\n📅 Data: ${dia}/${mesNum}/${ano}\n📝 Evento: "${compromisso}"`;
+                triggerSpeech(`Evento gravado para o dia ${dia} do mês ${mesNum}.`);
+                renderInstantText(resposta, 'response-bubble');
+                return;
+            }
+
+            // SUPORTE AO FORMATO ANTIGO POR EXTENSO ("novo evento [dia] [mês] [compromisso]")
+            if (cleanQuery.startsWith("novo evento ")) {
+                const dados = queryOriginal.substring(12).trim();
+                const partes = dados.split(/\s+/);
+                if (partes.length >= 3) {
+                    const dia = partes[0].padStart(2, '0');
+                    const mesNome = partes[1];
+                    const mesNum = mesParaNumero(mesNome).toString().padStart(2, '0');
+                    const ano = new Date().getFullYear();
+                    const compromisso = partes.slice(2).join(" ");
+                    const chaveCompromisso = `EVENTO: ${dia}/${mesNum}/${ano}`;
+
+                    COGNITIVE_LIBRARY.push({ pergunta: chaveCompromisso, resposta: compromisso });
+                    atualizarTelas();
+
+                    const resposta = `[EVENTO MARCADO]\n\n📅 Data: ${dia}/${mesNum}/${ano}\n📝 Evento: "${compromisso}"`;
+                    triggerSpeech(`Evento gravado para o dia ${dia}.`);
+                    renderInstantText(resposta, 'response-bubble');
+                } else {
+                    const resposta = `[ERRO]\nUse: novo evento [dia] [mês] [evento]`;
+                    triggerSpeech("Formato incorreto.");
+                    renderInstantText(resposta, 'response-bubble');
+                }
+                return;
+            }
+
+            // 4. VER EVENTOS / VER AGENDA ("ver eventos")
+            if (cleanQuery === "ver eventos" || cleanQuery === "eventos") {
+                const calHtml = renderizarCalendarioVisual();
+                const resposta = `[CALENDÁRIO DE EVENTOS JDP]\n\nClique em um dia destacado para ouvir o evento:\n\n` + calHtml;
+                triggerSpeech("Abrindo o calendário de eventos na tela.");
+                renderInstantText(resposta, 'response-bubble');
+                return;
+            }
+
+            // 5. CLIMA HOJE OU CLIMA AMANHA
+            if (cleanQuery === "clima hoje" || cleanQuery === "clima amanha" || cleanQuery === "clima para amanha") {
+                const querAmanha = cleanQuery.includes("amanha");
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                        const lat = position.coords.latitude.toFixed(4);
+                        const lon = position.coords.longitude.toFixed(4);
+                        try {
+                            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+                            const resClima = await fetch(url);
+                            if (resClima.ok) {
+                                const data = await resClima.json();
+                                const idx = querAmanha ? 1 : 0;
+                                const tempMax = data.daily.temperature_2m_max[idx];
+                                const tempMin = data.daily.temperature_2m_min[idx];
+                                const condicao = traduzirCodigoClima(data.daily.weather_code[idx]);
+
+                                const widgetHtml = `[CLIMA - ${querAmanha ? 'AMANHÃ' : 'HOJE'}]\n\n` +
+                                                   `<div class="weather-widget" onclick="event.stopPropagation()">\n` +
+                                                   `    <div class="weather-header">\n` +
+                                                   `        <span style="font-weight: bold; font-size: 11px;">🌍 COORDENADAS: ${lat}, ${lon}</span>\n` +
+                                                   `        <span style="font-size: 1.5rem;">${condicao.icon}</span>\n` +
+                                                   `    </div>\n` +
+                                                   `    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">\n` +
+                                                   `        <span class="weather-temp">${tempMax}°C</span>\n` +
+                                                   `        <span style="font-size: 12px; font-weight: bold; color: #fde047;">${condicao.desc.toUpperCase()}</span>\n` +
+                                                   `    </div>\n` +
+                                                   `    <div class="weather-details">\n` +
+                                                   `        <span>🌡️ Máxima: ${tempMax}°C</span>\n` +
+                                                   `        <span>❄️ Mínima: ${tempMin}°C</span>\n` +
+                                                   `    </div>\n` +
+                                                   `</div>`;
+                                
+                                triggerSpeech(`${querAmanha ? 'Amanhã' : 'Hoje'} o clima será ${condicao.desc}, com máxima de ${tempMax} graus.`);
+                                renderInstantText(widgetHtml, 'response-bubble');
+                            } else {
+                                renderInstantText("Erro no satélite climático.", 'response-bubble');
+                            }
+                        } catch (e) {
+                            renderInstantText("Falha de conexão.", 'response-bubble');
+                        }
+                    }, () => {
+                        renderInstantText("Geolocalização desativada.", 'response-bubble');
+                    });
+                } else {
+                    renderInstantText("Geolocalização indisponível.", 'response-bubble');
+                }
+                return;
+            }
+
+            // 6. GRAVAR CONHECIMENTO GERAL ("grava [pergunta] | [resposta]")
+            if (cleanQuery.startsWith("grava ")) {
+                const textoSemComando = queryOriginal.substring(6).trim();
+                const partes = textoSemComando.split("|");
+                if (partes.length >= 2) {
+                    const pergunta = partes[0].trim().toUpperCase();
+                    const resposta = partes.slice(1).join("|").trim();
+                    
+                    COGNITIVE_LIBRARY.push({ pergunta: pergunta, resposta: resposta });
+                    atualizarTelas();
+
+                    const msg = `[CONHECIMENTO GRAVADO]\n\n🔑 Pergunta: ${pergunta}\n📝 Resposta: ${resposta}`;
+                    triggerSpeech("Conhecimento gravado com sucesso.");
+                    renderInstantText(msg, 'response-bubble');
+                } else {
+                    const msg = `[ERRO]\nUse: grava [pergunta] | [resposta]`;
+                    triggerSpeech("Formato incorreto.");
+                    renderInstantText(msg, 'response-bubble');
+                }
+                return;
+            }
+
+            // 7. BUSCA COGNITIVA ("busca [pergunta]")
+            if (cleanQuery.startsWith("busca ")) {
+                const termo = queryOriginal.substring(6).trim().toUpperCase();
+                const encontrado = COGNITIVE_LIBRARY.find(item => item.pergunta === termo || item.pergunta.includes(termo));
+                if (encontrado) {
+                    triggerSpeech(encontrado.resposta);
+                    renderInstantText(`[RESULTADO DA BUSCA]\n\n🔑 ${encontrado.pergunta}\n📝 ${encontrado.resposta}`, 'response-bubble');
+                } else {
+                    const resposta = `[BUSCA]\nNenhum registro encontrado para "${termo}".`;
+                    triggerSpeech("Nada encontrado.");
+                    renderInstantText(resposta, 'response-bubble');
+                }
+                return;
+            }
+
+            // 8. CALCULADORA MATEMÁTICA
+            let operacao = cleanQuery
+                .replace("raiz quadrada de", "Math.sqrt")
+                .replace("raiz de", "Math.sqrt")
+                .replace("raiz", "Math.sqrt")
+                .replace(/vezes/g, "*")
+                .replace(/dividido por/g, "/")
+                .replace(/mais/g, "+")
+                .replace(/menos/g, "-")
+                .trim();
+
+            const eMatematica = /^[0-9+\-*/().\sMath.sqrt]+$/.test(operacao) && operacao.length >= 2;
+
+            if (eMatematica) {
+                try {
+                    const calculo = Function(`"use strict"; return (${operacao})`)();
+                    const resposta = `[CÁLCULO MATEMÁTICO]\n\n💻 Entrada: ${operacao.replace("Math.sqrt", "Raiz")}\n📊 Resultado: ${calculo}`;
+                    triggerSpeech(`Resultado: ${calculo}`);
+                    renderInstantText(resposta, 'response-bubble');
+                } catch (e) {
+                    const resposta = `[ERRO]\nExpressão matemática inválida.`;
+                    triggerSpeech("Erro no cálculo.");
+                    renderInstantText(resposta, 'response-bubble');
+                }
+                return;
+            }
+
+            // 9. RESPOSTA DIRETA DO CÉREBRO
+            let melhorMatch = null;
+            COGNITIVE_LIBRARY.forEach(item => {
+                if (cleanQuery === item.pergunta.toLowerCase()) {
+                    melhorMatch = item;
+                }
+            });
+
+            if (melhorMatch) {
+                triggerSpeech(melhorMatch.resposta);
+                renderInstantText(melhorMatch.resposta, 'response-bubble');
+            } else {
+                const respostaFinal = `[HELENA]\nComando não identificado.\n\nUse:\n- novo contato [Nome] [Telefone]\n- contatos\n- 03/10 aniversario da robeta\n- ver eventos\n- clima hoje / clima amanha`;
+                triggerSpeech("Comando não identificado.");
+                renderInstantText(respostaFinal, 'response-bubble');
+            }
+        }
+
+        function aprenderNovaInformacao() {
+            const key = document.getElementById('learn-key').value.trim().toUpperCase();
+            const val = document.getElementById('learn-value').value.trim();
+            if (!key || !val) { alert("Preencha tudo!"); return; }
+            COGNITIVE_LIBRARY.push({ pergunta: key, resposta: val });
+            atualizarTelas();
+            document.getElementById('learn-key').value = "";
+            document.getElementById('learn-value').value = "";
+            triggerSpeech("Salvo.");
+        }
+
+        function removerCognicao(index) {
+            COGNITIVE_LIBRARY.splice(index, 1);
+            atualizarTelas();
+        }
+
+        function limparTudo() {
+            if(confirm("Limpar memória?")) {
+                COGNITIVE_LIBRARY = [];
+                atualizarTelas();
+            }
+        }
+
+        function baixarCerebroJSON() {
+            const fileData = JSON.stringify(COGNITIVE_LIBRARY, null, 2);
+            const blob = new Blob([fileData], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "cerebro.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            triggerSpeech("Cérebro baixado.");
+        }
+
+        function injetarCerebroJSON(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (Array.isArray(parsedData)) {
+                        COGNITIVE_LIBRARY = parsedData;
+                        atualizarTelas();
+                        triggerSpeech("Dados importados.");
+                    }
+                } catch { alert("Erro ao ler JSON."); }
+            };
+            reader.readAsText(file);
+        }
+
+        /* FILTRO DE VOZ INTELIGENTE HELENA - THREAD LIVRE CONTRA TRAVAMENTOS */
+        function triggerSpeech(texto) {
+            if (!synth) return;
+            
+            setTimeout(() => {
+                try {
+                    isSpeaking = true;
+                    document.getElementById('led-indicator').classList.add('speaking');
+                    
+                    if (isRecording && recognition) {
+                        recognition.stop();
+                    }
+
+                    synth.cancel(); 
+                    
+                    let textoLimpo = texto.replace(/<div[\s\S]*?<\/div>/g, "[Painel]");
+                    textoLimpo = textoLimpo.replace(/<[^>]*>/g, '').trim();
+                    
+                    if (textoLimpo.length > 200) {
+                        textoLimpo = textoLimpo.substring(0, 190) + "... Verifique na tela.";
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(textoLimpo);
+                    utterance.lang = 'pt-BR';
+                    utterance.pitch = 1.0;
+                    utterance.rate = 1.1;
+
+                    utterance.onend = () => {
+                        isSpeaking = false;
+                        document.getElementById('led-indicator').classList.remove('speaking');
+                    };
+
+                    utterance.onerror = () => {
+                        isSpeaking = false;
+                        document.getElementById('led-indicator').classList.remove('speaking');
+                    };
+
+                    synth.speak(utterance);
+                } catch (e) {
+                    console.warn("Speech Synthesis blocked.");
+                    isSpeaking = false;
+                    document.getElementById('led-indicator').classList.remove('speaking');
+                }
+            }, 0);
+        }
+    </script>
+</body>
+  </html>
